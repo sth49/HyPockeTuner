@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: nord --default;
+}
+
+.tooltip[data-tip] {
+  white-space: pre-line;
+}
+
+.container {
+  border: 1px solid lightgray;
+  height: 500px;
+  max-width: 900px !important;
+  overflow: auto;
+}

@@ -1,0 +1,44 @@
+{
+  "dataset": ["mnist", "satellite"],
+  "mnist": ["cnn"],
+  "satellite": ["efficientnet"],
+  "metric": ["Accuracy", "Dice"],
+  "cnn": [
+    "hidden_size",
+    "learning_rate",
+    "optimizer",
+    "activation",
+    "scheduler_p",
+    "batch_size",
+    "weight_decay",
+    "momentum"
+  ],
+  "efficientnet": [
+    "activation",
+    "scheduler",
+    "accumulation_steps",
+    "verbose",
+    "learning_rate",
+    "optimizer",
+    "scheduler_p",
+    "batch_size",
+    "weight_decay",
+    "momentum"
+  ],
+  "VGG19": [
+    "learning_rate",
+    "optimizer",
+    "scheduler_p",
+    "batch_size",
+    "weight_decay",
+    "momentum"
+  ],
+  "ResNet18": [
+    "learning_rate",
+    "optimizer",
+    "scheduler_p",
+    "batch_size",
+    "weight_decay",
+    "momentum"
+  ]
+}

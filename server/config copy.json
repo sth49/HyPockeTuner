@@ -1,0 +1,68 @@
+{
+  "name": "MNIST",
+  "hyperparameters": [
+    {
+      "name": "hidden_size",
+      "displayName": "hs",
+      "type": "ordered",
+      "values": [16, 32, 64],
+      "subType": "uniform",
+      "subValues": [16, 64]
+    },
+    {
+      "name": "learning_rate",
+      "displayName": "lr",
+      "type": "ordered",
+      "values": [1e-4, 1e-3, 1e-2, 1e-1],
+      "log": true,
+      "subType": "uniform",
+      "subValues": [1e-4, 1e-1]
+    },
+    {
+      "name": "optimizer",
+      "displayName": "optim",
+      "type": "unordered",
+      "values": ["adam", "sgd", "rms"]
+    },
+    {
+      "name": "activation",
+      "displayName": "acti",
+      "type": "unordered",
+      "values": ["relu", "lrelu", "tanh"]
+    },
+    {
+      "name": "scheduler_p",
+      "displayName": "sche",
+      "type": "unordered",
+      "values": [false, true]
+    },
+    {
+      "name": "batch_size",
+      "displayName": "bs",
+      "type": "ordered",
+      "values": [8, 16, 32]
+    },
+    {
+      "name": "weight_decay",
+      "displayName": "wd",
+      "type": "uniform",
+      "values": [0, 1e-3]
+    },
+    {
+      "name": "momentum",
+      "displayName": "mmt",
+      "type": "uniform",
+      "values": [0, 1]
+    }
+  ],
+  "optimizer": {
+    "type": "bohb",
+    "max_budget": 81,
+    "eta": 3,
+    "min_budget": 1
+  },
+  "metric": {
+    "name": "Accuracy",
+    "range": [0, 1]
+  }
+}

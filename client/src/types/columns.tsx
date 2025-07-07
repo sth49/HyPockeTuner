@@ -1,6 +1,6 @@
 // 📄 columns.ts
 import { Hyperparam } from "./hyperparameter";
-import { formatting } from "../utils/utils";
+import { formatting } from "../utils/formatting";
 import { ColumnDef } from "@tanstack/react-table";
 import { TrialRowType } from "./table";
 import CheckBox from "../components/common/CheckBox";
@@ -14,10 +14,10 @@ type ColorScaleFns = {
 export const columns = (
   hyperparams: Hyperparam[],
   colorScaleFns: ColorScaleFns,
-  isCheckboxEnabled: boolean = true
+  isCheckboxEnabled: boolean = true,
+  metricName: string = "metric"
 ): ColumnDef<TrialRowType>[] => {
   const { getMetricColor, getFontColor, getLossColor } = colorScaleFns;
-
   const hyperparamCols =
     hyperparams
       ?.filter((h) => h.selected)
@@ -79,7 +79,7 @@ export const columns = (
     },
     {
       accessorKey: "metric",
-      header: "Acc",
+      header: metricName.slice(0, 4).toUpperCase(),
       cell: (info) => (
         <div
           className="h-full flex items-center justify-center font-light"

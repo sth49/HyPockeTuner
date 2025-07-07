@@ -10,7 +10,7 @@ import {
 import { columns as baseColumns } from "../types/columns";
 import { useColorScale } from "../utils/colorScale";
 import { HyperparamTypes } from "../types";
-import { formatting } from "../utils/utils";
+import { formatting } from "../utils/formatting";
 import { useExperimentStore } from "../stores/experimentStore";
 import { TrialRowType } from "../types";
 
@@ -115,7 +115,7 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
     console.log("Processed rows:", rows.length);
     setData(rows);
   }, [brackets, hyperparams, userTrials]); // table 제거
-
+  const metric = useExperimentStore((state) => state.metric);
   const column = useMemo(
     () =>
       baseColumns(
@@ -125,9 +125,17 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
           getFontColor,
           getLossColor,
         },
-        isCheck
+        isCheck,
+        metric?.name ?? "metric"
       ),
-    [getFontColor, getLossColor, getMetricColor, hyperparams, isCheck]
+    [
+      getFontColor,
+      getLossColor,
+      getMetricColor,
+      hyperparams,
+      isCheck,
+      metric?.name,
+    ]
   );
 
   const table = useReactTable<TrialRowType>({

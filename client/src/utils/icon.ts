@@ -22,6 +22,8 @@ import {
   MdAlarm,
   MdTrendingUp,
   MdShowChart,
+  MdEditNotifications,
+  MdHowToReg,
 } from "react-icons/md";
 
 import {
@@ -33,7 +35,13 @@ import {
 } from "react-icons/md";
 import { TbViewportNarrow } from "react-icons/tb";
 import { RiFunctionAddFill } from "react-icons/ri";
-import { FaCodeBranch, FaPause, FaPlay, FaEye } from "react-icons/fa6";
+import {
+  FaCodeBranch,
+  FaPause,
+  FaPlay,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa6";
 import { Type } from "../models/notification";
 
 export type IconComponent = React.ComponentType<{ size?: number }>;
@@ -50,13 +58,29 @@ export const timelineIcons: Record<string, IconComponent> = {
   push: MdNotificationsActive,
   addUserTrial: RiFunctionAddFill,
   addCondition: MdNotificationAdd,
-  editCondition: MdNotificationsOff,
+  editCondition: MdEditNotifications,
+  deleteCondition: MdNotificationsOff,
   narrowConfigspace: TbViewportNarrow,
   redefineConfigspace: FaCodeBranch,
   experimentPause: FaPause,
   experimentResume: FaPlay,
   visibility: FaEye,
+  nonVisibility: FaEyeSlash,
+  launchImmediatelyExp: MdOutlineDescription,
+  timeout: MdAlarm,
 };
+
+// export const timelineIcons: Record<string, IconComponent> = {
+//   push: MdNotificationsActive,
+//   addUserTrial: RiFunctionAddFill,
+//   addCondition: MdNotificationAdd,
+//   editCondition: MdNotificationsOff,
+//   narrowConfigspace: TbViewportNarrow,
+//   redefineConfigspace: FaCodeBranch,
+//   experimentPause: FaPause,
+//   experimentResume: FaPlay,
+//   visibility: FaEye,
+// };
 
 export const navIcons: Record<string, IconComponent> = {
   overview: MdPageview,
@@ -82,7 +106,7 @@ export const notiTypeIcons: Record<string, IconComponent> = {
   [Type.MetricReach]: MdShowChart,
   [Type.BracketFinish]: MdPlaylistAddCheck,
   [Type.RoundFinish]: MdChecklistRtl,
-  // [Type.TrialFinish]: HowToRegIcon,
+  [Type.TrialFinish]: MdHowToReg,
   [Type.Timeout]: MdAlarm,
   [Type.ExceptionHappen]: MdWarningAmber,
   [Type.HighTemperature]: MdDeviceThermostat,

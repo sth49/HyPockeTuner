@@ -6,7 +6,7 @@ import { LAYOUT_CONFIG } from "../../constants/timelineLayout";
 import Legend from "../common/Legend";
 import { useResponsiveSize } from "../../hooks/useResponsiveSize";
 import { mergeNodesAndLinks } from "../../utils/mergeUtils";
-import { createZigzagLayout } from "../../utils/nodeLinkLayoutUtils";
+import { createZigzagLayout } from "../../utils/nodeLinkLayout";
 import { useGraphData } from "./hooks/useGraphData";
 import MiniMap from "./MiniMap";
 import { CustomSelect } from "../CustomSelect";

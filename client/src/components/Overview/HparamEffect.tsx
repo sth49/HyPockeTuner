@@ -1,14 +1,18 @@
 import { useExperimentStore } from "../../stores/experimentStore";
 import HeaderText from "../common/HeaderText";
-
 import { hpTypeIcons } from "../../utils/icon";
 import { HyperparamTypes } from "../../types";
 import ImportancePlot from "../common/ImportancePlot";
-import { formatting } from "../../utils/utils";
+import { formatting } from "../../utils/formatting";
 import { useState } from "react";
+
 const HparamEffect = () => {
   const hyperparams = useExperimentStore((state) => state.hyperparams) ?? [];
   const shap = useExperimentStore((state) => state.shap);
+
+  // 모든 파라미터의 toggle 상태를 하나의 객체로 관리
+  const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({});
+
   if (hyperparams.length === 0) {
     return (
       <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
@@ -19,6 +23,15 @@ const HparamEffect = () => {
       </div>
     );
   }
+
+  // toggle 상태 변경 함수
+  const handleToggleChange = (paramName: string) => {
+    setToggleStates((prev) => ({
+      ...prev,
+      [paramName]: !prev[paramName],
+    }));
+  };
+
   return (
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
       <div className="flex items-center justify-between">
@@ -30,8 +43,9 @@ const HparamEffect = () => {
         const Icon =
           hpTypeIcons[HyperparamTypes[param.type].toLowerCase()] || null;
 
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const [toggle, setToggle] = useState(false);
+        // 현재 파라미터의 toggle 상태 (기본값: false)
+        const isToggled = toggleStates[param.name] || false;
+
         return (
           <div
             className="flex flex-col gap-2 border-b border-gray-300 pt-2 pb-4"
@@ -45,20 +59,17 @@ const HparamEffect = () => {
               </div>
               <input
                 type="checkbox"
-                // className="toggle toggle-primary toggle-sm"
-
-                className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
-                checked={toggle}
-                onChange={() => {
-                  setToggle(!toggle);
-                }}
+                className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary"
+                checked={isToggled}
+                onChange={() => handleToggleChange(param.name)}
               />
             </div>
-            <ImportancePlot param={param} toggle={toggle} />
+            <ImportancePlot param={param} toggle={isToggled} />
           </div>
         );
       })}
     </div>
   );
 };
+
 export default HparamEffect;

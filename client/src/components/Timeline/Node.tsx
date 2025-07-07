@@ -1,4 +1,4 @@
-import { formatting } from "../../utils/utils";
+import { formatting } from "../../utils/formatting";
 import { useColorScale } from "../../utils/colorScale";
 import { NodeProps, NodeType, Sizes } from "./types";
 import { FaUser } from "react-icons/fa";
@@ -681,6 +681,34 @@ const PseudoNode: React.FC<{
   </div>
 );
 
+const StartNode: React.FC<{
+  data: TrialState;
+  styles: any;
+  bracketId: number;
+  direction?: string;
+}> = ({ data, styles, bracketId }) => (
+  <div className="w-full h-full flex items-center justify-end relative ">
+    <div
+      className={`flex items-center justify-center border-[1px] border-gray-300 bg-gray-300 absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-10`}
+      style={{
+        width: "10px",
+        height: "10px",
+        zIndex: 899,
+      }}
+    ></div>
+    <div
+      className={`flex items-center justify-center border-[1px] border-gray-300 text-gray-500 z-10`}
+      style={{
+        width: "50%",
+        height: "0px",
+        backgroundColor:
+          BAND_COLORS.BAND[(bracketId ?? 0) % BAND_COLORS.BAND.length],
+        zIndex: 899,
+      }}
+    ></div>
+  </div>
+);
+
 // 메인 Node 컴포넌트
 export const Node: React.FC<
   NodeProps & {
@@ -716,6 +744,15 @@ export const Node: React.FC<
         data={trials[0]}
         styles={styles}
         bracketId={trials[0].bracketId ?? 0}
+        direction={direction}
+      />
+    );
+  } else if (type === "start") {
+    return (
+      <StartNode
+        data={trials[0]}
+        styles={styles}
+        bracketId={bandBracketId ?? 0}
         direction={direction}
       />
     );

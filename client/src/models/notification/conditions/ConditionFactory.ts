@@ -69,7 +69,9 @@ export class ConditionFactory {
         condition = new TrialFinishCond(json.trialId);
         break;
       case NotiType.TIMEOUT:
-        condition = new TimeoutCond(fromUnixTime(json.timeoutAt));
+        console.log("TimeoutCond fromJSON", json);
+        condition = new TimeoutCond(fromUnixTime(json.time));
+
         break;
 
       // System conditions

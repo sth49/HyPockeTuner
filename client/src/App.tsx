@@ -18,22 +18,22 @@ import { PageTracker } from "./utils/pageTracker";
 const AppRoutes = () => {
   const routeElements = useRoutes(routes);
   const location = useLocation();
-  const pageTrackerRef = useRef<PageTracker | null>(null);
+  // const pageTrackerRef = useRef<PageTracker | null>(null);
 
   // 페이지 변경 감지
-  useEffect(() => {
-    if (pageTrackerRef.current) {
-      pageTrackerRef.current.updatePage(location.pathname + location.search);
-    }
-  }, [location]);
+  // useEffect(() => {
+  //   if (pageTrackerRef.current) {
+  //     pageTrackerRef.current.updatePage(location.pathname + location.search);
+  //   }
+  // }, [location]);
 
   // PageTracker를 상위 컴포넌트로부터 받아오기 위한 ref 설정
-  useEffect(() => {
-    const tracker = (window as any).pageTracker;
-    if (tracker) {
-      pageTrackerRef.current = tracker;
-    }
-  }, []);
+  // useEffect(() => {
+  //   const tracker = (window as any).pageTracker;
+  //   if (tracker) {
+  //     pageTrackerRef.current = tracker;
+  //   }
+  // }, []);
 
   return routeElements;
 };
@@ -43,13 +43,38 @@ const App = () => {
   const [isAppInitialized, setIsAppInitialized] = useState(false);
   const setSubscribed = useAppStore((state) => state.setSubscribed);
   const backendRef = useRef<Backend | null>(null);
-  const pageTrackerRef = useRef<PageTracker | null>(null);
-  const [viewingStatus, setViewingStatus] = useState<{
-    page: string;
-    isViewing: boolean;
-  }>({
-    page: "",
-    isViewing: true,
+  // const pageTrackerRef = useRef<PageTracker | null>(null);
+  // const [viewingStatus, setViewingStatus] = useState<{
+  //   page: string;
+  //   isViewing: boolean;
+  // }>({
+  //   page: "",
+  //   isViewing: true,
+  // });
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        ApiClient.postVisibility(
+          "user1",
+          false // 페이지가 숨겨졌을 때
+        ).catch((error) => {
+          console.error("Failed to send visibility data:", error);
+        });
+      } else {
+        console.log("Page is visible");
+        ApiClient.postVisibility(
+          "user1",
+          true // 페이지가 보일 때
+        ).catch((error) => {
+          console.error("Failed to send visibility data:", error);
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   });
 
   useEffect(() => {
@@ -66,15 +91,15 @@ const App = () => {
         backendRef.current.connect();
 
         // 🚀 페이지 추적기 초기화
-        if (!pageTrackerRef.current) {
-          console.log("🆕 Creating PageTracker instance");
-          pageTrackerRef.current = new PageTracker("user1");
+        // if (!pageTrackerRef.current) {
+        //   console.log("🆕 Creating PageTracker instance");
+        //   pageTrackerRef.current = new PageTracker("user1");
 
-          // 전역에 설정하여 AppRoutes에서 접근 가능하게 함
-          (window as any).pageTracker = pageTrackerRef.current;
+        //   // 전역에 설정하여 AppRoutes에서 접근 가능하게 함
+        //   (window as any).pageTracker = pageTrackerRef.current;
 
-          pageTrackerRef.current.start();
-        }
+        //   pageTrackerRef.current.start();
+        // }
 
         // backend.connect();
 
@@ -89,10 +114,10 @@ const App = () => {
 
     initializeApp();
     return () => {
-      if (pageTrackerRef.current) {
-        console.log("🧹 Cleaning up PageTracker");
-        pageTrackerRef.current.stop();
-      }
+      // if (pageTrackerRef.current) {
+      //   console.log("🧹 Cleaning up PageTracker");
+      //   pageTrackerRef.current.stop();
+      // }
     };
   }, []);
 
@@ -117,16 +142,16 @@ const App = () => {
   }, []);
 
   // 개발 환경에서 현재 상태 모니터링
-  useEffect(() => {
-    if (import.meta.env.DEV && pageTrackerRef.current) {
-      const interval = setInterval(() => {
-        const status = pageTrackerRef.current!.getCurrentStatus();
-        setViewingStatus(status);
-      }, 1000);
+  // useEffect(() => {
+  //   if (import.meta.env.DEV && pageTrackerRef.current) {
+  //     const interval = setInterval(() => {
+  //       const status = pageTrackerRef.current!.getCurrentStatus();
+  //       setViewingStatus(status);
+  //     }, 1000);
 
-      return () => clearInterval(interval);
-    }
-  }, [isAppInitialized]);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [isAppInitialized]);
 
   if (!isAppInitialized) {
     return (

@@ -13,8 +13,6 @@ interface MiniMapProps {
   onScrollChange: (scrollRatio: number) => void;
 }
 
-const gray = "oklch(87.2% 0.01 258.338)";
-
 const MiniMapContent = ({
   data,
   width,
@@ -210,7 +208,7 @@ const MiniMapContent = ({
                     y={yPosition}
                     width={(barWidth - 20) / 3}
                     height={barHeight}
-                    fill={color}
+                    fill={color || "white"}
                     strokeWidth={1}
                   />
                 );
@@ -235,10 +233,11 @@ const MiniMapContent = ({
                     height={4}
                     fill={
                       d.verticalLink.bracket > 0
-                        ? d.verticalLink.data.type !== "user" &&
-                          BAND_COLORS.BAND[
-                            d.verticalLink.bracket % BAND_COLORS.BAND.length
-                          ]
+                        ? d.verticalLink.data.type !== "user"
+                          ? BAND_COLORS.BAND[
+                              d.verticalLink.bracket % BAND_COLORS.BAND.length
+                            ]
+                          : undefined
                         : d.verticalLink.bracket === -1
                         ? "oklch(92% 0.004 286.32)"
                         : d.verticalLink.bracket === -2

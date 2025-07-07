@@ -101,23 +101,26 @@ const ApiClient = {
    * @param active 활성화 상태
    * @returns Promise<응답 데이터>
    */
-  //   editCondition: function <T = any>(
-  //     notiId: string,
-  //     active: boolean
-  //   ): Promise<T> {
-  //     const currExp = useCurrExp.getState().currExp;
-  //     if (!currExp || !currExp.id) {
-  //       return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
-  //     }
+  editCondition: function <T = any>(
+    notiCondPair: NotiCondPair
+    // notiId: string,
+    // active: boolean
+  ): Promise<T> {
+    // const currExp = useCurrExp.getState().currExp;
+    const expId = useExperimentStore.getState().expId;
+    if (!expId) {
+      return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
+    }
 
-  //     const data = {
-  //       id: notiId,
-  //       active: active,
-  //       exp_id: currExp.id,
-  //     };
+    const data = {
+      // id: notiId,
+      // active: active,
+      ...notiCondPair.toJSON(),
+      exp_id: expId,
+    };
 
-  //     return fetchSingle<T>(`${SERVER_URL}/edit_condition`, data);
-  //   },
+    return fetchSingle<T>(`${SERVER_URL}edit_condition`, data);
+  },
 
   /**
    * 조건을 제거합니다
@@ -170,7 +173,18 @@ const ApiClient = {
     return fetchSingle(`${SERVER_URL}trial/user`, hparams);
   },
 
-  postVisibility: function <T = any>(data: any): Promise<T> {
+  postVisibility: function <T = any>(
+    userId: string,
+    isViewing: boolean
+  ): Promise<T> {
+    const data = {
+      userId: userId || "user1", // 기본값 "user1"
+      page: window.location.pathname + window.location.search,
+      isViewing: isViewing, // 기본값 true
+      timestamp: Date.now() / 1000, // 초 단위로 변환
+    };
+    console.log("Sending visibility data:", data);
+
     return fetchSingle(`${SERVER_URL}visibility`, data);
   },
 

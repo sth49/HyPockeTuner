@@ -78,7 +78,13 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
         ) : (
           <div className="flex items-center justify-center w-full h-full">
             <button
-              onClick={() => handleNavigate("/workspace")}
+              onClick={() => {
+                handleNavigate("/workspace");
+                ApiClient.postVisibility("user1", false).catch((error) => {
+                  console.error("Failed to send visibility data:", error);
+                });
+                console.log("Navigating to workspace");
+              }}
               className="text-gray-700 transition-colors ml-2"
             >
               <IoChevronBack size={20} />

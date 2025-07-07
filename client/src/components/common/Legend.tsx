@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useColorScale } from "../../utils/colorScale";
-import { formatting } from "../../utils/utils";
+import { formatting } from "../../utils/formatting";
+import { useExperimentStore } from "../../stores/experimentStore";
 
 interface LegendProps {
   type?: "metric" | "loss";
@@ -18,6 +19,8 @@ interface LegendConfig {
 const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
   const { metricColorScale, lossColorScale, metricRange, lossRange } =
     useColorScale();
+
+  const metric = useExperimentStore((state) => state.metric);
 
   // Legend 설정을 메모이제이션
   const legendConfig: LegendConfig = useMemo(() => {
@@ -60,7 +63,9 @@ const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
         height: `${height + 10}px`,
       }}
     >
-      <div className="text-xs uppercase w-[45px] font-bold">{type}</div>
+      <div className="text-xs uppercase w-[45px] font-bold">
+        {type === "metric" ? metric.name.slice(0, 4) : type}
+      </div>
 
       <div className="flex items-center space-x-1 flex-1 justify-around">
         <span className="text-xs text-gray-600 w-[20px] text-center">

@@ -44,9 +44,9 @@ def get_condition(cond, exp_id):
     elif cond['type'] ==TRIAL_FINISH:
         return TrialFinishCondition(cond['id'], cond['trialId'], exp_id)
     elif cond['type'] == BRACKET_FINISH:
-        return BracketFinishCondition(cond['id'], cond['bracketId'], exp_id)
+        return BracketFinishCondition(cond['id'], cond['bracketId'], exp_id, cond['bracketLength'] if 'bracketLength' in cond else 3)
     elif cond['type'] == ROUND_FINISH:
-        return RoundFinishCondition(cond['id'],cond['bracketId'], cond['roundId'], exp_id)
+        return RoundFinishCondition(cond['id'],cond['bracketId'], cond['roundId'], exp_id, cond['bracketLength'] if 'bracketLength' in cond else 3)
     elif cond['type'] == TIMEOUT:
         return TimeoutCondition(cond['id'], cond['time'], exp_id)
     elif cond['type'] == LOW_UTILIZATION:
@@ -234,7 +234,7 @@ class ExperimentFinishCondition(NotificationCondition):
         return prog_type=="finish"
     
     def emit(self, cond_id, status):
-        self.content = f'Exp ID:({self.exp_id[:3]})'
+        self.content = f'Exp ID: {self.exp_id[:3]}'
         return NOTIFICATION(EXPERIMENT_FINISH, cond_id, status, self.key, self.content).to_json()
         # return NOTIFICATION(EXPERIMENT_FINISH, cond_id, status, trial.id, trial.metric, self.key).to_json()
     
@@ -347,10 +347,10 @@ class TrialFinishCondition(NotificationCondition):
         return dict(type=TRIAL_FINISH, id=self.id, trialId=self.trial_id)
        
 class BracketFinishCondition(NotificationCondition):
-    def __init__(self, id, bracket_id, exp_id):
+    def __init__(self, id, bracket_id, exp_id, bracket_length=3):
         self.key = f'Bracket Done'
-        self.content = f'Bracket ID: {bracket_id}'
-        self.timeout_key = f'Bracket {bracket_id} Done'
+        self.content = f'Bracket ID: {bracket_length - bracket_id}'
+        self.timeout_key = f'Bracket {bracket_length - bracket_id} Done'
         self.bracket_id = bracket_id
         super().__init__(id, exp_id)
     # def test(self, bracket_id):
@@ -368,12 +368,12 @@ class BracketFinishCondition(NotificationCondition):
     def to_json(self):
         return dict(type=BRACKET_FINISH, id=self.id, bracketId=self.bracket_id)
 class RoundFinishCondition(NotificationCondition):
-    def __init__(self, id, bracket_id, round_id, exp_id):
+    def __init__(self, id, bracket_id, round_id, exp_id, bracket_length=3):
         super().__init__(id, exp_id)
         # self.key = f'Round {bracket_id}-{round_id} Done'
         self.key = "Round Done"
-        self.content = f'Round ID: {bracket_id}-{round_id}'
-        self.timeout_key = f'Round {bracket_id}-{round_id} Done'
+        self.content = f'Round ID: {bracket_length - bracket_id}-{round_id+1}'
+        self.timeout_key = f'Round {bracket_length - bracket_id}-{round_id+1} Done'
         self.round_id = round_id
         self.bracket_id = bracket_id
     

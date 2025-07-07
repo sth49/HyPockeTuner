@@ -1,6 +1,6 @@
 import { format, formatDistanceStrict } from "date-fns";
 import { BandProps } from "./types";
-import { formatting } from "../../utils/utils";
+import { formatting } from "../../utils/formatting";
 
 interface NodeDetailProps {
   data: BandProps;
@@ -15,13 +15,13 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
 
         <p className="text-xs ">
           {data !== null
-            ? `${format(data.startTime * 1000, "a HH:mm:ss")} - ${
-                data.endTime ? format(data.endTime * 1000, "a HH:mm:ss") : "N/A"
+            ? `${format(data.startTime, "yyyy.MM.dd a HH:mm:ss")} - ${
+                data.endTime ? format(data.endTime, "HH:mm:ss") : "N/A"
               }`
             : "N/A"}
         </p>
         <p className="text-xs">
-          ({formatDistanceStrict(data.endTime * 1000, data.startTime * 1000)})
+          ({formatDistanceStrict(data.endTime, data.startTime)})
         </p>
       </div>
       {data.data?.type !== "pseudo" ? (

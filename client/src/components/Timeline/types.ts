@@ -20,6 +20,7 @@ export type BandType = "node" | "link";
 // 노드 타입
 export type NodeType =
   | "pseudo"
+  | "start"
   | "link"
   | "trial"
   | "user"

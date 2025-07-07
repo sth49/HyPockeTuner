@@ -6,13 +6,11 @@ import { LAYOUT_CONFIG } from "../../constants/timelineLayout";
 import Legend from "../common/Legend";
 import { useResponsiveSize } from "../../hooks/useResponsiveSize";
 import { mergeNodesAndLinks } from "../../utils/mergeUtils";
-import { createZigzagLayout } from "../../utils/nodeLinkLayoutUtils";
+import { createZigzagLayout } from "../../utils/nodeLinkLayout";
 import { useGraphData } from "./hooks/useGraphData";
 import MiniMap from "./MiniMap";
 import MobileDrawer from "./MobileDrawer";
 import { BandProps } from "./types";
-import { format } from "date-fns";
-import { formatting } from "../../utils/utils";
 import LinkDetail from "./LinkDetail";
 import NodeDetail from "./NodeDetail";
 
@@ -94,8 +92,25 @@ const Timeline: React.FC = () => {
 
   // 노드 클릭 핸들러
   const handleNodeClick = (nodeData: BandProps) => {
-    console.log("Node clicked:", nodeData);
     setSelectedNode(nodeData);
+    setDrawerOpen(true);
+  };
+
+  const handleLinkClick = (linkData: BandProps) => {
+    // Type guard to check if linkData is a LinkProps and has events
+    const isLinkWithEvents =
+      linkData.type === "link" &&
+      linkData.data &&
+      Array.isArray((linkData.data as { events?: unknown[] }).events);
+
+    // if (
+    //   !isLinkWithEvents ||
+    //   ((linkData.data as { events?: unknown[] }).events?.length ?? 0) === 0
+    // ) {
+    //   return;
+    // }
+
+    setSelectedNode(linkData);
     setDrawerOpen(true);
   };
 
@@ -124,8 +139,8 @@ const Timeline: React.FC = () => {
         <Legend width={50} />
       </div>
       <div
-        className="absolute top-[30px] left-0 w-[60px] z-999"
-        style={{ height: `calc(100% - 170px)` }}
+        className="absolute top-[30px] left-0 w-[60px] z-999 h-full"
+        // style={{ height: `calc(100% - 170px)` }}
       >
         <MiniMap
           data={reversedRows}
@@ -151,7 +166,7 @@ const Timeline: React.FC = () => {
                 }}
                 onClick={() => {
                   if (row.verticalLink) {
-                    handleNodeClick(row.verticalLink);
+                    handleLinkClick(row.verticalLink);
                   }
                 }}
               >
@@ -189,7 +204,7 @@ const Timeline: React.FC = () => {
                     {index < row.horizontalLinks.length && (
                       <div
                         onClick={() =>
-                          handleNodeClick(row.horizontalLinks[index])
+                          handleLinkClick(row.horizontalLinks[index])
                         }
                       >
                         <Band

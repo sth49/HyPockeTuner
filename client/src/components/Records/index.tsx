@@ -30,8 +30,8 @@ const Records = () => {
     <div className="w-full h-full ">
       <div className="absolute top-[110px] left-0 w-full h-[50px] bg-white z-999 flex items-center justify-center gap-1 border-b-[0.5px] border-b-[#e0e0e0]">
         <div className="flex items-center flex-col pl-2">
-          <Legend type="loss" width={200} />
           <Legend width={200} />
+          <Legend type="loss" width={200} />
         </div>
         <div className="flex-1 h-full flex items-center justify-center">
           <button

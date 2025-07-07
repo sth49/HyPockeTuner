@@ -1,8 +1,9 @@
 import { BaseNotiCond } from "./BaseNotiCond";
-import { format, getUnixTime } from "date-fns";
+import { getUnixTime } from "date-fns";
 import { NotiType, NotiCondJSON } from "../notification.types";
 
 import { useExperimentStore } from "../../../stores/experimentStore";
+import { formatDate } from "../../../utils";
 
 export class BracketFinishCond extends BaseNotiCond {
   name = "bracketFinish";
@@ -16,6 +17,7 @@ export class BracketFinishCond extends BaseNotiCond {
     return {
       ...super.toJSON(),
       bracketId: this.bracketId,
+      bracketLength: useExperimentStore.getState().brackets.length,
     };
   }
 
@@ -24,7 +26,9 @@ export class BracketFinishCond extends BaseNotiCond {
   }
 
   toContent(): string {
-    return `Bracket ID: ${this.bracketId}`;
+    return `Bracket ID: ${
+      useExperimentStore.getState().brackets.length - this.bracketId
+    }`;
   }
 }
 
@@ -41,6 +45,7 @@ export class RoundFinishCond extends BaseNotiCond {
       ...super.toJSON(),
       bracketId: this.bracketId,
       roundId: this.roundId,
+      bracketLength: useExperimentStore.getState().brackets.length,
     };
   }
 
@@ -99,7 +104,8 @@ export class TimeoutCond extends BaseNotiCond {
   }
 
   toContent(): string {
-    return format(this.time, "yyyy-MM-dd HH:mm:ss");
+    // console.log("TimeoutCond toContent", this.time);
+    return `at ${formatDate(this.time)}`;
   }
 }
 

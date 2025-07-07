@@ -3,24 +3,28 @@
 // import { formatting } from "../utils/utils";
 // import { progressColor } from "../utils/color";
 
-import { format } from "date-fns";
 import { ExpSummary } from "../../types";
-import { formatting } from "../../utils/utils";
+import { formatDate, formatting } from "../../utils";
 import { progressColor } from "../../utils/color";
 
 // import { format } from "date-fns";
 import { summaryIcons as icons } from "../../utils/icon";
+import { useExperimentStore } from "../../stores/experimentStore";
 interface ExpSummaryViewProps {
   exp: ExpSummary;
 }
 
 const ExpSummaryView = ({ exp }: ExpSummaryViewProps) => {
+  const bestTrial = useExperimentStore((state) => state.bestTrial);
+  const expId = useExperimentStore((state) => state.expId);
   const data = {
     hparamLength: exp.hparamList.length,
     budget: exp.budget,
-    bestMetric: exp.bestTrial ? formatting(exp.bestTrial, "float") : null,
+    bestMetric:
+      exp.id === expId && bestTrial ? bestTrial.metric : exp.bestTrial,
     doneTrials: `${exp.doneTrials} / ${exp.allTrials}`,
-    lastUpdatedAt: format(Number(exp.lastUpdatedAt) * 1000, "MM/dd"),
+    lastUpdatedAt: formatDate(Number(exp.lastUpdatedAt) * 1000, "day"),
+    // format(Number(exp.lastUpdatedAt) * 1000, "MM/dd"),
   };
 
   return (

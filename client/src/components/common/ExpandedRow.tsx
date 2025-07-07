@@ -1,10 +1,10 @@
 // ExpandedRow.tsx
 import React from "react";
 import { Row } from "@tanstack/react-table";
-import { format } from "date-fns";
 import { MdAdd, MdOutlineContentCopy } from "react-icons/md";
 import { useNavigation } from "../../hooks/useNavigation";
 import { TrialRowType } from "../../types/table";
+import { formatDate } from "../../utils";
 
 interface Props {
   row: Row<TrialRowType>;
@@ -47,11 +47,12 @@ const ExpandedRow: React.FC<Props> = ({ row }) => {
                       {key === "id"
                         ? String(rowData[key as keyof TrialRowType]).slice(0, 3)
                         : key === "start" || key === "end"
-                        ? format(
-                            new Date(rowData[key as keyof TrialRowType] * 1000),
-                            "yyyy-MM-dd HH:mm:ss"
-                          )
-                        : rowData[key as keyof TrialRowType] !== undefined
+                        ? formatDate(rowData[key as keyof TrialRowType], "time")
+                        : // format(
+                        //     new Date(rowData[key as keyof TrialRowType] * 1000),
+                        //     "yyyy-MM-dd HH:mm:ss"
+                        //   )
+                        rowData[key as keyof TrialRowType] !== undefined
                         ? String(rowData[key as keyof TrialRowType])
                         : "N/A"}
                     </div>

@@ -1,7 +1,7 @@
 // stores/experimentStore.ts
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { processExperimentEvent } from "../utils/experimentEventProcessor";
+import { processExperimentEvent } from "./experimentEventProcessor";
 import {
   Hyperparam,
   TrialRowType,
@@ -21,6 +21,7 @@ interface ExperimentStore extends ExperimentState {
   // processEvents: (events: ExperimentEvent[]) => void;
 
   setSelectedTrials: (trials: TrialRowType[]) => void;
+  setNotiCondPairs: (pairs: NotiCondPair[]) => void;
 }
 // stores/experimentStore.ts
 export const useExperimentStore = create<ExperimentStore>()(
@@ -75,8 +76,6 @@ export const useExperimentStore = create<ExperimentStore>()(
         return NotiCondPair.fromJSON(cond);
       });
 
-      console.log("Initializing experiment with data:", expData);
-
       set({
         expId: expData.expId,
         name: expData.name,
@@ -114,12 +113,25 @@ export const useExperimentStore = create<ExperimentStore>()(
         currBracketId: 0, // 현재 브라켓 ID
         currRoundId: 0, // 현재 라운드 ID
       });
+
+      const allCallbacks = expData.allCallbacks.filter(
+        (callback: any) => callback.key !== "lastUpdated"
+      );
+
+      if (allCallbacks) {
+        get().processEvents(allCallbacks);
+      }
+
+      console.log("callbacks", allCallbacks);
+
+      console.log("Initializing experiment with data:", expData);
     },
 
     processEvent: (event: SocketEvent) => {
       const state = get();
       const updatedState = processExperimentEvent(state, event);
-      console.log("After Processing event:", state);
+      console.log("Before Processing event:", state);
+      console.log("After Processing event:", updatedState);
       set({
         ...state,
         ...updatedState,
@@ -154,104 +166,8 @@ export const useExperimentStore = create<ExperimentStore>()(
     setSelectedTrials: (trials: TrialRowType[]) => {
       set({ selectedTrials: trials });
     },
+    setNotiCondPairs: (pairs: NotiCondPair[]) => {
+      set({ notiCondPairs: pairs });
+    },
   }))
-  // subscribeWithSelector((set, get) => ({
-  // initializeRunningExperiment: (expId: string, status: ExpStatus) => {
-  //   set({
-  //     runningExp: {
-  //       expId,
-  //       status,
-  //       lastUpdated: 0,
-  //       totalTrials: 0,
-  //       curNumTrials: 0,
-  //       brackets: [],
-  //     },
-  //   });
-  // },
-
-  // 액션들
-  // initializeExperiment: (expId: string, status: ExpStatus) => {
-  //   set({
-  //     expId,
-  //     status,
-  //     lastUpdated: Date.now() / 1000,
-  //   });
-  // },
-
-  // processEvent: (event: ExperimentEvent, type: string) => {
-  //   const state = type === "current" ? get().currentExp : get().runningExp;
-  //   if (!state) {
-  //     console.error("Experiment state is not initialized");
-  //     return;
-  //   }
-  //   const updatedState = processExperimentEvent(state, event);
-  //   if (type === "current") {
-  //     set({ currentExp: { ...state, ...updatedState } });
-  //   }
-  //   if (type === "running") {
-  //     set({ runningExp: { ...state, ...updatedState } });
-  //   }
-  //   console.log("After initialization:", type, state.brackets);
-  // },
-  // processEvents: (events: ExperimentEvent[], type: string) => {
-  //   let state = type === "current" ? get().currentExp : get().runningExp;
-  //   if (!state) {
-  //     console.error("Experiment state is not initialized");
-  //     return;
-  //   }
-  //   for (const event of events) {
-  //     state = { ...state, ...processExperimentEvent(state, event) };
-  //   }
-  //   if (type === "current") {
-  //     set({ currentExp: state });
-  //   }
-  //   if (type === "running") {
-  //     set({ runningExp: state });
-  //   }
-  //   console.log("After initialization:", type, state.brackets);
-  // },
-  // set(state);
-  // processEvents: (events: ExperimentEvent[]) => {
-  //   let state = get();
-  //   for (const event of events) {
-  //     state = { ...state, ...processExperimentEvent(state, event) };
-  //   }
-  //   set(state);
-  //   console.log("After initialization:", get().brackets);
-  // },
-
-  // subscribeWithSelector((set, get) => ({
-  //   // 초기 상태
-  //   expId: "",
-  //   status: "pending",
-  //   lastUpdated: 0,
-  //   totalTrials: 0,
-  //   curNumTrials: 0,
-  //   firstBracketTrials: 0,
-  //   brackets: [],
-
-  //   // 액션들
-  //   initializeExperiment: (expId: string, status: ExpStatus) => {
-  //     set({
-  //       expId,
-  //       status,
-  //       lastUpdated: Date.now() / 1000,
-  //     });
-  //   },
-
-  //   processEvent: (event: ExperimentEvent) => {
-  //     const state = get();
-  //     const updatedState = processExperimentEvent(state, event);
-  //     set({ ...state, ...updatedState });
-  //   },
-
-  //   processEvents: (events: ExperimentEvent[]) => {
-  //     let state = get();
-  //     for (const event of events) {
-  //       state = { ...state, ...processExperimentEvent(state, event) };
-  //     }
-  //     set(state);
-  //     console.log("After initialization:", get().brackets);
-  //   },
-  // }))
 );

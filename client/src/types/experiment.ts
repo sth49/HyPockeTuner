@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { TrialRowType, GpuData, Shap, Hyperparam } from ".";
-import { HyperparamSet } from "../models/HyperparamSet";
 import { NotiCondPair } from "../models/notification";
 // import { LinearRegression } from "../models/Linear";
 
@@ -119,9 +118,6 @@ export interface TrialState {
   loss?: number;
   startTime: number;
   endTime: number;
-  clusterId?: string;
-  paramSet: HyperparamSet; // 하이퍼파라미터 세트
-  paramSetId?: string; // 하이퍼파라미터 세트 ID
   type?: string;
   dataset?: string;
   model?: string;

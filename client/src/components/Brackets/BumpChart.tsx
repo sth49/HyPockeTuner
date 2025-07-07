@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Group } from "@visx/group";
 import { scaleLinear, scalePoint } from "@visx/scale";
 import { useExperimentStore } from "../../stores/experimentStore";
@@ -9,32 +9,29 @@ interface BracketProps {
   bracket: BracketState;
   width?: number;
   height?: number;
+  isVisible?: boolean;
 }
 
 const SimpleBumpChart = ({
   bracket,
   width = 300,
   height = 400,
+  isVisible = true,
 }: BracketProps) => {
-  //   const brackets = useExperimentStore((state) => state.brackets);
   const hyperparams = useExperimentStore((state) => state.hyperparams);
-  const margin = { top: 50, right: 50, bottom: 10, left: 50 };
+  const margin = { top: 60, right: 10, bottom: 20, left: 50 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
   const getMetricColor = useColorScale().getMetricColor;
 
+  // 애니메이션 상태
+  const [visibleRounds, setVisibleRounds] = useState<Set<number>>(new Set());
+  const [showConnections, setShowConnections] = useState(false);
+  const [animationStarted, setAnimationStarted] = useState(false);
+
   // 데이터 처리
   const { processedTrials, connections, rounds, budgets } = useMemo(() => {
-    // 안전성 체크
-    // if (!brackets || !Array.isArray(brackets) || brackets.length === 0) {
-    //   return { processedTrials: [], connections: [], rounds: [] };
-    // }
-
-    // if (!bracket || !bracket.rounds || !Array.isArray(bracket.rounds)) {
-    //   return { processedTrials: [], connections: [], rounds: [] };
-    // }
-
     const allTrials: (TrialState & {
       roundId: number;
       position: number;
@@ -46,6 +43,7 @@ const SimpleBumpChart = ({
       to: TrialState & { roundId: number; position: number };
     }[] = [];
     const roundIds: number[] = [];
+
     // 각 라운드별로 트라이얼 처리
     bracket.rounds.forEach((round) => {
       if (!round || !round.trials || !Array.isArray(round.trials)) {
@@ -128,17 +126,56 @@ const SimpleBumpChart = ({
     };
   }, [bracket, hyperparams]);
 
+  // 애니메이션 시작
+  useEffect(() => {
+    if (processedTrials.length > 0 && isVisible) {
+      // isVisible이 true가 될 때마다 애니메이션 리셋 후 시작
+      setAnimationStarted(false);
+      setVisibleRounds(new Set());
+      setShowConnections(false);
+
+      // 약간의 지연 후 애니메이션 시작
+      setTimeout(() => {
+        setAnimationStarted(true);
+
+        // 라운드별로 순차적으로 애니메이션
+        rounds.forEach((round, index) => {
+          setTimeout(() => {
+            setVisibleRounds((prev) => new Set([...prev, round]));
+
+            // 마지막 라운드가 나타난 후 연결선 애니메이션 시작
+            if (index === rounds.length - 1) {
+              setTimeout(() => {
+                setShowConnections(true);
+              }, 300); // 마지막 점들이 완전히 나타난 후
+            }
+          }, index * 500); // 각 라운드마다 500ms 간격
+        });
+      }, 100);
+    } else if (!isVisible) {
+      // isVisible이 false가 되면 애니메이션 상태 리셋
+      setAnimationStarted(false);
+      setVisibleRounds(new Set());
+      setShowConnections(false);
+    }
+  }, [processedTrials, rounds, isVisible]);
+
+  // bracket이 변경되면 애니메이션 리셋
+  useEffect(() => {
+    if (!isVisible) {
+      setAnimationStarted(false);
+      setVisibleRounds(new Set());
+      setShowConnections(false);
+    }
+  }, [bracket, isVisible]);
+
   // 데이터가 없는 경우 처리
   if (!processedTrials || processedTrials.length === 0) {
     return (
       <div className="w-full p-4">
-        <h2 className="text-xl font-bold mb-4">BOHB Trial Flow (Bump Chart)</h2>
-        {/* <div className="text-center text-gray-500 py-8">
-          <p>데이터가 없습니다.</p>
-          <p className="text-sm mt-2">
-            브래킷과 트라이얼 데이터를 확인해주세요.
-          </p>
-        </div> */}
+        <h2 className="text-xl font-bold ">
+          No trials available for this bracket.
+        </h2>
       </div>
     );
   }
@@ -158,9 +195,58 @@ const SimpleBumpChart = ({
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full p-4 overflow-x-auto">
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0); }
+            to { opacity: 1; transform: scale(1); }
+          }
+        `}
+      </style>
       <svg width={width} height={height}>
         <Group left={margin.left} top={margin.top}>
+          {/* 트라이얼 점들 */}
+          {processedTrials.map((trial, i) => {
+            const cx = xScale(trial.roundId);
+            const cy = yScale(trial.position);
+            const isVisible = visibleRounds.has(trial.roundId);
+            const isConnected = connections.some(
+              (conn) =>
+                (conn.from.roundId === trial.roundId &&
+                  conn.from.position === trial.position) ||
+                (conn.to.roundId === trial.roundId &&
+                  conn.to.position === trial.position)
+            );
+
+            // null 체크
+            if (cx == null || cy == null) {
+              return null;
+            }
+
+            return (
+              <g key={`trial-${trial.id || i}`}>
+                <rect
+                  x={cx - 12}
+                  y={cy - 6}
+                  width={24}
+                  height={10}
+                  fill={getMetricColor(trial.metric)}
+                  strokeWidth={2}
+                  rx={3}
+                  ry={3}
+                  style={{
+                    opacity: isVisible ? (isConnected ? 1 : 0.5) : 0,
+                    transform: isVisible ? "scale(1)" : "scale(0)",
+                    transformOrigin: "center",
+                    transition: "all 0.3s ease-out",
+                    transitionDelay: `${trial.position * 30}ms`, // 각 점마다 순차적으로
+                  }}
+                />
+              </g>
+            );
+          })}
+
           {/* 연결선 */}
           {connections.map((conn, i) => {
             const x1 = xScale(conn.from.roundId);
@@ -173,77 +259,81 @@ const SimpleBumpChart = ({
               return null;
             }
 
-            return (
-              <line
-                key={`line-${i}`}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="oklch(55.1% 0.027 264.364)"
-                strokeWidth={2}
-                strokeOpacity={0.5}
-              />
-            );
-          })}
-
-          {/* 트라이얼 점들 */}
-          {processedTrials.map((trial, i) => {
-            const cx = xScale(trial.roundId);
-            const cy = yScale(trial.position);
-
-            // null 체크
-            if (cx == null || cy == null) {
-              return null;
-            }
+            const pathId = `connection-path-${i}`;
+            const pathData = `M${x1 + 12},${y1} C${(x1 + x2) / 2},${y1} ${
+              (x1 + x2) / 2
+            },${y2} ${x2 - 12},${y2}`;
 
             return (
-              <g key={`trial-${trial.id || i}`}>
-                <rect
-                  x={cx - 6}
-                  y={cy - 6}
-                  width={12}
-                  height={12}
-                  fill={getMetricColor(trial.metric)}
-                  stroke="white"
+              <g key={`connection-${i}`}>
+                {/* 경로 정의 */}
+                <defs>
+                  <path id={pathId} d={pathData} />
+                </defs>
+
+                {/* 연결선 */}
+                <path
+                  d={pathData}
+                  stroke="oklch(55.1% 0.027 264.364)"
                   strokeWidth={2}
-                  rx={3}
-                  ry={3}
+                  fill="none"
+                  strokeOpacity={0.5}
+                  style={{
+                    strokeDasharray: showConnections ? "none" : "1000",
+                    strokeDashoffset: showConnections ? "0" : "1000",
+                    transition: "stroke-dashoffset 0.8s ease-in-out",
+                    transitionDelay: `${i * 100}ms`, // 각 연결선마다 순차적으로
+                  }}
                 />
               </g>
             );
           })}
 
-          {/* 라운드 레이블 */}
+          {/* 라운드 라벨 */}
           {rounds.map((round) => {
             const x = xScale(round);
+            const isVisible = visibleRounds.has(round);
+
             if (x == null) return null;
 
             return (
-              <>
+              <g key={`round-labels-${round}`}>
                 <text
-                  key={`round-${round}`}
                   x={x}
                   y={-35}
                   textAnchor="middle"
                   fontSize={14}
                   fontWeight="bold"
                   fill="oklch(55.1% 0.027 264.364)"
+                  style={{
+                    opacity: isVisible ? 1 : 0,
+                    transform: isVisible
+                      ? "translateY(0)"
+                      : "translateY(-10px)",
+                    transition: "all 0.3s ease-out",
+                    transitionDelay: "0.1s",
+                  }}
                 >
                   Round {round}
                 </text>
                 <text
-                  key={`round-${round}-text`}
                   x={x}
                   y={-20}
                   textAnchor="middle"
                   fontSize={12}
-                  // fontWeight="bold"
                   fill="oklch(55.1% 0.027 264.364)"
+                  style={{
+                    opacity: isVisible ? 1 : 0,
+                    transform: isVisible
+                      ? "translateY(0)"
+                      : "translateY(-10px)",
+                    transition: "all 0.3s ease-out",
+                    transitionDelay: "0.2s",
+                  }}
                 >
-                  (${budgets[round - 1] || 0})
+                  ($ {budgets[round - 1] || 0})
                 </text>
-              </>
+              </g>
             );
           })}
 
@@ -257,54 +347,17 @@ const SimpleBumpChart = ({
               dy="0.35em"
               fontSize={12}
               fill="oklch(55.1% 0.027 264.364)"
+              style={{
+                opacity: animationStarted ? 1 : 0,
+                transition: "opacity 0.3s ease-out",
+                transitionDelay: "0.1s",
+              }}
             >
               {i + 1}
             </text>
           ))}
         </Group>
       </svg>
-
-      {/* 상세 정보 테이블 */}
-      {/* <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full text-sm border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 px-2 py-1">Trial ID</th>
-              <th className="border border-gray-300 px-2 py-1">Round</th>
-              <th className="border border-gray-300 px-2 py-1">Rank</th>
-              <th className="border border-gray-300 px-2 py-1">Sample Type</th>
-              <th className="border border-gray-300 px-2 py-1">Metric</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedTrials
-              .sort((a, b) => a.roundId - b.roundId || a.position - b.position)
-              .map((trial, index) => (
-                <tr key={trial.id || index}>
-                  <td className="border border-gray-300 px-2 py-1 font-mono">
-                    {trial.id || `Trial-${index}`}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-1">
-                    {trial.roundId}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-1">
-                    #{trial.position + 1}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-1">
-                    <span
-                      className="inline-block w-3 h-3 rounded-full mr-1"
-                      style={{ backgroundColor: getColor(trial.sample) }}
-                    ></span>
-                    {trial.sample || "unknown"}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-1">
-                    {trial.metric ? trial.metric.toFixed(3) : "N/A"}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div> */}
     </div>
   );
 };

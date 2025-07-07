@@ -3,7 +3,7 @@ import { useExperimentStore } from "../../stores/experimentStore";
 import { hpTypeIcons } from "../../utils/icon";
 import { HyperparamTypes, UniformHyperparam } from "../../types";
 import { useEffect, useState } from "react";
-import { formatting } from "../../utils/utils";
+import { formatting } from "../../utils/formatting";
 import ImportancePlot from "../common/ImportancePlot";
 import BottomButton from "../common/BottomButton";
 import { GrContract } from "react-icons/gr";

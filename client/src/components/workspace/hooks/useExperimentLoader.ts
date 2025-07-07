@@ -7,26 +7,32 @@ export const useExperimentLoader = () => {
   const initializeExperiment = useExperimentStore(
     (state) => state.initializeExperiment
   );
-  const processEvents = useExperimentStore((state) => state.processEvents);
   const { handleNavigate } = useNavigation();
+  const expId = useExperimentStore((state) => state.expId);
 
   const loadExperiment = useCallback(
     async (experimentId: string) => {
       try {
-        const response = await ApiClient.call([`exp/get/${experimentId}`]);
-        console.log("load_information", response);
+        if (experimentId === expId) {
+          console.log("Experiment already loaded:", experimentId);
+        } else {
+          const response = await ApiClient.call([`exp/get/${experimentId}`]);
 
-        const experimentData = response[0];
-        initializeExperiment(experimentData);
-        processEvents(experimentData.allCallbacks);
+          const experimentData = response[0];
+          console.log("Experiment data loaded:", experimentData);
+          initializeExperiment(experimentData);
+        }
+        ApiClient.postVisibility("user1", true).catch((error) => {
+          console.error("Failed to send visibility data:", error);
+        });
 
-        handleNavigate("/main/overview");
+        handleNavigate("/main/trials");
       } catch (error) {
         console.error("Failed to load experiment:", error);
         // 에러 처리 로직 추가 가능
       }
     },
-    [initializeExperiment, processEvents, handleNavigate]
+    [expId, handleNavigate, initializeExperiment]
   );
 
   return { loadExperiment };

@@ -10,6 +10,7 @@ export class Hyperparam {
   public type!: HyperparamTypes;
 
   public formatter = (x: any) => x;
+  public narrowHistory: any[] = [];
   constructor(
     public name: string,
     public displayName: string,
@@ -43,6 +44,42 @@ export class Hyperparam {
     } else {
       throw new Error(`Unknown hyperparameter type: ${json.type}`);
     }
+  }
+
+  getNarrowHistory(data: any) {
+    const returnData = {
+      beforeChange: this.beforeChange,
+      afterChange: this.beforeChange,
+    };
+    if (this.type === HyperparamTypes.Uniform) {
+      this.narrowHistory.forEach((h) => {
+        if (h.lower === data.lower && h.upper === data.upper) {
+          returnData.afterChange = [+data.lower, +data.upper];
+          return returnData;
+        } else {
+          returnData.beforeChange = [+h.lower, +h.upper];
+        }
+      });
+    } else {
+      this.narrowHistory.forEach((h) => {
+        // console.log("h", h, "data", data);
+        if (h.value.every((value: any) => data.value.includes(value))) {
+          // console.log("====== h === data ====");
+          returnData.afterChange = returnData.afterChange.filter(
+            (value: any) => !h.value.includes(value)
+          );
+          return returnData;
+        } else {
+          returnData.beforeChange = returnData.beforeChange.filter(
+            (value: any) => !h.value.includes(value)
+          );
+          returnData.afterChange = returnData.afterChange.filter(
+            (value: any) => !h.value.includes(value)
+          );
+        }
+      });
+    }
+    return returnData;
   }
   toUserTrial(userValue: string | number | boolean): any {
     if (this.type === HyperparamTypes.Uniform) {

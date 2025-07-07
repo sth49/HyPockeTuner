@@ -3,6 +3,7 @@ import { useExperimentStore } from "../../stores/experimentStore";
 
 import { notiTypeIcons } from "../../utils/icon";
 import { useNavigation } from "../../hooks/useNavigation";
+import ApiClient from "../../api/api";
 const CondView = () => {
   const notiCondPairs = useExperimentStore((state) => state.notiCondPairs);
 
@@ -24,40 +25,117 @@ const CondView = () => {
           </div>
         </li>
         {notiCondPairs.length > 0 ? (
-          notiCondPairs.map((pair, index) => {
-            if (pair.status === "satisfied") return null; // Skip satisfied conditions
+          notiCondPairs.map((noti, index) => {
+            if (noti.status === "satisfied") return null; // Skip satisfied conditions
             const Icon =
-              pair.eventCond && pair.eventCond.type
-                ? notiTypeIcons[pair.eventCond.type]
+              noti.eventCond && noti.eventCond.type
+                ? notiTypeIcons[noti.eventCond.type]
                 : null; // Use the icon based on the type
             return (
-              <li
-                key={index}
-                className="h-[50px] bg-white flex items-center"
-                style={{
-                  borderBottom: "1px solid #e5e7eb",
-                }}
-              >
-                <div className="w-[80%] flex gap-4 items-center justify-start px-2">
-                  {Icon && <Icon size={24} />}
-                  <div className="flex flex-col justify-center items-start flex-1">
-                    <p>{pair.eventCond.toString()}</p>
-                    <p className="text-xs">{pair.eventCond.toContent()}</p>
-                  </div>
-                </div>
-                <div className="w-[20%] flex items-center justify-center">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
-                  />
-                  {/* <input
-                    type="checkbox"
-                    className="toggle toggle-sm border-gray-600 bg-gray-500 checked:border-base-500 checked:bg-base-400 checked:text-base-800"
-                  /> */}
-                </div>
-                {/* <input type="switch" /> */}
-              </li>
+              <div key={index}>
+                {noti && noti.timeoutCond ? (
+                  <li
+                    className="h-[100px] bg-white flex items-center"
+                    style={{
+                      borderBottom: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <div className="w-[80%] h-full flex flex-col ">
+                      <div className="w-full h-[50%] flex gap-4 items-center justify-start px-2 border-b border-gray-200 border-dashed">
+                        {noti.eventCond && noti.eventCond.type
+                          ? (() => {
+                              return Icon ? <Icon size={24} /> : null;
+                            })()
+                          : null}
+                        <div className="flex flex-col justify-center items-start flex-1">
+                          <p>{noti.eventCond.toString()}</p>
+                          <p className="text-xs">
+                            {noti.eventCond.toContent()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="w-full h-[50%] flex gap-4 items-center justify-start px-2">
+                        {noti.timeoutCond && noti.timeoutCond.type
+                          ? (() => {
+                              const Icon = notiTypeIcons[noti.timeoutCond.type];
+                              return Icon ? <Icon size={24} /> : null;
+                            })()
+                          : null}
+                        <div className="flex flex-col justify-center items-start flex-1">
+                          <p>{noti.timeoutCond.toString()}</p>
+                          <p className="text-xs">
+                            {noti.timeoutCond.toContent()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-[20%] flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={noti.active}
+                        onChange={() => {
+                          // Handle checkbox change
+                          // You can implement the logic to activate/deactivate the condition here
+                          // console.log("Checkbox changed for condition:", noti);
+                          notiCondPairs[index].active =
+                            !notiCondPairs[index].active; // Toggle active state
+                          useExperimentStore
+                            .getState()
+                            .setNotiCondPairs(notiCondPairs);
+                          ApiClient.editCondition(notiCondPairs[index]);
+                        }}
+                        // defaultChecked
+                        className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
+                      />
+                    </div>
+                  </li>
+                ) : noti ? (
+                  <li
+                    className="h-[50px] bg-white flex items-center"
+                    style={{
+                      borderBottom: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <div className="w-[80%] flex gap-4 items-center justify-start px-2">
+                      {noti.eventCond && noti.eventCond.type
+                        ? (() => {
+                            const Icon = notiTypeIcons[noti.eventCond.type];
+                            return Icon ? <Icon size={24} /> : null;
+                          })()
+                        : null}
+                      <div className="flex flex-col justify-center items-start flex-1">
+                        <p>{noti.eventCond.toString()}</p>
+                        <p className="text-xs">{noti.eventCond.toContent()}</p>
+                      </div>
+                    </div>
+                    <div className="w-[20%] flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={noti.active}
+                        onChange={() => {
+                          // console.log("Checkbox changed for condition:", noti);
+                          notiCondPairs[index].active =
+                            !notiCondPairs[index].active; // Toggle active state
+                          useExperimentStore
+                            .getState()
+                            .setNotiCondPairs(notiCondPairs);
+                          ApiClient.editCondition(notiCondPairs[index]);
+                        }}
+                        className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
+                      />
+                    </div>
+                  </li>
+                ) : (
+                  <li
+                    className="h-[60px] bg-white flex items-center justify-center"
+                    style={{
+                      borderBottom: "1px solid #e5e7eb", // Tailwind's gray-200
+                    }}
+                  >
+                    No conditions set yet.
+                  </li>
+                )}
+              </div>
             );
           })
         ) : (

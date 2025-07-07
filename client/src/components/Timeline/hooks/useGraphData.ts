@@ -3,6 +3,9 @@ import { useMemo, useRef } from "react";
 import { useExperimentStore } from "../../../stores/experimentStore";
 import { mergeEventData } from "../../../utils/mergeUtils";
 import { BandProps, NodeProps, LinkProps } from "../types";
+import { cleanViewingData } from "../../../utils";
+import { format } from "date-fns";
+// import { format } from "date-fns";
 
 export const useGraphData = () => {
   const brackets = useExperimentStore((state) => state.brackets);
@@ -11,8 +14,10 @@ export const useGraphData = () => {
   const interactions = useExperimentStore((state) => state.interactions);
   const visibility = useExperimentStore((state) => state.visibility);
 
+  const startTime = useExperimentStore((state) => state.startTime);
+  const endTime = useExperimentStore((state) => state.endTime);
   // 고정된 현재 시간을 참조로 사용 (컴포넌트 생명주기 동안 일정)
-  const fixedCurrentTimeRef = useRef(Date.now() / 1000);
+  const fixedCurrentTimeRef = useRef(Date.now());
 
   const graphData: BandProps[] = useMemo(() => {
     if (!brackets || brackets.length === 0) {
@@ -21,11 +26,66 @@ export const useGraphData = () => {
 
     const data: BandProps[] = [];
     const numOfBrackets = brackets.length;
+    const visibilitySessions = cleanViewingData(visibility);
+    console.log("Visibility sessions:", visibilitySessions);
     let order = -1;
     let bestTrialMetric = -1;
 
+    data.push({
+      type: "link",
+      bracket: numOfBrackets - brackets[0].id,
+      startTime: startTime ?? 0,
+      endTime: startTime ?? 0,
+      order: order++,
+      data: {
+        type: "start",
+        trials: [
+          {
+            id: `exp`,
+            event: "",
+            startTime: startTime ?? 0,
+            endTime: endTime ?? 0,
+            bracketId: -1,
+            trialId: 0,
+            status: "",
+            progress: 0,
+            sample: "",
+          },
+        ],
+        events: [],
+      },
+      prev: null,
+      next: null,
+    });
+
+    // Bracket node 생성
+    data.push({
+      type: "node",
+      bracket: numOfBrackets - brackets[0].id,
+      startTime: startTime ?? 0,
+      endTime: startTime ?? 0,
+      order: order++,
+      data: {
+        type: "start",
+        trials: [
+          {
+            id: `exp`,
+            event: "",
+            startTime: startTime ?? 0,
+            endTime: endTime ?? 0,
+            bracketId: -1,
+            trialId: 0,
+            status: "",
+            progress: 0,
+            sample: "",
+          },
+        ],
+      },
+      prev: null,
+      next: null,
+    });
+
     brackets.forEach((bracket) => {
-      console.log("brackets:", bracket);
       if (bracket.startTime === -1 && bracket.endTime === -1) {
         return; // Skip this bracket if time range is invalid
       }
@@ -47,7 +107,6 @@ export const useGraphData = () => {
               trialId: 0,
               status: "",
               progress: 0,
-              paramSet: undefined,
               sample: "",
             },
           ],
@@ -76,7 +135,6 @@ export const useGraphData = () => {
               trialId: 0,
               status: "",
               progress: 0,
-              paramSet: undefined,
               sample: "",
             },
           ],
@@ -131,11 +189,13 @@ export const useGraphData = () => {
           const bracketStart = bracket.startTime ?? 0;
           const bracketEnd = bracket.endTime ?? 0;
 
-          const effectiveBracketEnd =
-            bracketEnd !== -1 ? bracketEnd : fixedCurrentTimeRef.current;
+          // const effectiveBracketEnd =
+          //   bracketEnd !== -1 ? bracketEnd : fixedCurrentTimeRef.current;
 
           const isInRange =
-            trialStart >= bracketStart && trialStart <= effectiveBracketEnd;
+            bracketEnd === -1
+              ? trialStart >= bracketStart
+              : trialStart >= bracketStart && trialStart <= bracketEnd;
 
           return isInRange;
         });
@@ -227,7 +287,6 @@ export const useGraphData = () => {
           next: null,
         });
       });
-      console.log("data", data);
     });
 
     data.forEach((node, index) => {
@@ -243,7 +302,6 @@ export const useGraphData = () => {
       }
     });
 
-    // Push 및 Interaction 데이터 처리
     const pushData = push
       .filter((item) => isValidPush(item))
       .map((item) => ({
@@ -252,6 +310,7 @@ export const useGraphData = () => {
         data: item,
       }));
 
+    // pushData
     const interactionData = interactions
       .filter((item) => isValidInteraction(item))
       .map((item) => ({
@@ -260,8 +319,23 @@ export const useGraphData = () => {
         data: item,
       }));
 
+    // visibility 세션 데이터 추가
+    visibilitySessions.forEach((session) => {
+      console.log(
+        "startTime:",
+        session.startTime,
+        format(session.startTime, "MM.dd.yyyy HH:mm:ss")
+      );
+      const sessionData = {
+        time: session.startTime,
+        type: "visibility",
+        data: session,
+      };
+      interactionData.push(sessionData);
+    });
+
     data.forEach((node, index) => {
-      if (node.type === "link" && node.data?.type !== "pseudo") {
+      if (node.type === "link") {
         let startTime =
           node.startTime !== -1 ? node.startTime : fixedCurrentTimeRef.current;
         if (index >= 2) {
@@ -279,11 +353,36 @@ export const useGraphData = () => {
         }
 
         const endTime =
-          node.endTime !== -1 ? node.endTime : fixedCurrentTimeRef.current;
+          node.endTime !== -1
+            ? node.endTime
+            : node.startTime !== -1
+            ? node.startTime
+            : fixedCurrentTimeRef.current;
+
+        if (node.data && node.data.type === "pseudo") {
+          // console.log("Pseudo node detected:", node);
+          // console.log("Start time:", format(startTime, "MM.dd.yyyy HH:mm:ss"));
+          // console.log("End time:", format(endTime, "MM.dd.yyyy HH:mm:ss"));
+          node.startTime = startTime;
+          node.endTime = endTime;
+        }
+
+        // console.log(
+        //   "Start time:",
+        //   startTime,
+        //   format(startTime, "MM.dd.yyyy HH:mm:ss")
+        // );
+        // console.log(
+        //   "End time:",
+        //   endTime,
+        //   format(endTime, "MM.dd.yyyy HH:mm:ss")
+        // );
+        // console.log("itneractionData:", interactionData);
 
         const interaction = interactionData.filter(
           (inter) => inter.time > startTime && inter.time <= endTime
         );
+        // console.log("Filtered interactions:", interaction);
 
         const pushNotiData = pushData.filter(
           (noti) => noti.time > startTime && noti.time <= endTime
@@ -293,12 +392,24 @@ export const useGraphData = () => {
           (a, b) => a.time - b.time
         );
 
+        // console.log("All events for node:", allEvents);
+
         (node.data as LinkProps).events = mergeEventData(allEvents);
+
+        // console.log("Node data after merging events:", node.data);
       }
     });
 
     return data;
-  }, [brackets, push, interactions, userTrials]); // fixedCurrentTimeRef는 의존성에서 제외
+  }, [
+    brackets,
+    visibility,
+    startTime,
+    endTime,
+    push,
+    interactions,
+    userTrials,
+  ]); // fixedCurrentTimeRef는 의존성에서 제외
 
   const pendingData: BandProps[] = useMemo(() => {
     const pendingData: BandProps[] = [];
@@ -344,17 +455,38 @@ export const useGraphData = () => {
 };
 
 const isValidPush = (push: any) => {
-  const validPusyTypes = ["trial"];
-  return validPusyTypes.includes(push.type);
+  // const validPusyTypes = ["trial"];
+  const validPushTypes = [
+    "trial",
+    "high-temperature",
+    "high-usage",
+    "metric-reach",
+    "round-done",
+    "bracket-done",
+    "timeout",
+    "experiment-pause",
+    "metric-improve",
+  ];
+  return validPushTypes.includes(push.type);
 };
 
 const isValidInteraction = (interaction: any) => {
   const validInteractionTypes = [
     "addUserTrial",
     "addCondition",
+    "editCondition",
+    "deleteCondition",
     "experimentPause",
     "experimentResume",
+    "narrowConfigspace",
+    "launchImmediatelyExp",
   ];
+  // const validInteractionTypes = [
+  //   "addUserTrial",
+  //   "addCondition",
+  //   "experimentPause",
+  //   "experimentResume",
+  // ];
   if (interaction.type === "addCondition") {
     return interaction.data.eventCond.type !== "trial-done";
   }

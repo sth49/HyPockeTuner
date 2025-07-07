@@ -503,7 +503,7 @@ async def visibility(request: Request):
     page = data['page']
     server_log("visibility", ip=request.client.host, data=data)
     print("visibility checking...." , data)
-    if client_exp is None or page.split("/")[1] != "main":
+    if client_exp is None :
         print("visibility checking.... no experiment selected")
         return {"success": False, "message": "No experiment is selected"}
     else:

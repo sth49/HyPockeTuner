@@ -268,7 +268,8 @@ export class Backend {
 
       console.log(
         `📨 Processing event on instance: ${this.instanceId}:`,
-        data.key
+        data.key,
+        data.value
       );
 
       if (this.isExperimentEvent(data.key)) {
@@ -319,8 +320,7 @@ export class Backend {
       data
     );
     const { setAllMetadata } = useMetadataStore.getState();
-    const { initializeExperiment, processEvents } =
-      useExperimentStore.getState();
+    const { initializeExperiment } = useExperimentStore.getState();
 
     try {
       const expListData =
@@ -342,10 +342,8 @@ export class Backend {
         const currExpData = data.current_exp || data.curr_exp;
         console.log("🎯 Initializing experiment with data:", currExpData);
         initializeExperiment(currExpData);
-
-        if (currExpData.allCallbacks) {
-          processEvents(currExpData.allCallbacks);
-        }
+        // const exceptKeys = [
+        //   "lastUpdated"]
       }
 
       console.log("✅ Initial state processed successfully");
@@ -443,6 +441,7 @@ export class Backend {
       "gpu",
       "shap",
       "narrowConfigspace",
+      "updateNotiCond",
     ];
     return experimentEvents.includes(key);
   }

@@ -1,7 +1,6 @@
-import { format } from "date-fns";
 import { useExperimentStore } from "../../stores/experimentStore";
 import { useMetadataStore } from "../../stores/metadataStore";
-import { formatting } from "../../utils/utils";
+import { formatDate, formatting } from "../../utils";
 
 import { progressBadgeColor, progressColor } from "../../utils/color";
 import { summaryIcons as icons } from "../../utils/icon";
@@ -13,6 +12,7 @@ const ExpInfo = () => {
   const endTime = useExperimentStore((state) => state.endTime);
 
   const expList = useMetadataStore((state) => state.expList);
+  const bestTrial = useExperimentStore((state) => state.bestTrial);
   const expData = expList.find((exp) => exp.id === expId) || null;
   if (!expData) {
     return (
@@ -22,20 +22,23 @@ const ExpInfo = () => {
   const data = {
     hparamLength: expData.hparamList.length,
     budget: expData.budget,
-    bestMetric: expData.bestTrial
-      ? formatting(expData.bestTrial, "float")
-      : null,
+    bestMetric: bestTrial ? formatting(bestTrial.metric ?? 0, "float") : null,
     doneTrials: `${expData.doneTrials} / ${expData.allTrials}`,
   };
 
   const timeData = {
     lastUpdatedAt: expData.lastUpdatedAt
-      ? format(Number(expData.lastUpdatedAt) * 1000, "MM/dd/yyyy HH:mm a")
-      : "N/A",
+      ? formatDate(Number(expData.lastUpdatedAt) * 1000)
+      : // format(Number(expData.lastUpdatedAt) * 1000, "MM.dd.yyyy HH:mm a")
+        "N/A",
     startTime: startTime
-      ? format(Number(startTime), "MM/dd/yyyy HH:mm a")
-      : "N/A",
-    endTime: endTime ? format(Number(endTime), "MM/dd/yyyy HH:mm a") : "N/A",
+      ? formatDate(Number(startTime))
+      : // format(Number(startTime), "MM.dd.yyyy HH:mm a")
+        "N/A",
+    endTime: endTime
+      ? formatDate(Number(endTime))
+      : // format(Number(endTime), "MM.dd.yyyy HH:mm a")
+        "N/A",
   };
 
   const typeName = {

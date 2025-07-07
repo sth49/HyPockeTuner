@@ -218,8 +218,10 @@ const MobileDrawer: React.FC<DrawerProps> = ({
         style={{
           transform: `translateY(${translateY}vh)`,
           height: `calc(100vh - 45px)`,
+          paddingBottom: "90px", // 모바일 하단 안전 영역
           borderTopLeftRadius: "16px",
           borderTopRightRadius: "16px",
+          marginBottom: "env(safe-area-inset-bottom, 24px)", // 모바일 하단 안전 영역
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

@@ -16,11 +16,11 @@ import {
   RoundFinishCond,
   TimeoutCond,
 } from "../../models/notification";
-import { addMinutes, addHours, isAfter, parseISO, format } from "date-fns";
+import { addMinutes, addHours } from "date-fns";
 
 import { notiTypeIcons } from "../../utils/icon";
 import ApiClient from "../../api/api";
-import { formatting } from "../../utils/utils";
+import { formatting } from "../../utils/formatting";
 
 const getTimeoutDate = (timeoutType: string): Date => {
   const now = new Date();
@@ -62,10 +62,13 @@ const NewNotiCond = () => {
   const numOfBrackets = brackets.length;
   const currRoundId = useExperimentStore((state) => state.currRoundId);
   const currBracketId = useExperimentStore((state) => state.currBracketId);
+  // console.log("currBracketId:", currBracketId);
+  // console.log("currRoundId:", currRoundId);
   const status = useExperimentStore((state) => state.status);
   const metric = useExperimentStore((state) => state.metric);
   const bestTrial = useExperimentStore((state) => state.bestTrial);
 
+  const notiCondPairs = useExperimentStore((state) => state.notiCondPairs);
   const [state, setState] = useState({
     eventTarget: notiCondType === "progress" ? "bracket" : "metric",
     metricVerb: "improve",
@@ -128,6 +131,8 @@ const NewNotiCond = () => {
   const create = (): any => {
     const newNotiCondPair = getCondPair();
     if (newNotiCondPair) {
+      notiCondPairs.unshift(newNotiCondPair);
+
       ApiClient.addCondition(newNotiCondPair);
     }
     handleNavigate("/main/notification");
@@ -248,7 +253,7 @@ const NewNotiCond = () => {
                         value: bracket.id.toString(),
                         label: `${numOfBrackets - bracket.id}`,
                         disabled:
-                          currBracketId > bracket.id || status === "finished",
+                          currBracketId < bracket.id || status === "finished",
                       }))
                     : brackets.flatMap((bracket) =>
                         bracket.rounds.map((round) => ({

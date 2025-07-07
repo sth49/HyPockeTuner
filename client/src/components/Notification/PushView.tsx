@@ -5,21 +5,27 @@ import { useExperimentStore } from "../../stores/experimentStore";
 import { Push } from "../../types/experiment";
 // import {notiTypeIcons } as
 import { notiTypeIcons } from "../../utils/icon"; // Uncomment if you have icons for notifications
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { format } from "date-fns";
+import { formatDate, formatDistance } from "../../utils/formatting";
 const PushView = () => {
   const [page, setPage] = useState(1);
   const push = useExperimentStore((state) => state.push);
-  console.log("push", push);
   const [data, setData] = useState<Push[]>([]);
   useEffect(() => {
     const fetchData = async () => {
       // Simulate fetching data from an API or store
       const startIndex = (page - 1) * 5;
       const endIndex = startIndex + 5;
-      const newData = push.slice(startIndex, endIndex);
-      newData.sort((a, b) => {
-        return new Date(b.time).getTime() - new Date(a.time).getTime();
-      });
+      // push를 최신순으로
+      const newData = push.slice().reverse().slice(startIndex, endIndex);
+      // .map((item) => ({
+      //   ...item,
+      //   time: new Date(item.time), // Ensure time is a Date object
+      // }));
+      console.log("newData", newData);
+      // newData.sort((a, b) => {
+      //   return new Date(b.time).getTime() - new Date(a.time).getTime();
+      // });
       setData(newData);
     };
     fetchData();
@@ -30,22 +36,23 @@ const PushView = () => {
       <ul className="list h-[300px]">
         {data.length > 0 ? (
           data.map((item, index) => {
-            const Icon = notiTypeIcons[item.type] || null; // Use the icon based on the type
+            const Icon = notiTypeIcons[item.type] || null;
             return (
               <li
-                className="h-[60px] bg-white flex items-center gap-4"
+                className="h-[60px] bg-white flex items-center"
                 style={{
-                  borderBottom: "1px solid #e5e7eb", // Tailwind's gray-200
+                  borderBottom: "1px solid #e5e7eb",
                 }}
+                key={index}
               >
-                {/* <div className="w-[10%] bg-red-100">Icon</div> */}
-                <Icon size={24} />
-
-                <div className="flex flex-col justify-center items-start flex-1">
+                <div className="w-[10%] flex items-center justify-center">
+                  {Icon && <Icon size={24} />}
+                </div>
+                <div className="flex flex-col justify-center items-start w-[90%]">
                   <p className="font-semibold">{item.title}</p>
                   <p className="text-xs">
-                    {item.content} | {format(item.time, "MM/dd/yyyy HH:mm a")} (
-                    {formatDistanceToNowStrict(item.time)} ago)
+                    {item.content} | {formatDate(item.time)} (
+                    {formatDistance(item.time)} ago)
                   </p>
                 </div>
               </li>
@@ -72,9 +79,15 @@ const PushView = () => {
         >
           <IoIosArrowBack className="size-4" />
         </button>
-        <button className="btn btn-primary text-white btn-sm w-10">
+        <p
+          className="text-sm text-gray-600"
+          style={{
+            width: "30px",
+            textAlign: "center",
+          }}
+        >
           {page}
-        </button>
+        </p>
         <button
           className=" btn btn-sm btn-ghost"
           disabled={

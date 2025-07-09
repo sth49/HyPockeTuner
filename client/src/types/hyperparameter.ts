@@ -215,6 +215,21 @@ export class Hyperparam {
       throw new Error(`Unknown hyperparameter type: ${this.type}`);
     }
   }
+
+  formatting(value: any): string {
+    if (this.type === HyperparamTypes.Unordered) {
+      return value === true
+        ? "True"
+        : value === false
+        ? "False"
+        : value.toString();
+    } else if (this.type === HyperparamTypes.Ordinal) {
+      return value.toString();
+    } else if (this.type === HyperparamTypes.Uniform) {
+      return value.toFixed(2);
+    }
+    return value.toString();
+  }
 }
 export class OrderedHyperparam extends Hyperparam {
   type = HyperparamTypes.Ordinal;

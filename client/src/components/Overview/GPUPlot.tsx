@@ -12,8 +12,8 @@ const GPUPlot = () => {
   const gpuInfo = useExperimentStore((state) => state.gpuInfo);
 
   const chartWidth = Math.max(400, (gpuInfo.length + 2) * 10); // 데이터 양에 따라 차트 너비 결정
-  const height = 200; // 모바일에 맞게 높이 축소
-  const margin = { top: 20, right: 30, bottom: 40, left: 0 };
+  const height = 110; // 모바일에 맞게 높이 축소
+  const margin = { top: 15, right: 30, bottom: 30, left: 0 };
   const innerWidth = chartWidth - margin.right - margin.left;
   const innerHeight = height - margin.top - margin.bottom;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,15 @@ const GPUPlot = () => {
   const aggregatedData = useMemo(() => {
     if (!gpuInfo.length) return [];
 
-    const dataByMinute = {};
+    const dataByMinute: Record<
+      number,
+      {
+        time: number;
+        temperatures: number[];
+        utilizations: number[];
+        memoryUsages: number[];
+      }
+    > = {};
 
     gpuInfo.forEach((item) => {
       const date = new Date(item.time);
@@ -66,7 +74,7 @@ const GPUPlot = () => {
           group.memoryUsages.reduce((a, b) => a + b, 0) /
           group.memoryUsages.length,
       }))
-      .sort((a, b) => a.time - b.time);
+      .sort((a, b) => a.time.getTime() - b.time.getTime());
   }, [gpuInfo]);
 
   // 데이터가 업데이트될 때마다 오른쪽 끝으로 스크롤
@@ -89,8 +97,8 @@ const GPUPlot = () => {
     return scaleTime({
       range: [0, innerWidth],
       domain: [
-        Math.min(...aggregatedData.map((d) => d.time)) - 10000, // 1분 전
-        Math.max(...aggregatedData.map((d) => d.time)) + 10000, // 1분 후
+        Math.min(...aggregatedData.map((d) => d.time.getTime())) - 10000, // 1분 전
+        Math.max(...aggregatedData.map((d) => d.time.getTime())) + 10000, // 1분 후
       ],
     });
   }, [aggregatedData, innerWidth]);
@@ -101,8 +109,8 @@ const GPUPlot = () => {
     return scaleLinear({
       range: [innerHeight, 0],
       domain: [
-        Math.min(...aggregatedData.map((d) => d.temperature)) - 5,
-        Math.max(...aggregatedData.map((d) => d.temperature)) + 5,
+        Math.min(...aggregatedData.map((d) => d.temperature)) - 2,
+        Math.max(...aggregatedData.map((d) => d.temperature)) + 2,
       ],
     });
   }, [aggregatedData, innerHeight]);
@@ -114,8 +122,8 @@ const GPUPlot = () => {
       domain: [
         Math.min(...aggregatedData.map((d) => d.utilization)) - 5 < 0
           ? 0
-          : Math.min(...aggregatedData.map((d) => d.utilization)) - 5,
-        Math.max(...aggregatedData.map((d) => d.utilization)) + 5,
+          : Math.min(...aggregatedData.map((d) => d.utilization)) - 2,
+        Math.max(...aggregatedData.map((d) => d.utilization)) + 2,
       ],
     });
   }, [innerHeight]);
@@ -124,7 +132,7 @@ const GPUPlot = () => {
   const getTime = (d) => d.time;
   const getTemperature = (d) => d.temperature;
   const getUtilization = (d) => d.utilization;
-  const getMemoryUsage = (d) => d.memoryUsage;
+  // const getMemoryUsage = (d) => d.memoryUsage;
 
   if (!aggregatedData.length) {
     return (
@@ -136,160 +144,155 @@ const GPUPlot = () => {
   }
 
   return (
-    <div className="w-full h-full">
-      {/* 온도 차트 */}
-      <div className="relative ">
-        <p>Temperature (°C)</p>
-        <svg
-          width={margin.right}
-          height={height}
-          style={{ position: "absolute", right: 0, top: 24 }}
-          className="absolute z-10 bg-white"
-        >
-          <Group left={0} top={margin.top}>
-            <AxisRight
-              scale={tempScale}
-              numTicks={4}
-              tickFormat={(value) => `${Math.round(value)}°`}
-              tickLabelProps={() => ({
-                fill: "#666",
-                fontSize: 11,
-                textAnchor: "start",
-                verticalAnchor: "middle",
-              })}
-            />
-          </Group>
-        </svg>
-        <div className="overflow-x-auto" ref={scrollRef}>
-          <svg width={chartWidth} height={height}>
-            <Group left={margin.left} top={margin.top}>
-              <GridRows
+    <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
+      <HeaderText text="GPU Monitoring" />
+      <div className="w-full h-full">
+        {/* 온도 차트 */}
+        <div className="relative ">
+          <p>Temperature (°C)</p>
+          <svg
+            width={margin.right}
+            height={height}
+            style={{ position: "absolute", right: 0, top: 24 }}
+            className="absolute z-10 bg-white"
+          >
+            <Group left={0} top={margin.top}>
+              <AxisRight
                 scale={tempScale}
-                width={innerWidth}
-                height={innerHeight}
-                stroke="#f0f0f0"
-                strokeWidth={1}
-              />
-              <GridColumns
-                scale={timeScale}
-                width={innerWidth}
-                height={innerHeight}
-                stroke="#f0f0f0"
-                strokeWidth={1}
-                numTicks={Math.min(aggregatedData.length, 10)}
-              />
-              <LinePath
-                data={aggregatedData}
-                x={(d) => timeScale(getTime(d))}
-                y={(d) => tempScale(getTemperature(d))}
-                stroke="oklch(55.1% 0.027 264.364)"
-                strokeWidth={2}
-                curve={curveMonotoneX}
-              />
-              {aggregatedData.length > 0 &&
-                aggregatedData.map((d, i) => (
-                  <Circle
-                    key={i}
-                    cx={timeScale(getTime(d))}
-                    cy={tempScale(getTemperature(d))}
-                    r={3}
-                    fill="oklch(55.1% 0.027 264.364)"
-                  />
-                ))}
-
-              {/* <LinePath
-                data={aggregatedData}
-                x={(d) => timeScale(getTime(d))}
-                y={(d) => tempScale(getMemoryUsage(d))}
-                stroke="#10b981"
-                strokeWidth={2}
-                curve={curveMonotoneX}
-                strokeDasharray="5,3"
-                /> */}
-
-              <AxisBottom
-                top={innerHeight}
-                scale={timeScale}
-                numTicks={Math.min(aggregatedData.length, 6)}
-                tickFormat={(value) => {
-                  const date = new Date(value);
-                  return `${date.getHours().toString().padStart(2, "0")}:${date
-                    .getMinutes()
-                    .toString()
-                    .padStart(2, "0")}`;
-                }}
+                numTicks={4}
+                tickFormat={(value) => `${Math.round(value)}°`}
                 tickLabelProps={() => ({
-                  fill: "oklch(55.1% 0.027 264.364)",
-                  fontSize: 11,
-                  textAnchor: "middle",
+                  fill: "#666",
+                  fontSize: 13,
+                  textAnchor: "start",
                   verticalAnchor: "middle",
                 })}
               />
             </Group>
           </svg>
+          <div className="overflow-x-auto" ref={scrollRef}>
+            <svg width={chartWidth} height={height}>
+              <Group left={margin.left} top={margin.top}>
+                <GridRows
+                  scale={tempScale}
+                  width={innerWidth}
+                  height={innerHeight}
+                  stroke="#f0f0f0"
+                  strokeWidth={1}
+                />
+                <GridColumns
+                  scale={timeScale}
+                  width={innerWidth}
+                  height={innerHeight}
+                  stroke="#f0f0f0"
+                  strokeWidth={1}
+                  numTicks={Math.min(aggregatedData.length, 10)}
+                />
+                <LinePath
+                  data={aggregatedData}
+                  x={(d) => timeScale(getTime(d))}
+                  y={(d) => tempScale(getTemperature(d))}
+                  stroke="oklch(55.1% 0.027 264.364)"
+                  strokeWidth={2}
+                  curve={curveMonotoneX}
+                />
+                {aggregatedData.length > 0 &&
+                  aggregatedData.map((d, i) => (
+                    <Circle
+                      key={i}
+                      cx={timeScale(getTime(d))}
+                      cy={tempScale(getTemperature(d))}
+                      r={3}
+                      fill="oklch(55.1% 0.027 264.364)"
+                    />
+                  ))}
+
+                <AxisBottom
+                  top={innerHeight}
+                  scale={timeScale}
+                  numTicks={Math.min(aggregatedData.length, 6)}
+                  tickFormat={(value) => {
+                    const date = new Date(value);
+                    return `${date
+                      .getHours()
+                      .toString()
+                      .padStart(2, "0")}:${date
+                      .getMinutes()
+                      .toString()
+                      .padStart(2, "0")}`;
+                  }}
+                  tickLabelProps={() => ({
+                    fill: "oklch(55.1% 0.027 264.364)",
+                    fontSize: 13,
+                    textAnchor: "middle",
+                    verticalAnchor: "middle",
+                  })}
+                />
+              </Group>
+            </svg>
+          </div>
         </div>
-      </div>
 
-      <div className="relative ">
-        <p>Utilization (%)</p>
-        <svg
-          width={margin.right}
-          height={height - margin.top}
-          style={{ position: "absolute", right: 0, top: 24 }}
-          className="absolute z-10 bg-white"
-        >
-          <Group left={0} top={margin.top}>
-            <AxisRight
-              scale={utilizationScale}
-              numTicks={4}
-              tickFormat={(value) => `${Math.round(value)}%`}
-              tickLabelProps={() => ({
-                fill: "oklch(55.1% 0.027 264.364)",
-                fontSize: 11,
-                textAnchor: "start",
-                verticalAnchor: "middle",
-              })}
-            />
-          </Group>
-        </svg>
-        <div className="overflow-x-auto" ref={scrollRef2}>
-          <svg width={chartWidth} height={height}>
-            <Group left={margin.left} top={margin.top}>
-              <GridRows
+        <div className="relative ">
+          <p>Utilization (%)</p>
+          <svg
+            width={margin.right}
+            height={height - margin.top}
+            style={{ position: "absolute", right: 0, top: 24 }}
+            className="absolute z-10 bg-white"
+          >
+            <Group left={0} top={margin.top}>
+              <AxisRight
                 scale={utilizationScale}
-                width={innerWidth}
-                height={innerHeight}
-                stroke="#f0f0f0"
-                strokeWidth={1}
+                numTicks={4}
+                tickFormat={(value) => `${Math.round(value)}%`}
+                tickLabelProps={() => ({
+                  fill: "oklch(55.1% 0.027 264.364)",
+                  fontSize: 13,
+                  textAnchor: "start",
+                  verticalAnchor: "middle",
+                })}
               />
-              <GridColumns
-                scale={timeScale}
-                width={innerWidth}
-                height={innerHeight}
-                stroke="#f0f0f0"
-                strokeWidth={1}
-                numTicks={Math.min(aggregatedData.length, 10)}
-              />
-              <LinePath
-                data={aggregatedData}
-                x={(d) => timeScale(getTime(d))}
-                y={(d) => utilizationScale(getUtilization(d))}
-                stroke="oklch(55.1% 0.027 264.364)"
-                strokeWidth={2}
-                curve={curveMonotoneX}
-              />
-              {aggregatedData.length > 0 &&
-                aggregatedData.map((d, i) => (
-                  <Circle
-                    key={i}
-                    cx={timeScale(getTime(d))}
-                    cy={utilizationScale(getUtilization(d))}
-                    r={3}
-                    fill="oklch(55.1% 0.027 264.364)"
-                  />
-                ))}
+            </Group>
+          </svg>
+          <div className="overflow-x-auto" ref={scrollRef2}>
+            <svg width={chartWidth} height={height}>
+              <Group left={margin.left} top={margin.top}>
+                <GridRows
+                  scale={utilizationScale}
+                  width={innerWidth}
+                  height={innerHeight}
+                  stroke="#f0f0f0"
+                  strokeWidth={1}
+                />
+                <GridColumns
+                  scale={timeScale}
+                  width={innerWidth}
+                  height={innerHeight}
+                  stroke="#f0f0f0"
+                  strokeWidth={1}
+                  numTicks={Math.min(aggregatedData.length, 10)}
+                />
+                <LinePath
+                  data={aggregatedData}
+                  x={(d) => timeScale(getTime(d))}
+                  y={(d) => utilizationScale(getUtilization(d))}
+                  stroke="oklch(55.1% 0.027 264.364)"
+                  strokeWidth={2}
+                  curve={curveMonotoneX}
+                />
+                {aggregatedData.length > 0 &&
+                  aggregatedData.map((d, i) => (
+                    <Circle
+                      key={i}
+                      cx={timeScale(getTime(d))}
+                      cy={utilizationScale(getUtilization(d))}
+                      r={3}
+                      fill="oklch(55.1% 0.027 264.364)"
+                    />
+                  ))}
 
-              {/* <LinePath
+                {/* <LinePath
                 data={aggregatedData}
                 x={(d) => timeScale(getTime(d))}
                 y={(d) => utilizationScale(getMemoryUsage(d))}
@@ -298,7 +301,7 @@ const GPUPlot = () => {
                 curve={curveMonotoneX}
                 strokeDasharray="5,3"
               /> */}
-              {/* <LinePath
+                {/* <LinePath
                 data={aggregatedData}
                 x={(d) => timeScale(getTime(d))}
                 y={(d) => utilizationScale(get(d))}
@@ -306,25 +309,29 @@ const GPUPlot = () => {
                 strokeWidth={2}
                 curve={curveMonotoneX}
               /> */}
-              <AxisBottom
-                top={innerHeight}
-                scale={timeScale}
-                numTicks={Math.min(aggregatedData.length, 6)}
-                tickFormat={(value) => {
-                  const date = new Date(value);
-                  return `${date.getHours().toString().padStart(2, "0")}:${date
-                    .getMinutes()
-                    .toString()
-                    .padStart(2, "0")}`;
-                }}
-                tickLabelProps={() => ({
-                  fill: "#666",
-                  fontSize: 11,
-                  textAnchor: "middle",
-                })}
-              />
-            </Group>
-          </svg>
+                <AxisBottom
+                  top={innerHeight}
+                  scale={timeScale}
+                  numTicks={Math.min(aggregatedData.length, 6)}
+                  tickFormat={(value) => {
+                    const date = new Date(value);
+                    return `${date
+                      .getHours()
+                      .toString()
+                      .padStart(2, "0")}:${date
+                      .getMinutes()
+                      .toString()
+                      .padStart(2, "0")}`;
+                  }}
+                  tickLabelProps={() => ({
+                    fill: "#666",
+                    fontSize: 13,
+                    textAnchor: "middle",
+                  })}
+                />
+              </Group>
+            </svg>
+          </div>
         </div>
       </div>
     </div>

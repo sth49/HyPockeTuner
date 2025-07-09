@@ -21,6 +21,7 @@ import { addMinutes, addHours } from "date-fns";
 import { notiTypeIcons } from "../../utils/icon";
 import ApiClient from "../../api/api";
 import { formatting } from "../../utils/formatting";
+import PerformancePlot from "../Overview/PerformancePlot";
 
 const getTimeoutDate = (timeoutType: string): Date => {
   const now = new Date();
@@ -304,18 +305,8 @@ const NewNotiCond = () => {
 
       {notiCondType === "performance" && (
         <>
-          <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
-            <>
-              Best Metric:
-              {bestTrial ? (
-                <span className="font-semibold">
-                  {formatting(bestTrial.metric ?? 0, "float", 2)}
-                </span>
-              ) : (
-                <span className="text-gray-500">No trials yet</span>
-              )}
-            </>
-          </div>
+          <PerformancePlot />
+
           <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
             <HeaderText text="Performance Condition" />
             <div className="flex gap-2 items-center">

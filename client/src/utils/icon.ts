@@ -4,7 +4,6 @@ import {
   IoCheckmarkDoneSharp,
   IoLogoUsd,
 } from "react-icons/io5";
-import { PiClockClockwiseBold } from "react-icons/pi";
 import {
   MdPageview,
   MdOutlineDescription,
@@ -51,7 +50,7 @@ export const summaryIcons: Record<string, IconComponent> = {
   budget: IoLogoUsd,
   bestMetric: IoTrophy,
   doneTrials: IoCheckmarkDoneSharp,
-  lastUpdatedAt: PiClockClockwiseBold,
+  // lastUpdatedAt: PiClockClockwiseBold,
 };
 
 export const timelineIcons: Record<string, IconComponent> = {

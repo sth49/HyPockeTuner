@@ -95,7 +95,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
               </div>
             )}
 
-            {currExpId && status !== null && status !== "finished" && (
+            {/* {currExpId && status !== null && status !== "finished" && (
               <div className="flex items-center mr-2">
                 <ProgressButton />
                 <dialog id="check_modal" className="modal">
@@ -153,7 +153,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
                   </div>
                 </dialog>
               </div>
-            )}
+            )} */}
           </div>
           // </div>
         )}

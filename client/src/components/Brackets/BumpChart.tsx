@@ -173,9 +173,7 @@ const SimpleBumpChart = ({
   if (!processedTrials || processedTrials.length === 0) {
     return (
       <div className="w-full p-4">
-        <h2 className="text-xl font-bold ">
-          No trials available for this bracket.
-        </h2>
+        <h2>No trials available for this bracket.</h2>
       </div>
     );
   }
@@ -300,9 +298,9 @@ const SimpleBumpChart = ({
               <g key={`round-labels-${round}`}>
                 <text
                   x={x}
-                  y={-35}
+                  y={-40}
                   textAnchor="middle"
-                  fontSize={14}
+                  fontSize={"1em"}
                   fontWeight="bold"
                   fill="oklch(55.1% 0.027 264.364)"
                   style={{
@@ -320,7 +318,7 @@ const SimpleBumpChart = ({
                   x={x}
                   y={-20}
                   textAnchor="middle"
-                  fontSize={12}
+                  fontSize={"0.8em"}
                   fill="oklch(55.1% 0.027 264.364)"
                   style={{
                     opacity: isVisible ? 1 : 0,
@@ -345,7 +343,8 @@ const SimpleBumpChart = ({
               y={yScale(i)}
               textAnchor="end"
               dy="0.35em"
-              fontSize={12}
+              fontSize={"1em"}
+              // fontSize={12}
               fill="oklch(55.1% 0.027 264.364)"
               style={{
                 opacity: animationStarted ? 1 : 0,

@@ -13,6 +13,8 @@ const ExpInfo = () => {
 
   const expList = useMetadataStore((state) => state.expList);
   const bestTrial = useExperimentStore((state) => state.bestTrial);
+  const metric = useExperimentStore((state) => state.metric);
+
   const expData = expList.find((exp) => exp.id === expId) || null;
   if (!expData) {
     return (
@@ -27,10 +29,6 @@ const ExpInfo = () => {
   };
 
   const timeData = {
-    lastUpdatedAt: expData.lastUpdatedAt
-      ? formatDate(Number(expData.lastUpdatedAt) * 1000)
-      : // format(Number(expData.lastUpdatedAt) * 1000, "MM.dd.yyyy HH:mm a")
-        "N/A",
     startTime: startTime
       ? formatDate(Number(startTime))
       : // format(Number(startTime), "MM.dd.yyyy HH:mm a")
@@ -39,16 +37,20 @@ const ExpInfo = () => {
       ? formatDate(Number(endTime))
       : // format(Number(endTime), "MM.dd.yyyy HH:mm a")
         "N/A",
+    lastUpdatedAt: expData.lastUpdatedAt
+      ? formatDate(Number(expData.lastUpdatedAt) * 1000)
+      : // format(Number(expData.lastUpdatedAt) * 1000, "MM.dd.yyyy HH:mm a")
+        "N/A",
   };
 
   const typeName = {
     hparamLength: "Configs",
     budget: "Budget",
-    bestMetric: "Best",
-    doneTrials: "Tested",
+    bestMetric: "Best " + metric.name,
+    doneTrials: "Tested Trials",
   };
   const typeTime = {
-    lastUpdatedAt: "Last Updated",
+    lastUpdatedAt: "Last Updated at",
     startTime: "Start Time",
     endTime: "End Time",
   };
@@ -111,7 +113,7 @@ const ExpInfo = () => {
                   )}
                   %
                 </p>
-                <ProgressButton isGhost={true} />
+                <ProgressButton isGhost={false} />
               </div>
             )}
           </div>

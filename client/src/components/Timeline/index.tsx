@@ -92,6 +92,14 @@ const Timeline: React.FC = () => {
 
   // 노드 클릭 핸들러
   const handleNodeClick = (nodeData: BandProps) => {
+    const isCollapseNode =
+      nodeData.type === "node" &&
+      nodeData.data &&
+      (nodeData.data.type === "merged" || nodeData.data.type === "start");
+    if (isCollapseNode) {
+      console.log("Collapse node clicked, ignoring");
+      return;
+    }
     setSelectedNode(nodeData);
     setDrawerOpen(true);
   };
@@ -103,12 +111,12 @@ const Timeline: React.FC = () => {
       linkData.data &&
       Array.isArray((linkData.data as { events?: unknown[] }).events);
 
-    // if (
-    //   !isLinkWithEvents ||
-    //   ((linkData.data as { events?: unknown[] }).events?.length ?? 0) === 0
-    // ) {
-    //   return;
-    // }
+    if (
+      !isLinkWithEvents ||
+      ((linkData.data as { events?: unknown[] }).events?.length ?? 0) === 0
+    ) {
+      return;
+    }
 
     setSelectedNode(linkData);
     setDrawerOpen(true);
@@ -133,7 +141,7 @@ const Timeline: React.FC = () => {
             checked={isCollapse}
             onChange={(e) => setIsCollapse(e.target.checked)}
           />
-          <p className="text-xs text-gray-600 ">Collapse by Non-Improvers</p>
+          <p className="text-xs text-gray-600 ">Collapse Non-Improvers</p>
         </label>
 
         <Legend width={50} />
@@ -226,17 +234,15 @@ const Timeline: React.FC = () => {
       </div>
       {/* Mobile Drawer */}
       <MobileDrawer isOpen={drawerOpen} onStateChange={handleDrawerStateChange}>
-        <div className="space-y-4">
-          {selectedNode && selectedNode.type === "node" ? (
-            <NodeDetail data={selectedNode} />
-          ) : selectedNode && selectedNode.type === "link" ? (
-            <LinkDetail data={selectedNode} />
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              노드를 선택해주세요
-            </div>
-          )}
-        </div>
+        {selectedNode && selectedNode.type === "node" ? (
+          <NodeDetail data={selectedNode} />
+        ) : selectedNode && selectedNode.type === "link" ? (
+          <LinkDetail data={selectedNode} />
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            노드를 선택해주세요
+          </div>
+        )}
       </MobileDrawer>
     </div>
   );

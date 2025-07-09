@@ -244,9 +244,7 @@ const MergedNode: React.FC<MergedNodeProps> = ({
         };
     }
   };
-  const woUser = data.filter(
-    (item) => item.trialId !== -1 && item.trialId !== undefined
-  );
+
   const allMetrics = data
     .map((item) => item.metric)
     .filter((metric) => metric != null);
@@ -258,16 +256,14 @@ const MergedNode: React.FC<MergedNodeProps> = ({
   const maxMetric = Math.max(...allMetrics);
   const metricForColor = [maxMetric, medianMetric, minMetric];
 
-  const nodeId =
-    bandBracketId === -2
-      ? "Queued"
-      : mergeType === "bracket"
-      ? `R${woUser[0].roundId}:R${woUser[woUser.length - 1].roundId ?? 0}`
-      : mergeType === "all"
-      ? "Finished"
-      : `R${data[0].roundId}-${data[0].trialId ?? 0}:${
-          data[data.length - 1].trialId ?? 0
-        }`;
+  const nodeId = bandBracketId === -2 ? "Queued" : "Collapsed";
+  // mergeType === "bracket"
+  // ? `R${woUser[0].roundId}:R${woUser[woUser.length - 1].roundId ?? 0}`
+  // : mergeType === "all"
+  // ? "Finished"
+  // : `R${data[0].roundId}-${data[0].trialId ?? 0}:${
+  //     data[data.length - 1].trialId ?? 0
+  //   }`;
   return (
     <div
       className="relative flex items-center justify-center"
@@ -303,7 +299,7 @@ const MergedNode: React.FC<MergedNodeProps> = ({
                 <IDIndicator id={nodeId} trial={0} viewType={viewType} />
               </div>
               <div
-                className="flex items-center justify-center"
+                className="flex items-center justify-center bg-gray-300"
                 style={{
                   ...styles.bottomSection,
                   backgroundColor:
@@ -311,7 +307,7 @@ const MergedNode: React.FC<MergedNodeProps> = ({
                       ? getMetricColor(metricForColor[index])
                       : item.metric != null
                       ? getMetricColor(item.metric)
-                      : "gray",
+                      : "",
                 }}
               >
                 <NumOfTrials

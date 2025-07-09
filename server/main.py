@@ -936,7 +936,7 @@ async def trials_first():
         user_exp = next((e for e in exp_list if e.id == user_exp_id), None)
         user_exp.state.current_trial_type = 'user'
         curr_trial = Trial(trial_id, -1, -1, -1, config, budget, user_exp_id, True, user_exp.model, user_exp.dataset)
-        curr_trial.start_time = datetime.now().timestamp()
+        # curr_trial.start_time = datetime.now().timestamp()
         # user_exp.state.current_trial = curr_trial
         return {"success": True, "trial":[-1, -1, -1]}
     elif exp:  # exp = None인 부분 확인하기
@@ -947,7 +947,7 @@ async def trials_first():
             if exp.state.current_trial != None and exp.state.current_trial.is_paused:
                 print("current trial is paused trial ============================================")
                 curr_trial = exp.state.current_trial
-                curr_trial.start_time = datetime.now().timestamp()
+                # curr_trial.start_time = datetime.now().timestamp()
                 exp.state.current_trial_type = 'bohb'
                 return {"success": True, "trial":[curr_trial.bracket_id, curr_trial.round_id, curr_trial.trial_id]}
             trial = exp.que.get()
@@ -1015,12 +1015,14 @@ async def register_trial():
     if curr_trial.is_user_trial:
         user_trial_exp = next((e for e in exp_list if e.id == curr_trial.exp_id), None)
         print("current user trial id: ", curr_trial.id)
+        curr_trial.start_time = datetime.now().timestamp()
         user_trial_exp.state.add_callback("trialStart", curr_trial.to_dict())
         user_trial_exp.save()
         await send_callbacks(user_trial_exp.id)
     else:
         exp.state.current_trial = curr_trial
         exp.state.current_trial_type = 'bohb'
+        curr_trial.start_time = datetime.now().timestamp()
         exp.state.add_callback("trialStart", curr_trial.to_dict())
         exp.save()
         await send_callbacks(exp.id)

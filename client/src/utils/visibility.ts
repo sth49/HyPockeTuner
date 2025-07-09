@@ -82,7 +82,7 @@ export function cleanViewingData(
   }
 
   // 3단계: 세션에 추가 정보 추가
-  const finalSessions = mergedSessions.map((session, index) => ({
+  const finalSessions = rawSessions.map((session, index) => ({
     id: index + 1,
     startTime: session.start,
     endTime: session.end,

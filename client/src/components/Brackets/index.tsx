@@ -78,18 +78,14 @@ const Brackets = () => {
           ) => (
             <div
               key={`${position}-${idx}`}
-              className={`w-[8px] h-[8px] flex items-center justify-center text-center border transition-all duration-600 ease-in-out ${
-                trial.metric
-                  ? " border-white border-[0.5px]"
-                  : " border-gray-500"
-              } ${
+              className={`w-[8px] h-[8px] flex items-center justify-center bg-gray-300 text-center border border-white border-[0.5px] transition-all duration-600 ease-in-out ${
                 position === "expanded" && isExpanded ? "hover:scale-125" : ""
               }`}
               style={{
                 borderRadius: "30%",
                 backgroundColor: trial.metric
                   ? getMetricColor(trial.metric)
-                  : "transparent",
+                  : "",
                 transitionDelay:
                   position === "expanded"
                     ? `${
@@ -143,7 +139,7 @@ const Brackets = () => {
                       isExpanded ? "shadow-md" : "hover:bg-gray-50"
                     }`}
                   >
-                    <h2 className="text-lg w-[25%]">
+                    <h2 className="text-lg w-[25%] font-semibold">
                       Bracket {numOfBrackets - bracket.id}
                     </h2>
                     <div className="w-[65%] flex flex-col gap-1 relative overflow-hidden">
@@ -188,7 +184,7 @@ const Brackets = () => {
                   <SimpleBumpChart
                     bracket={bracket.bracket}
                     width={numOfRounds * 100}
-                    height={numOfTrials * 15 + 80}
+                    height={numOfTrials * 20 + 80}
                     isVisible={isExpanded}
                   />
                   {/* <div className="p-4">

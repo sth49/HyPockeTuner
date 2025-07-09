@@ -76,13 +76,26 @@ export const formatDistance = (
   });
 };
 
-export const formatDate = (date: string | number | Date, type?: string) => {
+export const formatDate = (
+  date: string | number | Date,
+  type?: string,
+  relatedDate?: string | number | Date
+) => {
+  if (relatedDate) {
+    // relatedDate와 date가 같은 경우 time만 보이게
+    if (
+      type === "time" &&
+      format(new Date(date), "MM.dd") === format(new Date(relatedDate), "MM.dd")
+    ) {
+      return format(new Date(date), "HH:mm");
+    }
+  }
   if (type === "day") {
     return format(date, "MM.dd");
   } else if (type === "time") {
-    return format(date, "a HH:mm:ss");
+    return format(date, "HH:mm");
   }
 
-  return format(date, "yyyy.MM.dd. a HH:mm");
+  return format(date, "yyyy.MM.dd. HH:mm");
   // return format(date, "MM.dd.yyyy HH:mm a");
 };

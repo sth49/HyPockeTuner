@@ -220,6 +220,7 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                   if (!d.metricValues || d.metricValues.length === 0) {
                     return null; // Skip rendering if shapValues is empty
                   }
+
                   return (
                     <>
                       {d.metricValues.map((v: NumberValue) => {
@@ -317,33 +318,28 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
             <AxisLeft
               scale={yScale}
               // hideTicks={true}
-              tickComponent={({ formattedValue, ...tickProps }) => (
-                <>
-                  {hparam && hparam.checkValueInSpace(formattedValue) && (
-                    <rect
-                      x={-margin.left}
-                      y={tickProps.y - 10}
-                      width={margin.left - 5}
-                      height={20}
-                      fill="white"
-                      stroke="oklch(55.1% 0.027 264.364)"
-                      rx={4}
-                      strokeWidth={1}
-                    />
-                  )}
-
-                  <Text
-                    {...tickProps}
-                    x={-margin.left + 22} // Adjust x position to align with the rectangle
-                    fontSize={12}
-                    fill="oklch(55.1% 0.027 264.364)"
-                    textAnchor="middle"
-                    verticalAnchor="middle"
-                  >
-                    {formattedValue}
-                  </Text>
-                </>
-              )}
+              tickComponent={({ formattedValue, ...tickProps }) => {
+                const isValidValue = hparam?.checkValueInSpace(formattedValue);
+                return (
+                  <>
+                    <Text
+                      {...tickProps}
+                      x={-margin.left + 22} // Adjust x position to align with the rectangle
+                      fontSize={12}
+                      opacity={isValidValue ? 1 : 0.5}
+                      // 취소선
+                      textDecoration={isValidValue ? "none" : "line-through"}
+                      // 이텔릭
+                      fontStyle={isValidValue ? "normal" : "italic"}
+                      fill="oklch(55.1% 0.027 264.364)"
+                      textAnchor="middle"
+                      verticalAnchor="middle"
+                    >
+                      {formattedValue}
+                    </Text>
+                  </>
+                );
+              }}
               tickLabelProps={() => ({
                 fontSize: 12,
 

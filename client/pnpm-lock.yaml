@@ -32,6 +32,9 @@ importers:
       '@visx/curve':
         specifier: ^3.12.0
         version: 3.12.0
+      '@visx/glyph':
+        specifier: ^3.12.0
+        version: 3.12.0(react@18.2.0)
       '@visx/grid':
         specifier: ^3.12.0
         version: 3.12.0(react@18.2.0)

@@ -27,7 +27,7 @@ export const useGraphData = () => {
     const data: BandProps[] = [];
     const numOfBrackets = brackets.length;
     const visibilitySessions = cleanViewingData(visibility);
-    console.log("Visibility sessions:", visibilitySessions);
+    // console.log("Visibility sessions:", visibilitySessions);
     let order = -1;
     let bestTrialMetric = -1;
 
@@ -42,7 +42,7 @@ export const useGraphData = () => {
         trials: [
           {
             id: `exp`,
-            event: "",
+            event: "Exp Start",
             startTime: startTime ?? 0,
             endTime: endTime ?? 0,
             bracketId: -1,
@@ -70,7 +70,7 @@ export const useGraphData = () => {
         trials: [
           {
             id: `exp`,
-            event: "",
+            event: "Exp Start",
             startTime: startTime ?? 0,
             endTime: endTime ?? 0,
             bracketId: -1,
@@ -100,7 +100,7 @@ export const useGraphData = () => {
           trials: [
             {
               id: `bracket-${bracket.id}`,
-              event: "",
+              event: `Bracket ${numOfBrackets - bracket.id}`,
               startTime: bracket.startTime,
               endTime: bracket.endTime,
               bracketId: numOfBrackets - bracket.id,
@@ -128,7 +128,7 @@ export const useGraphData = () => {
           trials: [
             {
               id: `bracket-${bracket.id}`,
-              event: "",
+              event: `Bracket ${numOfBrackets - bracket.id}`,
               startTime: bracket.startTime,
               endTime: bracket.endTime,
               bracketId: numOfBrackets - bracket.id,
@@ -164,9 +164,9 @@ export const useGraphData = () => {
             trials: [
               {
                 ...trial,
-                event: `${numOfBrackets - bracket.id}-${round.roundId + 1}-${
-                  trial.trialId + 1
-                }`,
+                event: `Trial ${numOfBrackets - bracket.id}-${
+                  round.roundId + 1
+                }-${trial.trialId + 1}`,
                 trialId: (trial.trialId ?? 0) + 1,
                 bracketId: numOfBrackets - bracket.id,
                 roundId: round.roundId + 1,
@@ -215,7 +215,12 @@ export const useGraphData = () => {
 
           allTrials.push({
             type: trialType,
-            trials: [userTrial],
+            trials: [
+              {
+                ...userTrial,
+                event: `User Trial (${userTrial.id.slice(0, 3)})`,
+              },
+            ],
           });
         });
       }
@@ -321,11 +326,11 @@ export const useGraphData = () => {
 
     // visibility 세션 데이터 추가
     visibilitySessions.forEach((session) => {
-      console.log(
-        "startTime:",
-        session.startTime,
-        format(session.startTime, "MM.dd.yyyy HH:mm:ss")
-      );
+      // console.log(
+      //   "startTime:",
+      //   session.startTime,
+      //   format(session.startTime, "MM.dd.yyyy HH:mm:ss")
+      // );
       const sessionData = {
         time: session.startTime,
         type: "visibility",

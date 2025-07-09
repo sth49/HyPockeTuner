@@ -5,7 +5,6 @@ import { useExperimentStore } from "../../stores/experimentStore";
 import { Push } from "../../types/experiment";
 // import {notiTypeIcons } as
 import { notiTypeIcons } from "../../utils/icon"; // Uncomment if you have icons for notifications
-import { format } from "date-fns";
 import { formatDate, formatDistance } from "../../utils/formatting";
 const PushView = () => {
   const [page, setPage] = useState(1);

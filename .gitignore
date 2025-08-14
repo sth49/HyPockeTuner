@@ -1,0 +1,14 @@
+data/
+frontend/
+client-files/
+*.ipynb
+log*
+*.png
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+node_modules

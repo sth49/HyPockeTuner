@@ -1,1 +1,0 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/HyPockeTuner_new/sw.js', { scope: '/HyPockeTuner_new/' })})}

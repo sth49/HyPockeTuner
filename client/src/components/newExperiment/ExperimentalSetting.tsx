@@ -6,7 +6,10 @@ interface ExperimentalSettingProps {
   name: string;
   dataset: string;
   model: string;
-  metric: string;
+  metric: {
+    name: string;
+    range: [number, number]; // [min, max]
+  };
   datasetOptions: Array<{ value: string; label: string }>;
   modelOptions: Array<{ value: string; label: string }>;
   onNameChange: (name: string) => void;
@@ -57,7 +60,7 @@ const ExperimentalSetting = ({
       </SettingField>
 
       <SettingField label="Metric">
-        <p>{metric}</p>
+        <p>{metric.name}</p>
       </SettingField>
     </div>
   );

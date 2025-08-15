@@ -74,7 +74,7 @@ export const useExperimentOptions = (type: string) => {
         model: model || "",
         hyperparams: newHparamOptions || [],
 
-        metric: metric.name || "",
+        metric: metric,
         bohb: {
           eta: bohb.eta || 3,
           minBudget: bohb.minBudget || 1,
@@ -116,7 +116,7 @@ export const useExperimentOptions = (type: string) => {
       (hparam: any, i: number) =>
         HyperparamOption.fromJSON(hparam.name, i, hparam)
     );
-    const newMetric = expOption.model_config[newModel].metric.name;
+    const newMetric = expOption.model_config[newModel].metric;
 
     setNewExpOptions({
       ...newExpOptions,
@@ -133,7 +133,7 @@ export const useExperimentOptions = (type: string) => {
     if (!selection || !expOption) return;
 
     const newModel = selection.value;
-    const newMetric = expOption.model_config[newModel].metric.name;
+    const newMetric = expOption.model_config[newModel].metric;
 
     setNewExpOptions({
       ...newExpOptions,

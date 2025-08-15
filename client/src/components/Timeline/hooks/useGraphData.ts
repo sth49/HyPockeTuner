@@ -1,10 +1,9 @@
 // 그래프 데이터 생성 훅
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useExperimentStore } from "../../../stores/experimentStore";
 import { mergeEventData } from "../../../utils/mergeUtils";
-import { BandProps, NodeProps, LinkProps } from "../types";
+import { BandProps, NodeProps, LinkProps, NodeType } from "../types";
 import { cleanViewingData } from "../../../utils";
-import { format } from "date-fns";
 // import { format } from "date-fns";
 
 export const useGraphData = () => {
@@ -16,8 +15,8 @@ export const useGraphData = () => {
 
   const startTime = useExperimentStore((state) => state.startTime);
   const endTime = useExperimentStore((state) => state.endTime);
-  // 고정된 현재 시간을 참조로 사용 (컴포넌트 생명주기 동안 일정)
-  const fixedCurrentTimeRef = useRef(Date.now());
+  // 현재 시간 - interactions이 변경될 때마다 업데이트되어야 함
+  const currentTime = Date.now();
 
   const graphData: BandProps[] = useMemo(() => {
     if (!brackets || brackets.length === 0) {
@@ -93,7 +92,7 @@ export const useGraphData = () => {
         type: "link",
         bracket: numOfBrackets - bracket.id,
         startTime: bracket.startTime,
-        endTime: bracket.endTime,
+        endTime: bracket.startTime,
         order: order++,
         data: {
           type: "pseudo",
@@ -121,7 +120,7 @@ export const useGraphData = () => {
         type: "node",
         bracket: numOfBrackets - bracket.id,
         startTime: bracket.startTime,
-        endTime: bracket.endTime,
+        endTime: bracket.startTime,
         order: order++,
         data: {
           type: "pseudo",
@@ -190,7 +189,7 @@ export const useGraphData = () => {
           const bracketEnd = bracket.endTime ?? 0;
 
           // const effectiveBracketEnd =
-          //   bracketEnd !== -1 ? bracketEnd : fixedCurrentTimeRef.current;
+          //   bracketEnd !== -1 ? bracketEnd : currentTime;
 
           const isInRange =
             bracketEnd === -1
@@ -202,11 +201,11 @@ export const useGraphData = () => {
 
         relevantUserTrials.forEach((userTrial) => {
           // 🔥 문제 3: userTrial 상태에 따른 타입 결정
-          let trialType = "user";
+          let trialType: NodeType = "user";
           if (userTrial.status === "running") {
             trialType = "current"; // 실행 중인 user trial을 시각적으로 구분
           } else if (userTrial.status === "done") {
-            trialType = "pending";
+            trialType = "user";
           } else if (userTrial.status === "failed") {
             trialType = "failed";
           } else if (userTrial.status === "paused") {
@@ -228,13 +227,9 @@ export const useGraphData = () => {
       // 🔥 안정적인 시간순 정렬 - 고정된 현재 시간 사용
       allTrials.sort((a, b) => {
         const aTime =
-          a.trials[0]?.startTime === -1
-            ? fixedCurrentTimeRef.current
-            : a.trials[0]?.startTime;
+          a.trials[0]?.startTime === -1 ? currentTime : a.trials[0]?.startTime;
         const bTime =
-          b.trials[0]?.startTime === -1
-            ? fixedCurrentTimeRef.current
-            : b.trials[0]?.startTime;
+          b.trials[0]?.startTime === -1 ? currentTime : b.trials[0]?.startTime;
 
         // 시간이 같은 경우 추가 정렬 기준 사용 (안정적인 정렬을 위해)
         if (aTime === bTime) {
@@ -336,13 +331,13 @@ export const useGraphData = () => {
         type: "visibility",
         data: session,
       };
+      // @ts-ignore
       interactionData.push(sessionData);
     });
 
     data.forEach((node, index) => {
       if (node.type === "link") {
-        let startTime =
-          node.startTime !== -1 ? node.startTime : fixedCurrentTimeRef.current;
+        let startTime = node.startTime !== -1 ? node.startTime : currentTime;
         if (index >= 2) {
           if (
             data[index - 2].data?.type !== "pseudo" &&
@@ -357,18 +352,13 @@ export const useGraphData = () => {
           }
         }
 
-        const endTime =
-          node.endTime !== -1
-            ? node.endTime
-            : node.startTime !== -1
-            ? node.startTime
-            : fixedCurrentTimeRef.current;
+        const endTime = node.endTime !== -1 ? node.endTime : currentTime;
 
         if (node.data && node.data.type === "pseudo") {
           // console.log("Pseudo node detected:", node);
           // console.log("Start time:", format(startTime, "MM.dd.yyyy HH:mm:ss"));
           // console.log("End time:", format(endTime, "MM.dd.yyyy HH:mm:ss"));
-          node.startTime = startTime;
+          // node.startTime = startTime;
           node.endTime = endTime;
         }
 
@@ -414,7 +404,8 @@ export const useGraphData = () => {
     push,
     interactions,
     userTrials,
-  ]); // fixedCurrentTimeRef는 의존성에서 제외
+    currentTime,
+  ]);
 
   const pendingData: BandProps[] = useMemo(() => {
     const pendingData: BandProps[] = [];
@@ -471,6 +462,10 @@ const isValidPush = (push: any) => {
     "timeout",
     "experiment-pause",
     "metric-improve",
+    "metric-improve-by",
+    "metric-improved-by",
+    "metric-improved",
+    "low-utilization",
   ];
   return validPushTypes.includes(push.type);
 };
@@ -485,6 +480,7 @@ const isValidInteraction = (interaction: any) => {
     "experimentResume",
     "narrowConfigspace",
     "launchImmediatelyExp",
+    "redefineExperiment",
   ];
   // const validInteractionTypes = [
   //   "addUserTrial",

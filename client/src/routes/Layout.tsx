@@ -10,9 +10,11 @@ import { hpTypeIcons } from "../utils/icon";
 import ExpSummaryView from "../components/workspace/ExpSummaryView";
 import { useMetadataStore } from "../stores/metadataStore";
 import { useExperimentStore } from "../stores/experimentStore";
+import { useAuthStore } from "../stores/authStore";
 import { useNavigation } from "../hooks/useNavigation";
 import ApiClient from "../api/api";
 import ProgressButton from "../components/common/ProgressButton";
+import ExperimentActionModal from "../components/common/ExperimentActionModal";
 import { useParams } from "react-router";
 
 interface LayoutProps {
@@ -37,6 +39,7 @@ const titles = {
 
 const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
   const { handleNavigate } = useNavigation();
+  const { currentUser } = useAuthStore();
 
   const headerHeight = 65; // 헤더 높이 (픽셀 단위)
   const mainMarginTop = headerHeight;
@@ -80,12 +83,14 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
             <button
               onClick={() => {
                 handleNavigate("/workspace");
-                ApiClient.postVisibility("user1", false).catch((error) => {
-                  console.error("Failed to send visibility data:", error);
-                });
+                if (currentUser) {
+                  ApiClient.postVisibility(currentUser, false).catch((error) => {
+                    console.error("Failed to send visibility data:", error);
+                  });
+                }
                 console.log("Navigating to workspace");
               }}
-              className="text-gray-700 transition-colors ml-2"
+              className="transition-colors ml-2"
             >
               <IoChevronBack size={20} />
             </button>
@@ -95,65 +100,37 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
               </div>
             )}
 
-            {/* {currExpId && status !== null && status !== "finished" && (
+            {currExpId && status !== null && status !== "finished" && (
               <div className="flex items-center mr-2">
                 <ProgressButton />
-                <dialog id="check_modal" className="modal">
-                  <div className="modal-box">
-                    <p className="py-4">
-                      The currently ongoing experiement{" "}
-                      {runningExp?.slice(0, 3)} will be paused if you{" "}
-                      {currExpId &&
-                      (status === "paused" || status === "auto_paused")
-                        ? "resume "
-                        : "start "}
-                      this experiemnt.
-                    </p>
-                    <div className="modal-action">
-                      <form method="dialog">
-                        <button className="btn">Close</button>
-                        {(currExpId && status === "pending") ||
-                        status === "reserved" ? (
-                          <>
-                            <button
-                              onClick={() => {
-                                ApiClient.call(["exp/start/" + currExpId]); // 잘 됨
 
-                                (
-                                  document.getElementById(
-                                    "check_modal"
-                                  ) as HTMLDialogElement
-                                )?.close();
-                              }}
-                            >
-                              Start Now
-                            </button>
-                          </>
-                        ) : status === "paused" || status === "auto_paused" ? (
-                          <>
-                            <button
-                              onClick={() => {
-                                ApiClient.call(["exp/resume/" + currExpId]); // 잘 됨
+                {/* Pause Confirmation Modal */}
+                <ExperimentActionModal
+                  modalId="pause_confirm_modal"
+                  title="Pause Experiment"
+                  message={`Are you sure you want to pause the experiment "${currExp?.name}"? This will stop the current training process and you can resume it later.`}
+                  confirmText="Pause Experiment"
+                  onConfirm={() => ApiClient.call(["exp/pause/" + currExpId])}
+                  actionType="pause"
+                />
 
-                                (
-                                  document.getElementById(
-                                    "check_modal"
-                                  ) as HTMLDialogElement
-                                )?.close();
-                              }}
-                            >
-                              Resume Now
-                            </button>
-                          </>
-                        ) : (
-                          <></>
-                        )}
-                      </form>
-                    </div>
-                  </div>
-                </dialog>
+                {/* Start/Resume with Running Experiment Modal */}
+                <ExperimentActionModal
+                  modalId="conflict_action_modal"
+                  title="Another Experiment Running"
+                  message={`Experiment "${runningExp?.slice(0, 8)}..." is currently running. ${status === "paused" || status === "auto_paused" ? 'Resuming' : 'Starting'} this experiment will automatically pause the running one. Do you want to continue?`}
+                  confirmText={status === "paused" || status === "auto_paused" ? "Resume This Experiment" : "Start This Experiment"}
+                  onConfirm={() => {
+                    if (status === "pending" || status === "reserved") {
+                      ApiClient.call(["exp/start/" + currExpId]);
+                    } else if (status === "paused" || status === "auto_paused") {
+                      ApiClient.call(["exp/resume/" + currExpId]);
+                    }
+                  }}
+                  actionType={status === "paused" || status === "auto_paused" ? "resume" : "start"}
+                />
               </div>
-            )} */}
+            )}
           </div>
           // </div>
         )}
@@ -164,7 +141,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
               onClick={() => {
                 handleNavigate("/main/notification");
               }}
-              className="text-gray-700 hover:text-gray-900 transition-colors"
+              className="transition-colors"
             >
               <IoCloseSharp size={20} />
             </button>
@@ -195,7 +172,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
                     return (
                       <div
                         key={key}
-                        className="flex items-center justify-center gap-1 text-sm text-gray-500"
+                        className="flex items-center justify-center gap-1 text-sm"
                       >
                         <Icon size={15} />
                         <p className="text-xs">{names[key]}</p>
@@ -224,7 +201,6 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
                   setSelectedTrials([]);
                   handleNavigate("/main/refine");
                 }}
-                className="text-gray-700 hover:text-gray-900 transition-colors"
               >
                 <IoCloseSharp size={20} />
               </button>
@@ -234,11 +210,11 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
 
         {/* 헤더 버튼들 */}
         {viewType === "workspace" && (
-          <div className="absolute right-0 flex items-center justify-center mr-4">
-            <button
-              onClick={() => handleNavigate("/setting")}
-              className="text-gray-700 hover:text-gray-900 transition-colors"
-            >
+          <div className="absolute right-0 flex items-center gap-3 mr-4">
+            <div className="text-xs text-gray-600">
+              {currentUser}
+            </div>
+            <button onClick={() => handleNavigate("/setting")}>
               <FaUser />
             </button>
           </div>
@@ -257,7 +233,6 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
                   handleNavigate("/workspace");
                 }
               }}
-              className="text-gray-700 hover:text-gray-900 transition-colors"
             >
               <IoCloseSharp size={20} />
             </button>
@@ -265,10 +240,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
         )}
         {viewType === "userTrial" && (
           <div className="absolute right-0 flex items-center justify-center mr-4">
-            <button
-              onClick={() => handleNavigate("/main/trials")}
-              className="text-gray-700 hover:text-gray-900 transition-colors"
-            >
+            <button onClick={() => handleNavigate("/main/trials")}>
               <IoCloseSharp size={20} />
             </button>
           </div>

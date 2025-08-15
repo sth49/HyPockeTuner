@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import BottomButton from "../common/BottomButton";
 import HeaderText from "../common/HeaderText";
 import { flexRender, RowPinningState } from "@tanstack/react-table";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa6";
 import { useExperimentStore } from "../../stores/experimentStore";
 import { hpTypeIcons } from "../../utils/icon";
@@ -19,6 +19,7 @@ import { NotiCondPair, TrialFinishCond } from "../../models/notification";
 import ApiClient from "../../api/api";
 import { useNavigation } from "../../hooks/useNavigation";
 import { useTrialData } from "../../hooks/useTrialData";
+import { IoLogoUsd } from "react-icons/io5";
 const NewUserTrial = () => {
   const { id } = useParams<{ id: string }>();
   const { table } = useTrialData(false, false); // Get the table without selection or expansion
@@ -35,6 +36,48 @@ const NewUserTrial = () => {
   const [userHparamValues, setUserHparamValues] = useState<
     Record<string, string | number>
   >({});
+
+  // 값 검증 로직
+  const isValidConfiguration = useMemo(() => {
+    if (!hyperparams) return false;
+    
+    // 1. 모든 하이퍼파라미터가 유효한 값을 가져야 함
+    for (const hparam of hyperparams) {
+      const value = userHparamValues[hparam.name];
+      
+      // 값이 없거나 빈 문자열인 경우
+      if (value === undefined || value === null || value === "") {
+        return false;
+      }
+      
+      // UniformHyperparam 타입 검증
+      if (hparam instanceof UniformHyperparam) {
+        const numValue = Number(value);
+        if (isNaN(numValue) || numValue < hparam.range[0] || numValue > hparam.range[1]) {
+          return false;
+        }
+      }
+      
+      // OrderedHyperparam과 UnorderedHyperparam 타입 검증
+      if (hparam instanceof OrderedHyperparam || hparam instanceof UnorderedHyperparam) {
+        const stringValue = String(value);
+        const validValues = hparam.values.map(v => 
+          v === true ? "True" : v === false ? "False" : String(v)
+        );
+        if (!validValues.includes(stringValue)) {
+          return false;
+        }
+      }
+    }
+    
+    // 2. Budget 값 검증
+    const budgetValue = Number(userHparamValues["budget"]);
+    if (isNaN(budgetValue) || budgetValue <= 0) {
+      return false;
+    }
+    
+    return true;
+  }, [hyperparams, userHparamValues]);
 
   const applyRowPinning = useCallback(() => {
     if (!id || !table) return;
@@ -67,7 +110,7 @@ const NewUserTrial = () => {
           );
         }
       });
-      newParamValues["budget"] = pinnedRow.original.budget || 0;
+      newParamValues["budget"] = pinnedRow.original.budget || 1;
       console.log("Setting user hyperparameter values:", newParamValues);
       setUserHparamValues(newParamValues);
 
@@ -110,10 +153,10 @@ const NewUserTrial = () => {
                 : "False"
               : h.values[0];
         } else if (h instanceof UniformHyperparam) {
-          initialValues[h.name] = h.range[0];
+          // initialValues[h.name] = h.range[0]; // 초기값 설정하지 않음
         }
       });
-      initialValues["budget"] = 0; // Default budget value
+      initialValues["budget"] = 1; // Default budget value (minimum 1)
       setUserHparamValues(initialValues);
     }
   }, [hyperparams]);
@@ -167,7 +210,7 @@ const NewUserTrial = () => {
             "Setting user hyperparameter values:",
             newUserHparamValues
           );
-          newUserHparamValues["budget"] = row.original.budget || 0; // Set budget
+          newUserHparamValues["budget"] = row.original.budget || 1; // Set budget
           setUserHparamValues(newUserHparamValues); // Update local state
           console.log("New pinning state:", newPinning);
           setRowPinning(newPinning); // React local state
@@ -356,8 +399,8 @@ const NewUserTrial = () => {
               ) : (
                 <input
                   type="number"
-                  // placeholder="Type here"
-                  value={Number(userHparamValues[h.name])}
+                  placeholder={h instanceof UniformHyperparam ? `${h.range[0]} - ${h.range[1]}` : "Type here"}
+                  value={userHparamValues[h.name] !== undefined && userHparamValues[h.name] !== "" ? userHparamValues[h.name] : ""}
                   onChange={(e) => {
                     const value = e.target.value;
                     setUserHparamValues((prev) => ({
@@ -365,7 +408,21 @@ const NewUserTrial = () => {
                       [h.name]: value ? Number(value) : "",
                     }));
                   }}
-                  className="input focus:ring-0 focus:outline-none focus:border-primary w-[50%] bg-white"
+                  className={`input focus:ring-0 focus:outline-none w-[50%] bg-white ${
+                    (() => {
+                      const value = userHparamValues[h.name];
+                      if (value === "" || value === undefined || value === null) {
+                        return "border-error focus:border-error";
+                      }
+                      if (h instanceof UniformHyperparam) {
+                        const numValue = Number(value);
+                        if (isNaN(numValue) || numValue < h.range[0] || numValue > h.range[1]) {
+                          return "border-error focus:border-error";
+                        }
+                      }
+                      return "focus:border-primary border-gray-300";
+                    })()
+                  }`}
                 />
               )}
             </div>
@@ -373,14 +430,15 @@ const NewUserTrial = () => {
         })}
         <div className="flex justify-between items-center border-b border-gray-200 p-2">
           <span className="text-sm  flex items-center gap-1">
-            {/* <Icon /> */}
+            <IoLogoUsd />
             Budget
           </span>
 
           <input
             type="number"
+            min="1"
             // placeholder="Type here"
-            value={Number(userHparamValues["budget"])}
+            value={Number(userHparamValues["budget"]) || ""}
             onChange={(e) => {
               const value = e.target.value;
               setUserHparamValues((prev) => ({
@@ -388,12 +446,25 @@ const NewUserTrial = () => {
                 budget: value ? Number(value) : "",
               }));
             }}
-            className="input focus:ring-0 focus:outline-none focus:border-primary w-[50%] bg-white "
+            className={`input focus:ring-0 focus:outline-none w-[50%] bg-white ${
+              (() => {
+                const value = userHparamValues["budget"];
+                const numValue = Number(value);
+                if (value === "" || value === undefined || value === null || isNaN(numValue) || numValue <= 0) {
+                  return "border-error focus:border-error";
+                }
+                return "focus:border-primary border-gray-300";
+              })()
+            }`}
           />
         </div>
       </div>
 
-      <BottomButton onClick={handleCreateNewTrial} text="Create New Trial" />
+      <BottomButton 
+        onClick={handleCreateNewTrial} 
+        text="Create New Trial" 
+        disabled={!isValidConfiguration}
+      />
     </>
   );
 };

@@ -38,7 +38,10 @@ export const useMetadataStore = create<MetadataState>((set) => ({
     name: "",
     model: "",
     dataset: "",
-    metric: "",
+    metric: {
+      name: "",
+      range: [0, 1], // [min, max]
+    },
     hyperparams: [],
     bohb: {} as BOHBOption,
   },
@@ -46,7 +49,10 @@ export const useMetadataStore = create<MetadataState>((set) => ({
     name: "",
     model: "",
     dataset: "",
-    metric: "",
+    metric: {
+      name: "",
+      range: [0, 1], // [min, max]
+    },
     hyperparams: [],
     bohb: {} as BOHBOption,
   },
@@ -71,7 +77,6 @@ export const useMetadataStore = create<MetadataState>((set) => ({
 
     switch (key) {
       case "experiment_list": {
-        console.log("Updating experiment list", value);
         const expListData =
           value.map((item: SummaryData) => {
             return createExpSummary(item);
@@ -103,8 +108,8 @@ export const useMetadataStore = create<MetadataState>((set) => ({
               ? {
                   ...exp,
                   bestTrial:
-                    (exp.bestTrial?.metric ?? -Infinity) < value.metric
-                      ? value
+                    (exp.bestTrial ?? -Infinity) < value.metric
+                      ? value.metric
                       : exp.bestTrial,
                 }
               : exp

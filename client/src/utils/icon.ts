@@ -11,7 +11,6 @@ import {
   MdNotifications,
   MdNotificationsActive,
   MdNotificationAdd,
-  MdNotificationsOff,
   MdWarningAmber,
   MdDeviceThermostat,
   MdDiscFull,
@@ -34,13 +33,7 @@ import {
 } from "react-icons/md";
 import { TbViewportNarrow } from "react-icons/tb";
 import { RiFunctionAddFill } from "react-icons/ri";
-import {
-  FaCodeBranch,
-  FaPause,
-  FaPlay,
-  FaEye,
-  FaEyeSlash,
-} from "react-icons/fa6";
+import { FaCodeBranch, FaPause, FaPlay, FaEye } from "react-icons/fa6";
 import { Type } from "../models/notification";
 
 export type IconComponent = React.ComponentType<{ size?: number }>;
@@ -54,19 +47,16 @@ export const summaryIcons: Record<string, IconComponent> = {
 };
 
 export const timelineIcons: Record<string, IconComponent> = {
+  visibility: FaEye,
   push: MdNotificationsActive,
   addUserTrial: RiFunctionAddFill,
   addCondition: MdNotificationAdd,
-  editCondition: MdEditNotifications,
-  deleteCondition: MdNotificationsOff,
   narrowConfigspace: TbViewportNarrow,
-  redefineConfigspace: FaCodeBranch,
+  redefineExperiment: FaCodeBranch,
+  editCondition: MdEditNotifications,
+
   experimentPause: FaPause,
   experimentResume: FaPlay,
-  visibility: FaEye,
-  nonVisibility: FaEyeSlash,
-  launchImmediatelyExp: MdOutlineDescription,
-  timeout: MdAlarm,
 };
 
 // export const timelineIcons: Record<string, IconComponent> = {

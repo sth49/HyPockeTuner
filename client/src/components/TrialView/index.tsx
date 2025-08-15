@@ -15,7 +15,7 @@ const TrialView = () => {
 
   return (
     <div className="w-full h-full pt-[45px] pb-0 bg-white">
-      <div className="join absolute top-[65px] left-0 w-full h-[45px] bg-base-100 z-999 flex items-center justify-center border-b-[0.5px] border-b-[#e0e0e0]">
+      <div className="join absolute top-[65px] left-0 w-full h-[45px] bg-base-100 z-999 flex items-center justify-center border-b-[0.5px] border-b-[#e0e0e0] px-2">
         {["timeline", "brackets", "records"].map((type) => (
           <button
             key={type}

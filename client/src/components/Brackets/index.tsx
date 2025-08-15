@@ -1,8 +1,9 @@
 import { Key, useState } from "react";
 import { useExperimentStore } from "../../stores/experimentStore";
 import { useColorScale } from "../../utils/colorScale";
-import SimpleBumpChart from "./BumpChart";
+import BumpChart from "./BumpChart";
 import { FaChevronDown } from "react-icons/fa6";
+import Legend from "../common/Legend";
 
 const Brackets = () => {
   const brackets = useExperimentStore((state) => state.brackets);
@@ -40,8 +41,7 @@ const Brackets = () => {
   const renderTrials = (
     trials: any[],
     isExpanded: boolean,
-    position: "header" | "expanded",
-    roundIndex: number = 0
+    position: "header" | "expanded"
   ) => {
     const sortedTrials = trials.slice().sort((a, b) => {
       if (a.metric === null) return 1;
@@ -53,20 +53,9 @@ const Brackets = () => {
     return chunks.map((chunk, chunkIndex) => (
       <div
         key={`${position}-${chunkIndex}`}
-        className={`flex items-center transition-all duration-800 ease-in-out ${
-          position === "header"
-            ? isExpanded
-              ? "opacity-0 transform translate-y-8 scale-90"
-              : "opacity-100 transform translate-y-0 scale-100"
-            : isExpanded
-            ? "opacity-100 transform translate-y-0 scale-100"
-            : "opacity-0 transform -translate-y-8 scale-90"
-        }`}
+        className={`flex items-center w-full`}
         style={{
-          transitionDelay:
-            position === "expanded"
-              ? `${roundIndex * 100 + chunkIndex * 60}ms`
-              : `${chunkIndex * 40}ms`,
+          visibility: isExpanded ? "hidden" : "visible",
         }}
       >
         {chunk.map(
@@ -78,30 +67,12 @@ const Brackets = () => {
           ) => (
             <div
               key={`${position}-${idx}`}
-              className={`w-[8px] h-[8px] flex items-center justify-center bg-gray-300 text-center border border-white border-[0.5px] transition-all duration-600 ease-in-out ${
-                position === "expanded" && isExpanded ? "hover:scale-125" : ""
-              }`}
+              className={`w-[8px] h-[8px] flex items-center justify-center bg-gray-300 text-center border border-white border-[0.5px] `}
               style={{
                 borderRadius: "30%",
                 backgroundColor: trial.metric
                   ? getMetricColor(trial.metric)
                   : "",
-                transitionDelay:
-                  position === "expanded"
-                    ? `${
-                        roundIndex * 100 +
-                        chunkIndex * 60 +
-                        (idx as number) * 20
-                      }ms`
-                    : `${chunkIndex * 40 + (idx as number) * 10}ms`,
-                transform:
-                  position === "header"
-                    ? isExpanded
-                      ? `translateY(20px) scale(0.9)`
-                      : `translateY(0px) scale(1)`
-                    : isExpanded
-                    ? `translateY(0px) scale(1)`
-                    : `translateY(-20px) scale(0.9)`,
               }}
             />
           )
@@ -111,119 +82,87 @@ const Brackets = () => {
   };
 
   return (
-    <div className="flex items-center bg-base-100 flex-col h-full">
-      {data.length > 0 &&
-        data.map((bracket, index) => {
-          const numOfTrials = bracket.rounds.reduce(
-            (acc, round) => acc + round.trials.length,
-            0
-          );
-          const numOfRounds = bracket.rounds.length;
-          const isExpanded = open.includes(bracket.id);
+    <div className="flex items-center bg-base-100 flex-col h-full gap-1 relative">
+      <div className="bg-base-100 w-full flex justify-center py-1 absolute top-0 z-10">
+        <Legend width={200} />
+      </div>
+      <div
+        className="w-full h-full overflow-y-auto flex flex-col gap-2 p-2"
+        style={{ paddingTop: "30px" }}
+      >
+        {data.length > 0 &&
+          data.map((bracket, index) => {
+            const numOfTrials = bracket.rounds.reduce(
+              (acc, round) => acc + round.trials.length,
+              0
+            );
+            const isExpanded = open.includes(bracket.id);
 
-          return (
-            <div key={index} className="w-full p-1">
-              <div className="relative">
-                <div
-                  onClick={() => {
-                    if (open.includes(bracket.id)) {
-                      setOpen(open.filter((id) => id !== bracket.id));
-                    } else {
-                      setOpen([...open, bracket.id]);
-                    }
-                  }}
-                  className="cursor-pointer"
-                >
+            return (
+              <div key={index} className="w-full">
+                <div className="relative">
                   <div
-                    className={`bg-white flex items-center justify-between p-2 transition-all duration-300 ${
-                      isExpanded ? "shadow-md" : "hover:bg-gray-50"
-                    }`}
+                    onClick={() => {
+                      if (open.includes(bracket.id)) {
+                        setOpen(open.filter((id) => id !== bracket.id));
+                      } else {
+                        setOpen([...open, bracket.id]);
+                      }
+                    }}
+                    className="cursor-pointer"
                   >
-                    <h2 className="text-lg w-[25%] font-semibold">
-                      Bracket {numOfBrackets - bracket.id}
-                    </h2>
-                    <div className="w-[65%] flex flex-col gap-1 relative overflow-hidden">
-                      {/* 헤더 위치의 트라이얼들 */}
-                      {bracket.rounds.length &&
-                        bracket.rounds
-                          .sort((a, b) => b.roundId - a.roundId)
-                          .map((round, roundIndex) => (
-                            <div
-                              className="flex flex-col"
-                              key={`header-${round.id}`}
-                            >
-                              {renderTrials(
-                                round.trials,
-                                isExpanded,
-                                "header",
-                                roundIndex
-                              )}
-                            </div>
-                          ))}
-                    </div>
-                    <div className="w-[10%] flex items-center justify-center">
-                      <div
-                        className={`transition-transform duration-300 ${
-                          isExpanded ? "rotate-180" : "rotate-0"
-                        }`}
-                      >
-                        <FaChevronDown />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 확장된 영역 */}
-                <div
-                  className={`bg-white overflow-hidden transition-all duration-500 ease-in-out ${
-                    isExpanded
-                      ? "opacity-100 border-t border-gray-200"
-                      : "max-h-0 opacity-0"
-                  }`}
-                >
-                  <SimpleBumpChart
-                    bracket={bracket.bracket}
-                    width={numOfRounds * 100}
-                    height={numOfTrials * 20 + 80}
-                    isVisible={isExpanded}
-                  />
-                  {/* <div className="p-4">
-                    {bracket.rounds.length &&
-                      bracket.rounds
-                        .sort((a, b) => b.roundId - a.roundId)
-                        .map((round, roundIndex) => (
-                          <div
-                            className={`flex flex-col mb-6 transition-all duration-500 ease-out ${
-                              isExpanded
-                                ? "opacity-100 transform translateX(0)"
-                                : "opacity-0 transform translateX(-20px)"
-                            }`}
-                            key={`expanded-${round.id}`}
-                            style={{
-                              transitionDelay: `${roundIndex * 150}ms`,
-                            }}
-                          >
-                            <div className="mb-3">
-                              <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                                Round {round.roundId}
-                              </h3>
-                              <div className="bg-gray-50 p-3 rounded-lg">
+                    <div
+                      className={`bg-white flex items-center justify-between p-2`}
+                    >
+                      <h2 className="text-lg w-[25%] font-semibold">
+                        Bracket {numOfBrackets - bracket.id}
+                      </h2>
+                      <div className="w-[65%] flex flex-col gap-1 relative overflow-hidden">
+                        {/* 헤더 위치의 트라이얼들 */}
+                        {bracket.rounds.length &&
+                          bracket.rounds
+                            .sort((a, b) => b.roundId - a.roundId)
+                            .map((round) => (
+                              <div
+                                className="flex flex-col"
+                                key={`header-${round.id}`}
+                              >
                                 {renderTrials(
                                   round.trials,
                                   isExpanded,
-                                  "expanded",
-                                  roundIndex
+                                  "header"
                                 )}
                               </div>
-                            </div>
-                          </div>
-                        ))}
-                  </div> */}
+                            ))}
+                      </div>
+                      <div className="w-[10%] flex items-center justify-center">
+                        <div
+                          className={` ${
+                            isExpanded ? "rotate-180" : "rotate-0"
+                          }`}
+                        >
+                          <FaChevronDown />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 확장된 영역 */}
+                  <div
+                    className={`bg-white overflow-hidden  ${
+                      isExpanded ? "border-t border-gray-200" : "max-h-0"
+                    }`}
+                  >
+                    <BumpChart
+                      bracket={bracket.bracket}
+                      height={numOfTrials * 8 + 80}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+      </div>
     </div>
   );
 };

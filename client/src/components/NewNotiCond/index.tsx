@@ -8,11 +8,13 @@ import { useEffect, useState } from "react";
 import { CustomSelect } from "../CustomSelect";
 import {
   BracketFinishCond,
+  getBorderColor,
   MetricImproveByCond,
   MetricImproveCond,
   MetricReachCond,
   NotiCond,
   NotiCondPair,
+  NotiType,
   RoundFinishCond,
   TimeoutCond,
 } from "../../models/notification";
@@ -63,8 +65,6 @@ const NewNotiCond = () => {
   const numOfBrackets = brackets.length;
   const currRoundId = useExperimentStore((state) => state.currRoundId);
   const currBracketId = useExperimentStore((state) => state.currBracketId);
-  // console.log("currBracketId:", currBracketId);
-  // console.log("currRoundId:", currRoundId);
   const status = useExperimentStore((state) => state.status);
   const metric = useExperimentStore((state) => state.metric);
   const bestTrial = useExperimentStore((state) => state.bestTrial);
@@ -193,7 +193,19 @@ const NewNotiCond = () => {
               <tbody>
                 {brackets.map((bracket, index) => (
                   <tr key={index} className="border-b border-gray-200">
-                    <td className="text-center  p-1">
+                    <td
+                      className="text-center p-1"
+                      onClick={() => {
+                        if (currBracketId < bracket.id || status === "finished")
+                          return;
+                        setState({
+                          ...state,
+                          eventTarget: "bracket",
+                          bracketId: `${bracket.id}`,
+                          roundId: `${bracket.id}-${currRoundId}`,
+                        });
+                      }}
+                    >
                       {numOfBrackets - bracket.id}
                     </td>
                     {bracket.rounds.map((round, roundIndex) => (
@@ -210,6 +222,19 @@ const NewNotiCond = () => {
                                 ? progressColor2.running
                                 : progressColor2.pending
                               : progressColor2.finished,
+                        }}
+                        onClick={() => {
+                          if (
+                            round.trials.filter((t) => t.status === "done")
+                              .length !== round.trials.length
+                          ) {
+                            setState({
+                              ...state,
+                              eventTarget: "round",
+                              roundId: `${bracket.id}-${round.roundId}`,
+                              bracketId: `${bracket.id}`,
+                            });
+                          }
                         }}
                       >
                         {round.trials.filter((t) => t.status === "done").length}{" "}
@@ -445,7 +470,7 @@ const NewNotiCond = () => {
             }}
           >
             <div className="w-[80%] flex items-center justify-center uppercase font-semibold">
-              Triggerring Conditions
+              Notification Conditions
             </div>
             <div className="w-[20%] flex items-center justify-center uppercase font-semibold">
               Active
@@ -463,7 +488,16 @@ const NewNotiCond = () => {
                   {noti.eventCond && noti.eventCond.type
                     ? (() => {
                         const Icon = notiTypeIcons[noti.eventCond.type];
-                        return Icon ? <Icon size={24} /> : null;
+                        return Icon ? (
+                          <div
+                            className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                              (noti.eventCond.type as NotiType) ??
+                                NotiType.TIMEOUT
+                            )}`}
+                          >
+                            {Icon && <Icon size={24} />}
+                          </div>
+                        ) : null;
                       })()
                     : null}
                   <div className="flex flex-col justify-center items-start flex-1">
@@ -475,7 +509,15 @@ const NewNotiCond = () => {
                   {noti.timeoutCond && noti.timeoutCond.type
                     ? (() => {
                         const Icon = notiTypeIcons[noti.timeoutCond.type];
-                        return Icon ? <Icon size={24} /> : null;
+                        return Icon ? (
+                          <div
+                            className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                              NotiType.TIMEOUT
+                            )}`}
+                          >
+                            {Icon && <Icon size={24} />}
+                          </div>
+                        ) : null;
                       })()
                     : null}
                   <div className="flex flex-col justify-center items-start flex-1">
@@ -503,7 +545,16 @@ const NewNotiCond = () => {
                 {noti.eventCond && noti.eventCond.type
                   ? (() => {
                       const Icon = notiTypeIcons[noti.eventCond.type];
-                      return Icon ? <Icon size={24} /> : null;
+                      return Icon ? (
+                        <div
+                          className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                            (noti.eventCond.type as NotiType) ??
+                              NotiType.TIMEOUT
+                          )}`}
+                        >
+                          {Icon && <Icon size={24} />}
+                        </div>
+                      ) : null;
                     })()
                   : null}
                 <div className="flex flex-col justify-center items-start flex-1">

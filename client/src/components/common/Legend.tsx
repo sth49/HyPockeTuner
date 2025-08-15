@@ -68,7 +68,7 @@ const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
       </div>
 
       <div className="flex items-center space-x-1 flex-1 justify-around">
-        <span className="text-xs text-gray-600 w-[20px] text-center">
+        <span className="text-xs w-[20px] text-center">
           {legendConfig.minLabel}
         </span>
 
@@ -92,7 +92,7 @@ const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
         </div>
 
         {/* 최대값 라벨 */}
-        <span className="text-xs text-gray-600 w-[20px] text-center">
+        <span className="text-xs w-[20px] text-center">
           {legendConfig.maxLabel}
         </span>
       </div>

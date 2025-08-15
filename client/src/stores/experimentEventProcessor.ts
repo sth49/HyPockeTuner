@@ -15,8 +15,18 @@ export function processExperimentEvent(
 ): ExperimentState {
   const { key, value, expId } = event;
 
+  // Debug: Log all events to track order
   if (key === "status") {
-    if (value === "running" || value === "resume") {
+    console.log("🔍 Status event received:", {
+      key,
+      value,
+      expId,
+      currentExpId: state.expId,
+      currentRunningExp: state.runningExp,
+    });
+
+    if (value === "running") {
+      console.log("✅ Setting runningExp to:", expId);
       return {
         ...state,
         status: expId === state.expId ? value : state.status,
@@ -26,7 +36,7 @@ export function processExperimentEvent(
       return {
         ...state,
         status: expId === state.expId ? value : state.status,
-        runningExp: null,
+        runningExp: expId === state.runningExp ? null : state.runningExp, // Only clear runningExp if it matches the current expId
       };
     }
   }
@@ -46,7 +56,14 @@ export function processExperimentEvent(
         ...state,
         endTime: value * 1000, // Convert to milliseconds
       };
-    case "visibility":
+    case "visibility": {
+      console.log("👁️ Visibility event received:", {
+        isViewing: value.isViewing,
+        page: value.page,
+        userId: value.userId,
+        timestamp: new Date(value.timestamp * 1000).toLocaleString(),
+      });
+
       // if (
       //   state.visibility &&
       //   state.visibility.length > 0 &&
@@ -58,17 +75,28 @@ export function processExperimentEvent(
       if (!state.visibility) {
         state.visibility = [];
       }
+
+      const newVisibilityData = [
+        ...(state.visibility || []),
+        {
+          time: value.timestamp * 1000,
+          isViewing: value.isViewing,
+          data: value,
+        },
+      ];
+
+      console.log("👁️ Updated visibility data:", {
+        totalEvents: newVisibilityData.length,
+        lastEvent: newVisibilityData[newVisibilityData.length - 1],
+        isCurrentlyViewing:
+          newVisibilityData[newVisibilityData.length - 1]?.isViewing,
+      });
+
       return {
         ...state,
-        visibility: [
-          ...(state.visibility || []),
-          {
-            time: value.timestamp * 1000,
-            isViewing: value.isViewing,
-            data: value,
-          },
-        ],
+        visibility: newVisibilityData,
       };
+    }
 
     case "brackets":
       return {
@@ -171,8 +199,10 @@ export function processExperimentEvent(
                     if (trial.trialId === trialId) {
                       return {
                         ...trial,
+                        id: value.id,
                         startTime:
                           value.startTime !== "" ? value.startTime * 1000 : -1,
+                        params: value.config,
                         status: "running",
                         sample: value.sample || "",
                       };
@@ -195,10 +225,70 @@ export function processExperimentEvent(
         currRoundId: roundId,
       };
     }
+    case "trialKilled": {
+      // Handle user trial killed event
+      const updatedUserTrials = state.userTrials.map((trial) => {
+        if (trial.id === value.id) {
+          return {
+            ...trial,
+            status: "paused",
+            progress: 0,
+            endTime: value.endTime !== "" ? value.endTime * 1000 : -1,
+          };
+        }
+        return trial;
+      });
+
+      console.log("✅ User trial killed successfully:", {
+        trialId: value.id,
+        killedTrial: updatedUserTrials.find((trial) => trial.id === value.id),
+      });
+
+      return {
+        ...state,
+        userTrials: updatedUserTrials,
+      };
+    }
     case "trialPaused": {
       const bracketId = value.bracketId;
       const roundId = value.roundId;
       const trialId = value.trialId;
+      console.log("🔍 trialPaused event received:", {
+        bracketId,
+        roundId,
+        trialId,
+        value,
+        brackets: state.brackets.map((b) => ({
+          id: b.id,
+          rounds: b.rounds.map((r) => ({
+            roundId: r.roundId,
+            trials: r.trials.map((t) => ({
+              trialId: t.trialId,
+              status: t.status,
+            })),
+          })),
+        })),
+      });
+      if (bracketId === -1 && roundId === -1 && trialId === -1) {
+        // Handle user trial pause
+        const updatedUserTrials = state.userTrials.map((trial) => {
+          if (trial.id === value.id) {
+            return {
+              ...trial,
+              status: "paused",
+              progress: 0,
+              startTime: value.startTime !== "" ? value.startTime * 1000 : -1,
+              endTime: value.endTime !== "" ? value.endTime * 1000 : -1,
+            };
+          }
+          return trial;
+        });
+
+        return {
+          ...state,
+          userTrials: updatedUserTrials,
+        };
+      }
       const updatedBrackets = state.brackets.map((bracket) => {
         if (bracket.id === bracketId) {
           return {
@@ -212,6 +302,7 @@ export function processExperimentEvent(
                       return {
                         ...trial,
                         status: "paused",
+                        progress: 0,
                         startTime:
                           value.startTime !== "" ? value.startTime * 1000 : -1,
                         endTime:
@@ -227,6 +318,15 @@ export function processExperimentEvent(
           };
         }
         return bracket;
+      });
+      console.log("✅ Trial paused successfully:", {
+        bracketId,
+        roundId,
+        trialId,
+        affectedTrial: updatedBrackets
+          .find((b) => b.id === bracketId)
+          ?.rounds.find((r) => r.roundId === roundId)
+          ?.trials.find((t) => t.trialId === trialId),
       });
       return {
         ...state,
@@ -330,7 +430,10 @@ export function processExperimentEvent(
           const updatedUserTrials = [...state.userTrials];
           updatedUserTrials[existingTrialIndex] = {
             ...updatedUserTrials[existingTrialIndex],
-            status: "running",
+            status:
+              updatedUserTrials[existingTrialIndex].status === "paused"
+                ? "paused"
+                : "running",
             progress: value.current,
             // bracketId, roundId, trialId도 업데이트 (처음에 -1로 설정된 경우)
             bracketId:
@@ -371,7 +474,8 @@ export function processExperimentEvent(
                       if (trial.trialId === trialId) {
                         return {
                           ...trial,
-                          status: "running",
+                          status:
+                            trial.status === "paused" ? "paused" : "running",
                           progress: value.current,
                         };
                       }

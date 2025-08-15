@@ -1,13 +1,17 @@
 import { NotificationService } from "../utils/NotificationService";
 import { useAppStore } from "../stores/appStore";
+import { useAuthStore } from "../stores/authStore";
 import { useState } from "react";
 import ApiClient from "../api/api";
+import { IoLogOutOutline, IoPersonOutline } from "react-icons/io5";
 
 const Settings: React.FC = () => {
   const setIsSubscribe = useAppStore((state) => state.setSubscribed);
   const isSubscribe = useAppStore((state) => state.isSubscribed);
+  const { logout, currentUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // 테스트 푸시 알림 전송 함수 (수정된 버전)
   const handleTestPush = async () => {
@@ -18,17 +22,17 @@ const Settings: React.FC = () => {
       const subscription = await NotificationService.getSubscription();
 
       if (!subscription) {
-        console.error("구독 정보가 없습니다. 먼저 구독해주세요.");
-        alert("구독 정보가 없습니다. 먼저 푸시 알림을 구독해주세요.");
+        console.error("No subscription found. Please subscribe first.");
+        alert("No subscription found. Please subscribe to push notifications first.");
         return;
       }
 
-      console.log("테스트 푸시 알림 전송:", subscription);
+      console.log("Sending test push notification:", subscription);
 
-      // 서버에 테스트 푸시 요청 (수정됨)
+      // Send test push request to server
       const result = await ApiClient.testPush(JSON.stringify(subscription));
 
-      console.log("테스트 푸시 결과:", result);
+      console.log("Test push result:", result);
 
       // if (result?.success) {
       //   alert("테스트 푸시 알림이 전송되었습니다!");
@@ -36,14 +40,14 @@ const Settings: React.FC = () => {
       //   alert("테스트 푸시 알림 전송에 실패했습니다.");
       // }
     } catch (error) {
-      console.error("테스트 푸시 알림 오류:", error);
-      // alert("테스트 푸시 알림 전송 중 오류가 발생했습니다.");
+      console.error("Test push notification error:", error);
+      // alert("An error occurred while sending test push notification.");
     } finally {
       setTestLoading(false);
     }
   };
 
-  // 구독 설정 함수
+  // Subscription setup function
   const handleSubscribe = async () => {
     try {
       setIsLoading(true);
@@ -51,47 +55,113 @@ const Settings: React.FC = () => {
 
       if (success) {
         setIsSubscribe(true);
-        console.log("푸시 알림 구독 성공");
+        console.log("Push notification subscription successful");
       } else {
-        console.error("푸시 알림 구독 실패");
+        console.error("Push notification subscription failed");
       }
     } catch (error) {
-      console.error("푸시 알림 구독 오류:", error);
+      console.error("Push notification subscription error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Logout function
+  const handleLogout = async () => {
+    try {
+      setLogoutLoading(true);
+      
+      if (currentUser) {
+        try {
+          // Send logout request to server
+          await ApiClient.logout(currentUser);
+        } catch (error) {
+          console.error("Server logout failed:", error);
+        }
+      }
+      
+      logout();
+      // Refresh page to completely reset state
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setLogoutLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col p-4 bg-white gap-4 m-2">
-      <div className="flex items-center justify-between">
-        <p>Push Notification</p>
-        <p>{isSubscribe ? "on" : "off"}</p>
+    <div className="flex flex-col p-4 bg-white gap-6 m-2">
+      {/* User Information Section */}
+      <div className="bg-base-200 rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <IoPersonOutline size={24} className="text-primary" />
+          <h3 className="text-lg font-semibold">User Information</h3>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-500">Currently logged in as</p>
+            <p className="font-medium text-lg">{currentUser}</p>
+          </div>
+        </div>
       </div>
 
-      <button
-        className="btn btn-primary w-full"
-        onClick={handleSubscribe}
-        disabled={isSubscribe || isLoading}
-      >
-        {isLoading ? (
-          <span className="loading loading-spinner loading-sm"></span>
-        ) : (
-          "Subscribe for Push Notification"
-        )}
-      </button>
+      {/* Notification Settings Section */}
+      <div className="border-t pt-4">
+        <h3 className="text-lg font-semibold mb-3">Notification Settings</h3>
+        <div className="flex items-center justify-between mb-4">
+          <p>Push Notification</p>
+          <div className={`badge ${isSubscribe ? 'badge-success' : 'badge-error'}`}>
+            {isSubscribe ? "Enabled" : "Disabled"}
+          </div>
+        </div>
 
-      <button
-        className="btn btn-primary text-white w-full"
-        onClick={handleTestPush}
-        disabled={!isSubscribe || testLoading}
-      >
-        {testLoading ? (
-          <span className="loading loading-spinner loading-sm"></span>
-        ) : (
-          "Push Notification Test"
-        )}
-      </button>
+        <button
+          className="btn btn-primary w-full mb-3"
+          onClick={handleSubscribe}
+          disabled={isSubscribe || isLoading}
+        >
+          {isLoading ? (
+            <span className="loading loading-spinner loading-sm"></span>
+          ) : (
+            "Subscribe to Push Notifications"
+          )}
+        </button>
+
+        <button
+          className="btn btn-outline btn-primary w-full"
+          onClick={handleTestPush}
+          disabled={!isSubscribe || testLoading}
+        >
+          {testLoading ? (
+            <span className="loading loading-spinner loading-sm"></span>
+          ) : (
+            "Test Push Notification"
+          )}
+        </button>
+      </div>
+
+      {/* Account Management Section */}
+      <div className="border-t pt-4">
+        <h3 className="text-lg font-semibold mb-3">Account Management</h3>
+        <button
+          className="btn btn-error w-full gap-2"
+          onClick={handleLogout}
+          disabled={logoutLoading}
+        >
+          {logoutLoading ? (
+            <span className="loading loading-spinner loading-sm"></span>
+          ) : (
+            <>
+              <IoLogOutOutline size={18} />
+              Logout
+            </>
+          )}
+        </button>
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          Logging out will end your current session and redirect you to the login page.
+        </p>
+      </div>
     </div>
   );
 };

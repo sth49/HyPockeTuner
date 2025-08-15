@@ -31,19 +31,26 @@ export const useColorScale = () => {
     // userTrials 추가
     trials.push(...userTrials);
 
-    return trials;
+    return trials.filter(
+      (trial) =>
+        trial.metric !== undefined ||
+        trial.loss !== undefined ||
+        trial.metric !== null ||
+        trial.loss !== null
+    );
   }, [brackets, userTrials]);
 
   // metric과 loss의 범위 계산
+  const metric = useExperimentStore((state) => state.metric);
   const { metricRange, lossRange } = useMemo(() => {
-    const metricRange: MetricRange = { max: 0, min: 100 };
+    const metricRange: MetricRange = { max: 100, min: 0 };
     const lossRange: MetricRange = { max: 0, min: 100 };
 
+    if (metric.range) {
+      metricRange.min = metric.range[0];
+      metricRange.max = metric.range[1];
+    }
     allTrials.forEach((trial) => {
-      if (trial.metric !== undefined) {
-        metricRange.max = 100;
-        metricRange.min = 0;
-      }
       if (trial.loss !== undefined) {
         lossRange.max = Math.max(lossRange.max, trial.loss);
         lossRange.min = Math.min(lossRange.min, trial.loss);
@@ -51,13 +58,13 @@ export const useColorScale = () => {
     });
 
     return { metricRange, lossRange };
-  }, [allTrials]);
+  }, [allTrials, metric.range]);
 
   // Scale 생성
   const metricScale = useMemo(() => {
     return scaleLinear<number>({
       range: [0, 1],
-      domain: [0, 100],
+      domain: [metricRange.min, metricRange.max],
       clamp: true,
     });
   }, []);
@@ -70,13 +77,13 @@ export const useColorScale = () => {
     });
   }, [lossRange.min, lossRange.max]);
 
-  const budgetScale = useMemo(() => {
-    return scaleLinear<number>({
-      range: [0, 1],
-      domain: [0, 1], // 예시로 0에서 1 사이의 값에 대해 파란색 그라데이션
-      clamp: true,
-    });
-  }, []);
+  // const budgetScale = useMemo(() => {
+  //   return scaleLinear<number>({
+  //     range: [0, 1],
+  //     domain: [0, 1], // 예시로 0에서 1 사이의 값에 대해 파란색 그라데이션
+  //     clamp: true,
+  //   });
+  // }, []);
 
   // Color scales
   const colorScales = useMemo(() => {
@@ -119,6 +126,9 @@ export const useColorScale = () => {
 
   const getFontColor = useMemo(() => {
     return (value: number, type: "metric" | "loss" = "metric") => {
+      if (!value) {
+        return "oklch(55.1% 0.027 264.364)"; // 기본 폰트 색상
+      }
       const color =
         type === "metric" ? getMetricColor(value) : getLossColor(value);
 

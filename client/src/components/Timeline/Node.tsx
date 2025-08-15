@@ -109,7 +109,7 @@ const MetricValue: React.FC<{
     visibleIsBest && !isBest
       ? ""
       : metric != null
-      ? formatting(Number(metric), "float")
+      ? formatting(Number(metric), "float", 2)
       : "";
 
   return (
@@ -256,6 +256,7 @@ const MergedNode: React.FC<MergedNodeProps> = ({
   const maxMetric = Math.max(...allMetrics);
   const metricForColor = [maxMetric, medianMetric, minMetric];
 
+  const hasUserTrials = data.some((trial) => trial.type === "user");
   const nodeId = bandBracketId === -2 ? "Queued" : "Collapsed";
   // mergeType === "bracket"
   // ? `R${woUser[0].roundId}:R${woUser[woUser.length - 1].roundId ?? 0}`
@@ -268,7 +269,7 @@ const MergedNode: React.FC<MergedNodeProps> = ({
     <div
       className="relative flex items-center justify-center"
       style={{
-        opacity: mergeType === "individual" ? 0.3 : 1,
+        opacity: mergeType === "individual" ? 0.5 : 1,
       }}
     >
       {data.slice(0, 3).map((item, index) => (
@@ -283,6 +284,8 @@ const MergedNode: React.FC<MergedNodeProps> = ({
             backgroundColor:
               index === 0
                 ? "white"
+                : hasUserTrials && item.type === "user"
+                ? "oklch(87.2% 0.01 258.338)" // Light background for user trials
                 : data.length > 3 && allMetrics.length > 3
                 ? getMetricColor(metricForColor[index])
                 : item.metric != null
@@ -302,12 +305,13 @@ const MergedNode: React.FC<MergedNodeProps> = ({
                 className="flex items-center justify-center bg-gray-300"
                 style={{
                   ...styles.bottomSection,
-                  backgroundColor:
-                    data.length > 3 && allMetrics.length > 0
-                      ? getMetricColor(metricForColor[index])
-                      : item.metric != null
-                      ? getMetricColor(item.metric)
-                      : "",
+                  backgroundColor: hasUserTrials
+                    ? "oklch(87.2% 0.01 258.338)" // Light background for user trials
+                    : data.length > 3 && allMetrics.length > 0
+                    ? getMetricColor(metricForColor[index])
+                    : item.metric != null
+                    ? getMetricColor(item.metric)
+                    : "",
                 }}
               >
                 <NumOfTrials
@@ -511,7 +515,7 @@ const PausedTrialNode: React.FC<{
 
   // linear gradient로 progress 표현
   // const progressBackground = `linear-gradient(to right, ${baseColor} ${progressPercentage}%, transparent ${progressPercentage}%)`;
-
+  console.log("PausedTrialNode", data);
   return (
     <div
       className={`flex flex-col items-center justify-center border-[1px] border-gray-300 
@@ -540,7 +544,9 @@ const PausedTrialNode: React.FC<{
           backgroundColor: "oklch(87.2% 0.01 258.338)", // baseColor,
         }}
       >
-        <p className="text-xs relative z-10">Paused</p>
+        <p className="text-xs relative z-10">
+          {data.type === "user" ? "Aborted" : "Paused "}
+        </p>
       </div>
     </div>
   );
@@ -682,7 +688,7 @@ const StartNode: React.FC<{
   styles: any;
   bracketId: number;
   direction?: string;
-}> = ({ data, styles, bracketId }) => (
+}> = ({ bracketId }) => (
   <div className="w-full h-full flex items-center justify-end relative ">
     <div
       className={`flex items-center justify-center border-[1px] border-gray-300 bg-gray-300 absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-10`}

@@ -5,13 +5,12 @@ export const useLongPress = (onLongPress: () => void, delay = 1000) => {
   const [isScroll, setIsScroll] = useState(false);
 
   const handleTouchStart = useCallback(() => {
-    setPressTimer(
-      setTimeout(() => {
-        if (!isScroll) {
-          onLongPress();
-        }
-      }, delay)
-    );
+    const timeoutId = setTimeout(() => {
+      if (!isScroll) {
+        onLongPress();
+      }
+    }, delay);
+    setPressTimer(timeoutId as unknown as number);
   }, [isScroll, onLongPress, delay]);
 
   const handleTouchMove = useCallback(() => {

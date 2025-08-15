@@ -1,34 +1,72 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Group } from "@visx/group";
 import { scaleLinear, scalePoint } from "@visx/scale";
+import { ParentSize } from "@visx/responsive";
 import { useExperimentStore } from "../../stores/experimentStore";
 import { useColorScale } from "../../utils/colorScale";
 import { BracketState, TrialState } from "../../types/experiment";
+import MobileDrawer from "../Timeline/MobileDrawer";
+import NodeDetail from "../Timeline/NodeDetail";
+import { BandProps } from "../Timeline/types";
 
 interface BracketProps {
   bracket: BracketState;
   width?: number;
   height?: number;
-  isVisible?: boolean;
 }
 
-const SimpleBumpChart = ({
-  bracket,
-  width = 300,
-  height = 400,
-  isVisible = true,
-}: BracketProps) => {
+interface BumpChartInnerProps extends BracketProps {
+  width: number;
+  height: number;
+}
+
+const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
   const hyperparams = useExperimentStore((state) => state.hyperparams);
-  const margin = { top: 60, right: 10, bottom: 20, left: 50 };
+  const margin = { top: 50, right: 10, bottom: 20, left: 10 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
   const getMetricColor = useColorScale().getMetricColor;
 
-  // 애니메이션 상태
-  const [visibleRounds, setVisibleRounds] = useState<Set<number>>(new Set());
-  const [showConnections, setShowConnections] = useState(false);
-  const [animationStarted, setAnimationStarted] = useState(false);
+  // MobileDrawer 상태 관리
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<BandProps | null>(null);
+  const brackets = useExperimentStore((state) => state.brackets);
+
+  // Trial 클릭 핸들러
+  const handleTrialClick = (
+    trial: TrialState & { roundId: number; position: number }
+  ) => {
+    const nodeData: BandProps = {
+      type: "node",
+      bracket: bracket.id,
+      startTime: trial.startTime || 0,
+      endTime: trial.endTime || 0,
+      order: 0,
+      data: {
+        type: trial.type === "user" ? "user" : "trial",
+        trials: [
+          {
+            ...trial,
+            event: `Trial ${brackets.length - trial.bracketId}-${
+              trial.roundId + 1
+            }-${trial.trialId + 1}`, // 더 명확한 제목 추가
+          },
+        ],
+      },
+      prev: null,
+      next: null,
+    };
+
+    setSelectedNode(nodeData);
+    setDrawerOpen(true);
+  };
+
+  // 드로어 닫기 핸들러
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedNode(null);
+  };
 
   // 데이터 처리
   const { processedTrials, connections, rounds, budgets } = useMemo(() => {
@@ -46,6 +84,7 @@ const SimpleBumpChart = ({
 
     // 각 라운드별로 트라이얼 처리
     bracket.rounds.forEach((round) => {
+      // console;
       if (!round || !round.trials || !Array.isArray(round.trials)) {
         return;
       }
@@ -54,7 +93,7 @@ const SimpleBumpChart = ({
 
       // 성능순으로 정렬 (metric이 없는 경우 처리)
       const sortedTrials = round.trials
-        .filter((trial) => trial && typeof trial.metric === "number")
+        // .filter((trial) => trial && typeof trial.metric === "number")
         .sort((a, b) => {
           const metricA = typeof a.metric === "number" ? a.metric : -Infinity;
           const metricB = typeof b.metric === "number" ? b.metric : -Infinity;
@@ -112,11 +151,16 @@ const SimpleBumpChart = ({
 
     // 라운드 ID 정렬
     const sortedRounds = [...new Set(roundIds)].sort((a, b) => a - b);
+    console.log("Sorted Rounds: ", sortedRounds);
 
-    const budgets = sortedRounds.map((roundId) => {
-      const roundTrials = allTrials.filter((t) => t.roundId === roundId);
-      return roundTrials[0]?.budget || 0; // 첫 번째 트라이얼의 budget 사용
+    const budgets = bracket.rounds.map((round) => {
+      return round.budget || 0; // 라운드별 budget 사용
     });
+
+    // sortedRounds.map((roundId) => {
+    //   const roundTrials = allTrials.filter((t) => t.roundId === roundId);
+    //   return roundTrials[0]?.budget || 0; // 첫 번째 트라이얼의 budget 사용
+    // });
 
     return {
       processedTrials: allTrials,
@@ -125,49 +169,6 @@ const SimpleBumpChart = ({
       budgets,
     };
   }, [bracket, hyperparams]);
-
-  // 애니메이션 시작
-  useEffect(() => {
-    if (processedTrials.length > 0 && isVisible) {
-      // isVisible이 true가 될 때마다 애니메이션 리셋 후 시작
-      setAnimationStarted(false);
-      setVisibleRounds(new Set());
-      setShowConnections(false);
-
-      // 약간의 지연 후 애니메이션 시작
-      setTimeout(() => {
-        setAnimationStarted(true);
-
-        // 라운드별로 순차적으로 애니메이션
-        rounds.forEach((round, index) => {
-          setTimeout(() => {
-            setVisibleRounds((prev) => new Set([...prev, round]));
-
-            // 마지막 라운드가 나타난 후 연결선 애니메이션 시작
-            if (index === rounds.length - 1) {
-              setTimeout(() => {
-                setShowConnections(true);
-              }, 300); // 마지막 점들이 완전히 나타난 후
-            }
-          }, index * 500); // 각 라운드마다 500ms 간격
-        });
-      }, 100);
-    } else if (!isVisible) {
-      // isVisible이 false가 되면 애니메이션 상태 리셋
-      setAnimationStarted(false);
-      setVisibleRounds(new Set());
-      setShowConnections(false);
-    }
-  }, [processedTrials, rounds, isVisible]);
-
-  // bracket이 변경되면 애니메이션 리셋
-  useEffect(() => {
-    if (!isVisible) {
-      setAnimationStarted(false);
-      setVisibleRounds(new Set());
-      setShowConnections(false);
-    }
-  }, [bracket, isVisible]);
 
   // 데이터가 없는 경우 처리
   if (!processedTrials || processedTrials.length === 0) {
@@ -193,172 +194,177 @@ const SimpleBumpChart = ({
   });
 
   return (
-    <div className="w-full p-4 overflow-x-auto">
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0); }
-            to { opacity: 1; transform: scale(1); }
-          }
-        `}
-      </style>
-      <svg width={width} height={height}>
-        <Group left={margin.left} top={margin.top}>
-          {/* 트라이얼 점들 */}
-          {processedTrials.map((trial, i) => {
-            const cx = xScale(trial.roundId);
-            const cy = yScale(trial.position);
-            const isVisible = visibleRounds.has(trial.roundId);
-            const isConnected = connections.some(
-              (conn) =>
-                (conn.from.roundId === trial.roundId &&
-                  conn.from.position === trial.position) ||
-                (conn.to.roundId === trial.roundId &&
-                  conn.to.position === trial.position)
-            );
+    <>
+      <div className="w-full overflow-x-auto">
+        <svg width={width} height={height}>
+          <Group left={margin.left} top={margin.top}>
+            {/* 트라이얼 점들 */}
+            {processedTrials.map((trial, i) => {
+              const cx = xScale(trial.roundId);
+              const cy = yScale(trial.position);
+              if (cx == null || cy == null) {
+                return null;
+              }
 
-            // null 체크
-            if (cx == null || cy == null) {
-              return null;
-            }
+              return (
+                <g key={`trial-${trial.id || i}`}>
+                  <rect
+                    x={cx - 12}
+                    y={cy - 6}
+                    width={24}
+                    height={8}
+                    fill={
+                      trial.metric
+                        ? getMetricColor(trial.metric)
+                        : "oklch(87.2% 0.01 258.338)"
+                    }
+                    stroke="oklch(87.2% 0.01 258.338)"
+                    strokeWidth={1}
+                    rx={3}
+                    ry={3}
+                    style={{
+                      cursor: "pointer",
+                      transition: "stroke-width 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.setAttribute("stroke-width", "2");
+                      e.currentTarget.setAttribute(
+                        "stroke",
+                        "oklch(55.1% 0.027 264.364)"
+                      );
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.setAttribute("stroke-width", "1");
+                      e.currentTarget.setAttribute(
+                        "stroke",
+                        "oklch(87.2% 0.01 258.338)"
+                      );
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTrialClick(trial);
+                    }}
+                  />
+                </g>
+              );
+            })}
 
-            return (
-              <g key={`trial-${trial.id || i}`}>
-                <rect
-                  x={cx - 12}
-                  y={cy - 6}
-                  width={24}
-                  height={10}
-                  fill={getMetricColor(trial.metric)}
-                  strokeWidth={2}
-                  rx={3}
-                  ry={3}
-                  style={{
-                    opacity: isVisible ? (isConnected ? 1 : 0.5) : 0,
-                    transform: isVisible ? "scale(1)" : "scale(0)",
-                    transformOrigin: "center",
-                    transition: "all 0.3s ease-out",
-                    transitionDelay: `${trial.position * 30}ms`, // 각 점마다 순차적으로
-                  }}
-                />
-              </g>
-            );
-          })}
+            {/* 연결선 */}
+            {connections.map((conn, i) => {
+              const x1 = xScale(conn.from.roundId);
+              const y1 = yScale(conn.from.position);
+              const x2 = xScale(conn.to.roundId);
+              const y2 = yScale(conn.to.position);
 
-          {/* 연결선 */}
-          {connections.map((conn, i) => {
-            const x1 = xScale(conn.from.roundId);
-            const y1 = yScale(conn.from.position);
-            const x2 = xScale(conn.to.roundId);
-            const y2 = yScale(conn.to.position);
+              // null 체크
+              if (x1 == null || y1 == null || x2 == null || y2 == null) {
+                return null;
+              }
 
-            // null 체크
-            if (x1 == null || y1 == null || x2 == null || y2 == null) {
-              return null;
-            }
+              const pathId = `connection-path-${i}`;
+              const pathData = `M${x1 + 12},${y1 - 2} C${(x1 + x2) / 2},${
+                y1 - 2
+              } ${(x1 + x2) / 2},${y2 - 2} ${x2 - 12},${y2 - 2}`;
 
-            const pathId = `connection-path-${i}`;
-            const pathData = `M${x1 + 12},${y1} C${(x1 + x2) / 2},${y1} ${
-              (x1 + x2) / 2
-            },${y2} ${x2 - 12},${y2}`;
+              return (
+                <g key={`connection-${i}`}>
+                  {/* 경로 정의 */}
+                  <defs>
+                    <path id={pathId} d={pathData} />
+                  </defs>
 
-            return (
-              <g key={`connection-${i}`}>
-                {/* 경로 정의 */}
-                <defs>
-                  <path id={pathId} d={pathData} />
-                </defs>
+                  {/* 연결선 */}
+                  <path
+                    d={pathData}
+                    stroke="oklch(55.1% 0.027 264.364)"
+                    strokeWidth={2}
+                    fill="none"
+                    strokeOpacity={0.5}
+                  />
+                </g>
+              );
+            })}
 
-                {/* 연결선 */}
-                <path
-                  d={pathData}
-                  stroke="oklch(55.1% 0.027 264.364)"
-                  strokeWidth={2}
-                  fill="none"
-                  strokeOpacity={0.5}
-                  style={{
-                    strokeDasharray: showConnections ? "none" : "1000",
-                    strokeDashoffset: showConnections ? "0" : "1000",
-                    transition: "stroke-dashoffset 0.8s ease-in-out",
-                    transitionDelay: `${i * 100}ms`, // 각 연결선마다 순차적으로
-                  }}
-                />
-              </g>
-            );
-          })}
+            {/* 라운드 라벨 */}
+            {rounds.map((round) => {
+              const x = xScale(round);
 
-          {/* 라운드 라벨 */}
-          {rounds.map((round) => {
-            const x = xScale(round);
-            const isVisible = visibleRounds.has(round);
+              if (x == null) return null;
 
-            if (x == null) return null;
+              return (
+                <g key={`round-labels-${round}`}>
+                  <text
+                    x={x}
+                    y={-35}
+                    textAnchor="middle"
+                    fontSize={"1em"}
+                    fontWeight="bold"
+                    fill="oklch(55.1% 0.027 264.364)"
+                  >
+                    R {round}
+                  </text>
+                  <text
+                    x={x}
+                    y={-20}
+                    textAnchor="middle"
+                    fontSize={"0.8em"}
+                    fill="oklch(55.1% 0.027 264.364)"
+                  >
+                    ($ {budgets[round - 1] || 0})
+                  </text>
+                </g>
+              );
+            })}
 
-            return (
-              <g key={`round-labels-${round}`}>
-                <text
-                  x={x}
-                  y={-40}
-                  textAnchor="middle"
-                  fontSize={"1em"}
-                  fontWeight="bold"
-                  fill="oklch(55.1% 0.027 264.364)"
-                  style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible
-                      ? "translateY(0)"
-                      : "translateY(-10px)",
-                    transition: "all 0.3s ease-out",
-                    transitionDelay: "0.1s",
-                  }}
-                >
-                  Round {round}
-                </text>
-                <text
-                  x={x}
-                  y={-20}
-                  textAnchor="middle"
-                  fontSize={"0.8em"}
-                  fill="oklch(55.1% 0.027 264.364)"
-                  style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible
-                      ? "translateY(0)"
-                      : "translateY(-10px)",
-                    transition: "all 0.3s ease-out",
-                    transitionDelay: "0.2s",
-                  }}
-                >
-                  ($ {budgets[round - 1] || 0})
-                </text>
-              </g>
-            );
-          })}
+            {/* 순위 레이블 */}
+            {Array.from({ length: maxPosition + 1 }, (_, i) => {
+              if (i % 10 === 0)
+                return (
+                  <text
+                    key={`rank-${i}`}
+                    x={5}
+                    y={yScale(i) - 2}
+                    textAnchor="end"
+                    dy="0.35em"
+                    fontSize={"0.8em"}
+                    fill="oklch(55.1% 0.027 264.364)"
+                  >
+                    {i + 1}
+                  </text>
+                );
+            })}
+          </Group>
+        </svg>
+      </div>
 
-          {/* 순위 레이블 */}
-          {Array.from({ length: maxPosition + 1 }, (_, i) => (
-            <text
-              key={`rank-${i}`}
-              x={-20}
-              y={yScale(i)}
-              textAnchor="end"
-              dy="0.35em"
-              fontSize={"1em"}
-              // fontSize={12}
-              fill="oklch(55.1% 0.027 264.364)"
-              style={{
-                opacity: animationStarted ? 1 : 0,
-                transition: "opacity 0.3s ease-out",
-                transitionDelay: "0.1s",
-              }}
-            >
-              {i + 1}
-            </text>
-          ))}
-        </Group>
-      </svg>
+      {/* Mobile Drawer */}
+      <MobileDrawer isOpen={drawerOpen} onClose={handleCloseDrawer}>
+        {selectedNode && selectedNode.type === "node" && selectedNode.data ? (
+          <NodeDetail data={selectedNode} />
+        ) : (
+          <div className="text-center py-8">
+            <p>Select a trial to view details</p>
+          </div>
+        )}
+      </MobileDrawer>
+    </>
+  );
+};
+
+const BumpChart = ({ bracket, height = 400 }: BracketProps) => {
+  return (
+    <div className="w-full p-4">
+      <ParentSize>
+        {({ width: parentWidth }) => (
+          <BumpChartInner
+            bracket={bracket}
+            width={parentWidth}
+            height={height} // 높이는 props로 받은 값 사용
+          />
+        )}
+      </ParentSize>
     </div>
   );
 };
 
-export default SimpleBumpChart;
+export default BumpChart;

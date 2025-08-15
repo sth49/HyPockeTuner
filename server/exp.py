@@ -296,7 +296,7 @@ class Exp():
         inter = Interaction({
             "expId": self.id,
             "pauseTime": self.pause_time,
-        } , "experiment_pause")
+        } , "experimentPause")
         self.interaction.append(inter)
         self.state.add_callback("interaction", inter.to_dict())
         self.state.check_cond(prog_type="pause")
@@ -308,6 +308,14 @@ class Exp():
         self.state.add_callback("lastUpdated", self.last_updated)
         self.save()
         return
+    
+    def redefine(self, data):
+        inter = Interaction(data, "redefineExperiment")
+        self.interaction.append(inter)
+        self.state.add_callback("interaction", inter.to_dict())
+        self.save()
+        return 
+        
 
     def auto_pause(self):
         self.exp_state = EXP_AUTO_PAUSED
@@ -315,7 +323,7 @@ class Exp():
         inter = Interaction({
             "expId": self.id,
             "pauseTime": self.pause_time,
-        } , "experiment_pause")
+        } , "experimentPause")
         self.interaction.append(inter)
         self.state.add_callback("interaction", inter.to_dict())
 
@@ -334,7 +342,7 @@ class Exp():
         inter = Interaction({
             "expId": self.id,
             "resumeTime": self.resume_time,
-        } , "experiment_resume")
+        } , "experimentResume")
         self.interaction.append(inter)
         self.state.add_callback("interaction", inter.to_dict())
 
@@ -523,13 +531,18 @@ class Exp():
             "doneTrials": len(self.state.done_trials)
         }
     def to_json(self):
-        json_data = self.config
+        json_data = self.config.copy()
         json_data['id'] = self.id
         json_data['cond'] = [cond.to_json() for cond in self.state.noti_conds]
         json_data['totalTrials'] = self.state.count
         json_data['curNumTrials'] = len(self.state.done_trials)
         json_data['dataset'] = self.dataset
         json_data['model'] = self.model
+        json_data['temp'] = self.metric
+        json_data["lastUpdated"] = self.last_updated
+        json_data['startTime'] = self.start_time
+        json_data['endTime'] = self.end_time
+        json_data["status"] = self.exp_state
         # json_data['lastViewedState'] = self.last_viewed_state
         if self.state.best_trial:
             json_data['bestTrial'] = self.state.best_trial.to_dict()

@@ -4,8 +4,26 @@ import { useExperimentStore } from "../../stores/experimentStore";
 import { notiTypeIcons } from "../../utils/icon";
 import { useNavigation } from "../../hooks/useNavigation";
 import ApiClient from "../../api/api";
+import { getBorderColor, NotiType } from "../../models/notification";
 const CondView = () => {
   const notiCondPairs = useExperimentStore((state) => state.notiCondPairs);
+
+  const setNotiCondPairs = useExperimentStore(
+    (state) => state.setNotiCondPairs
+  );
+
+  const handleToggleActive = (index: number) => {
+    // 원본 객체의 active 속성 토글
+    const targetPair = notiCondPairs[index];
+    targetPair.active = !targetPair.active;
+    
+    // 새로운 배열 생성하여 React 상태 업데이트 트리거
+    const updatedPairs = [...notiCondPairs];
+    setNotiCondPairs(updatedPairs);
+    
+    // 원본 객체는 toJSON 메서드를 가지고 있으므로 API 호출 가능
+    ApiClient.editCondition(targetPair);
+  };
 
   const { handleNavigate } = useNavigation();
   return (
@@ -18,7 +36,7 @@ const CondView = () => {
           }}
         >
           <div className="w-[80%] flex items-center justify-center uppercase font-semibold">
-            Triggerring Conditions
+            Notification Conditions
           </div>
           <div className="w-[20%] flex items-center justify-center uppercase font-semibold">
             Active
@@ -44,7 +62,15 @@ const CondView = () => {
                       <div className="w-full h-[50%] flex gap-4 items-center justify-start px-2 border-b border-gray-200 border-dashed">
                         {noti.eventCond && noti.eventCond.type
                           ? (() => {
-                              return Icon ? <Icon size={24} /> : null;
+                              return (
+                                <div
+                                  className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                                    noti.eventCond.type ?? NotiType.TIMEOUT
+                                  )}`}
+                                >
+                                  {Icon && <Icon size={24} />}
+                                </div>
+                              );
                             })()
                           : null}
                         <div className="flex flex-col justify-center items-start flex-1">
@@ -58,7 +84,15 @@ const CondView = () => {
                         {noti.timeoutCond && noti.timeoutCond.type
                           ? (() => {
                               const Icon = notiTypeIcons[noti.timeoutCond.type];
-                              return Icon ? <Icon size={24} /> : null;
+                              return Icon ? (
+                                <div
+                                  className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                                    noti.timeoutCond.type ?? NotiType.TIMEOUT
+                                  )}`}
+                                >
+                                  <Icon size={24} />
+                                </div>
+                              ) : null;
                             })()
                           : null}
                         <div className="flex flex-col justify-center items-start flex-1">
@@ -73,17 +107,18 @@ const CondView = () => {
                       <input
                         type="checkbox"
                         checked={noti.active}
-                        onChange={() => {
-                          // Handle checkbox change
-                          // You can implement the logic to activate/deactivate the condition here
-                          // console.log("Checkbox changed for condition:", noti);
-                          notiCondPairs[index].active =
-                            !notiCondPairs[index].active; // Toggle active state
-                          useExperimentStore
-                            .getState()
-                            .setNotiCondPairs(notiCondPairs);
-                          ApiClient.editCondition(notiCondPairs[index]);
-                        }}
+                        // onChange={() => {
+                        //   // Handle checkbox change
+                        //   // You can implement the logic to activate/deactivate the condition here
+                        //   // console.log("Checkbox changed for condition:", noti);
+                        //   notiCondPairs[index].active =
+                        //     !notiCondPairs[index].active; // Toggle active state
+                        //   useExperimentStore
+                        //     .getState()
+                        //     .setNotiCondPairs(notiCondPairs);
+                        //   ApiClient.editCondition(notiCondPairs[index]);
+                        // }}
+                        onChange={() => handleToggleActive(index)}
                         // defaultChecked
                         className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
                       />
@@ -100,7 +135,15 @@ const CondView = () => {
                       {noti.eventCond && noti.eventCond.type
                         ? (() => {
                             const Icon = notiTypeIcons[noti.eventCond.type];
-                            return Icon ? <Icon size={24} /> : null;
+                            return (
+                              <div
+                                className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                                  noti.eventCond.type ?? NotiType.TIMEOUT
+                                )}`}
+                              >
+                                {Icon && <Icon size={24} />}
+                              </div>
+                            );
                           })()
                         : null}
                       <div className="flex flex-col justify-center items-start flex-1">
@@ -112,15 +155,16 @@ const CondView = () => {
                       <input
                         type="checkbox"
                         checked={noti.active}
-                        onChange={() => {
-                          // console.log("Checkbox changed for condition:", noti);
-                          notiCondPairs[index].active =
-                            !notiCondPairs[index].active; // Toggle active state
-                          useExperimentStore
-                            .getState()
-                            .setNotiCondPairs(notiCondPairs);
-                          ApiClient.editCondition(notiCondPairs[index]);
-                        }}
+                        // onChange={() => {
+                        //   // console.log("Checkbox changed for condition:", noti);
+                        //   notiCondPairs[index].active =
+                        //     !notiCondPairs[index].active; // Toggle active state
+                        //   useExperimentStore
+                        //     .getState()
+                        //     .setNotiCondPairs(notiCondPairs);
+                        //   ApiClient.editCondition(notiCondPairs[index]);
+                        // }}
+                        onChange={() => handleToggleActive(index)}
                         className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
                       />
                     </div>

@@ -34,7 +34,7 @@ export class NotificationService {
     try {
       // 기존 등록된 서비스워커 확인
       const existingRegistration =
-        await navigator.serviceWorker.getRegistration("/");
+        await navigator.serviceWorker.getRegistration("/HyPockeTuner_new/");
       if (existingRegistration) {
         console.log("Service worker already registered");
         this.registration = existingRegistration;
@@ -45,11 +45,11 @@ export class NotificationService {
       }
 
       // 새로운 서비스워커 등록
-      // 경로를 절대 경로로 수정 (중요!)
+      // GitHub Pages base path 고려한 경로 수정
       const registration = await navigator.serviceWorker.register(
-        "/service-worker.js",
+        "/HyPockeTuner_new/sw.js",
         {
-          scope: "/",
+          scope: "/HyPockeTuner_new/",
           updateViaCache: "none", // 캐시 무시하여 항상 최신 버전 확인
         }
       );
@@ -183,7 +183,7 @@ export class NotificationService {
    */
   static async unsubscribeFromPush(): Promise<boolean> {
     try {
-      const registration = await navigator.serviceWorker.getRegistration("/");
+      const registration = await navigator.serviceWorker.getRegistration("/HyPockeTuner_new/");
       if (!registration) {
         console.log("No service worker registration found");
         return false;
@@ -241,7 +241,7 @@ export class NotificationService {
     if (isSupported) {
       try {
         registration =
-          (await navigator.serviceWorker.getRegistration("/")) || null;
+          (await navigator.serviceWorker.getRegistration("/HyPockeTuner_new/")) || null;
         if (registration) {
           subscription = await registration.pushManager.getSubscription();
         }

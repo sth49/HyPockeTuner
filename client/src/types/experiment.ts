@@ -32,6 +32,7 @@ export interface ExperimentState {
   };
   metric: {
     name: string; // 고정
+    range?: [number, number]; // 바뀜 (예: [0, 100])
   };
   status: ExpStatus; // 바뀜
   hyperparams?: Hyperparam[]; // 바뀜

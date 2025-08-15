@@ -271,5 +271,22 @@ export const mergeNodesAndLinks = (
   });
 
   // console.log("final mergedData", mergedData);
-  return mergedData.length > 0 ? mergedData : graphData;
+  // return mergedData.length > 0 ? mergedData : graphData;
+  if (mergedData.length === 0) {
+    return graphData;
+  } else {
+    mergedData.forEach((item, index) => {
+      if (index > 0) {
+        item.prev = mergedData[index - 1];
+      } else {
+        item.prev = null;
+      }
+      if (index < mergedData.length - 1) {
+        item.next = mergedData[index + 1];
+      } else {
+        item.next = null;
+      }
+    });
+    return mergedData;
+  }
 };

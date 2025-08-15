@@ -48,7 +48,8 @@ export class HyperparamOption {
   toJSON() {
     // pass
   }
-  initialize(data, type) {
+
+  initialize(_data: any, _type: any) {
     // pass
   }
 }
@@ -234,7 +235,7 @@ export class UnorderedHyperparamOption extends HyperparamOption {
 
     this.constant = this.setChoiceValue;
   }
-  initialize(data, type): void {
+  initialize(data: any, _type: any): void {
     this.activeChoices = data;
     this.setChoiceValue =
       this.activeChoices[0] === true

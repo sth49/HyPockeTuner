@@ -19,31 +19,82 @@ const ProgressButton = ({ isGhost = false }: ProgressButtonProps) => {
         isGhost ? "btn-ghost" : "btn-primary text-white hover:bg-primary-focus"
       }`}
       onClick={() => {
-        if (runningExp === null) {
-          if (status === "pending") {
+        console.log("🔍 ProgressButton clicked - Debug info:");
+        console.log("  - runningExp:", runningExp);
+        console.log("  - currExpId:", currExpId);
+        console.log("  - status:", status);
+        console.log("  - runningExp === null:", runningExp === null);
+        console.log("  - runningExp === currExpId:", runningExp === currExpId);
+        console.log("  - runningExp !== currExpId:", runningExp !== currExpId);
+        console.log("  - Case will be:", 
+          runningExp === null || runningExp === "" ? "1 (No experiment running)" :
+          runningExp === currExpId && status === "running" ? "2 (Same experiment - pause)" :
+          runningExp !== currExpId && runningExp !== null && runningExp !== "" ? "3 (Different experiment - conflict)" :
+          "Unknown"
+        );
+
+        const showModal = (modalId: string, fallbackMessage?: string, fallbackAction?: () => void) => {
+          setTimeout(() => {
+            const modal = document.getElementById(modalId) as HTMLDialogElement | null;
+            if (modal) {
+              console.log(`✅ Showing modal: ${modalId}`);
+              modal.showModal();
+            } else {
+              console.warn(`❌ Modal '${modalId}' not found in DOM`);
+              if (fallbackMessage && fallbackAction && confirm(fallbackMessage)) {
+                fallbackAction();
+              }
+            }
+          }, 100);
+        };
+
+        // Case 1: No experiment is currently running - direct action
+        if (runningExp === null || runningExp === "") {
+          console.log("📝 Case 1: No experiment running - direct action");
+          if (status === "pending" || status === "reserved") {
+            console.log("🚀 Starting experiment:", currExpId);
             ApiClient.call(["exp/start/" + currExpId]);
           } else if (status === "paused" || status === "auto_paused") {
+            console.log("▶️ Resuming experiment:", currExpId);
             ApiClient.call(["exp/resume/" + currExpId]);
-          } else if (status === "reserved") {
-            ApiClient.call(["exp/start/" + currExpId]);
           }
+          return;
         }
-        if (runningExp === currExpId) {
-          // 돌아가고 있는 실험이 현재 보고있는 실험과 같을 때
-          if (status === "running") {
-            ApiClient.call(["exp/pause/" + currExpId]);
-          }
+
+        // Case 2: The running experiment is the same as current viewing experiment - show pause confirmation
+        if (runningExp === currExpId && status === "running") {
+          console.log("⏸️ Case 2: Same experiment running - showing pause confirmation");
+          showModal(
+            "pause_confirm_modal",
+            "Are you sure you want to pause this experiment?",
+            () => ApiClient.call(["exp/pause/" + currExpId])
+          );
+          return;
         }
-        if (runningExp !== currExpId) {
-          console.log("runningExp", runningExp);
-          console.log("currExpId", currExpId);
-          const modal = document.getElementById(
-            "check_modal"
-          ) as HTMLDialogElement | null;
-          if (modal) {
-            modal.showModal();
-          }
+
+        // Case 3: Another experiment is running - show conflict resolution modal
+        if (runningExp !== currExpId && runningExp !== null && runningExp !== "") {
+          console.log("⚠️ Case 3: Different experiment running - showing conflict modal");
+          console.log("  - Will show conflict_action_modal");
+          
+          showModal(
+            "conflict_action_modal",
+            "Another experiment is running. Do you want to pause it and start/resume this experiment?",
+            () => {
+              console.log("✅ User confirmed conflict resolution");
+              if (status === "pending" || status === "reserved") {
+                console.log("🚀 Starting new experiment:", currExpId);
+                ApiClient.call(["exp/start/" + currExpId]);
+              } else if (status === "paused" || status === "auto_paused") {
+                console.log("▶️ Resuming experiment:", currExpId);
+                ApiClient.call(["exp/resume/" + currExpId]);
+              }
+            }
+          );
+          return;
         }
+
+        console.log("🤷 No matching case found - this should not happen");
       }}
     >
       {status === "pending" ||

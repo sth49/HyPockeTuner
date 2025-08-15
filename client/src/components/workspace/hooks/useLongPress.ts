@@ -14,7 +14,7 @@ export const useLongPress = ({
   const handleTouchStart = useCallback(() => {
     const timerId = setTimeout(() => {
       onLongPress?.();
-    }, delay);
+    }, delay) as unknown as number;
     setPressTimer(timerId);
   }, [onLongPress, delay]);
 

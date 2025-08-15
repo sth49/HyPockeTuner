@@ -1,27 +1,45 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Group } from "@visx/group";
 import { Circle, LinePath } from "@visx/shape";
 import { scaleTime, scaleLinear } from "@visx/scale";
 import { AxisBottom, AxisRight } from "@visx/axis";
 import { GridColumns, GridRows } from "@visx/grid";
 import { curveMonotoneX } from "@visx/curve";
+import { ParentSize } from "@visx/responsive";
 import { useExperimentStore } from "../../stores/experimentStore";
 import HeaderText from "../common/HeaderText";
 
-const GPUPlot = () => {
+interface GPUPlotInnerProps {
+  width: number;
+  height: number;
+}
+
+const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
   const gpuInfo = useExperimentStore((state) => state.gpuInfo);
 
-  const chartWidth = Math.max(400, (gpuInfo.length + 2) * 10); // 데이터 양에 따라 차트 너비 결정
+  const chartWidth = parentWidth || 400;
   const height = 110; // 모바일에 맞게 높이 축소
-  const margin = { top: 15, right: 30, bottom: 30, left: 0 };
-  const innerWidth = chartWidth - margin.right - margin.left;
+  const margin = { top: 15, right: 50, bottom: 30, left: 10 };
+  const legendWidth = 30;
+  const innerWidth = chartWidth - margin.right - margin.left - legendWidth;
   const innerHeight = height - margin.top - margin.bottom;
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const scrollRef2 = useRef<HTMLDivElement>(null);
 
-  // 1분 단위로 데이터 집계
+  // 1분 단위로 데이터 집계 및 24시간 필터링
   const aggregatedData = useMemo(() => {
     if (!gpuInfo.length) return [];
+
+    // 가장 최근 시간 찾기
+    const latestTime = Math.max(
+      ...gpuInfo.map((item) => new Date(item.time).getTime())
+    );
+    // 24시간 전 시간 계산 (24 * 60 * 60 * 1000 = 86400000ms)
+    const twentyFourHoursAgo = latestTime - 24 * 60 * 60 * 1000;
+
+    // 24시간 내 데이터만 필터링
+    const filteredGpuInfo = gpuInfo.filter((item) => {
+      const itemTime = new Date(item.time).getTime();
+      return itemTime >= twentyFourHoursAgo;
+    });
 
     const dataByMinute: Record<
       number,
@@ -33,7 +51,7 @@ const GPUPlot = () => {
       }
     > = {};
 
-    gpuInfo.forEach((item) => {
+    filteredGpuInfo.forEach((item) => {
       const date = new Date(item.time);
       // 분 단위로 반올림
       const minuteKey = new Date(
@@ -77,18 +95,41 @@ const GPUPlot = () => {
       .sort((a, b) => a.time.getTime() - b.time.getTime());
   }, [gpuInfo]);
 
-  // 데이터가 업데이트될 때마다 오른쪽 끝으로 스크롤
-  useEffect(() => {
-    if (scrollRef.current && aggregatedData.length > 0) {
-      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
-    }
-  }, []);
+  // 시간 간격이 큰 경우 선을 분리하기 위한 함수
+  const createSegmentedData = (data: any, maxGapMinutes = 10) => {
+    if (data.length < 2) return [data];
 
-  useEffect(() => {
-    if (scrollRef2.current && aggregatedData.length > 0) {
-      scrollRef2.current.scrollLeft = scrollRef2.current.scrollWidth;
+    const segments = [];
+    let currentSegment = [data[0]];
+    const maxGapMs = maxGapMinutes * 60 * 1000; // 10분을 밀리초로 변환
+
+    for (let i = 1; i < data.length; i++) {
+      const prevTime = data[i - 1].time.getTime();
+      const currentTime = data[i].time.getTime();
+      const gap = currentTime - prevTime;
+
+      if (gap > maxGapMs) {
+        // 간격이 너무 크면 현재 세그먼트를 저장하고 새로운 세그먼트 시작
+        segments.push(currentSegment);
+        currentSegment = [data[i]];
+      } else {
+        // 간격이 적절하면 현재 세그먼트에 추가
+        currentSegment.push(data[i]);
+      }
     }
-  }, []);
+
+    // 마지막 세그먼트 추가
+    if (currentSegment.length > 0) {
+      segments.push(currentSegment);
+    }
+
+    return segments;
+  };
+
+  // 세그먼트화된 데이터 생성
+  const segmentedData = useMemo(() => {
+    return createSegmentedData(aggregatedData);
+  }, [aggregatedData]);
 
   // 스케일 설정
   const timeScale = useMemo(() => {
@@ -116,9 +157,10 @@ const GPUPlot = () => {
   }, [aggregatedData, innerHeight]);
 
   const utilizationScale = useMemo(() => {
+    if (!aggregatedData.length) return scaleLinear({ range: [innerHeight, 0] });
+
     return scaleLinear({
       range: [innerHeight, 0],
-      //   domain: [0, 100],
       domain: [
         Math.min(...aggregatedData.map((d) => d.utilization)) - 5 < 0
           ? 0
@@ -126,27 +168,28 @@ const GPUPlot = () => {
         Math.max(...aggregatedData.map((d) => d.utilization)) + 2,
       ],
     });
-  }, [innerHeight]);
+  }, [aggregatedData, innerHeight]);
 
   // 접근자 함수들
-  const getTime = (d) => d.time;
-  const getTemperature = (d) => d.temperature;
-  const getUtilization = (d) => d.utilization;
-  // const getMemoryUsage = (d) => d.memoryUsage;
+  const getTime = (d: any) => d.time;
+  const getTemperature = (d: any) => d.temperature;
+  const getUtilization = (d: any) => d.utilization;
 
   if (!aggregatedData.length) {
     return (
       <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
-        <HeaderText text="GPU Monitoring" />
-        <div className="text-gray-500 text-sm">No GPU data available</div>
+        <HeaderText text="GPU Monitoring (Last 24 hours)" />
+        <div className="text-sm">
+          No GPU data available in the last 24 hours
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
-      <HeaderText text="GPU Monitoring" />
-      <div className="w-full h-full">
+      <HeaderText text="GPU Monitoring (Last 24 hours)" />
+      <div className="w-full h-full gap-4 flex flex-col">
         {/* 온도 차트 */}
         <div className="relative ">
           <p>Temperature (°C)</p>
@@ -160,18 +203,19 @@ const GPUPlot = () => {
               <AxisRight
                 scale={tempScale}
                 numTicks={4}
-                tickFormat={(value) => `${Math.round(value)}°`}
+                tickFormat={(value) => `${Math.round(Number(value))}°`}
                 tickLabelProps={() => ({
                   fill: "#666",
-                  fontSize: 13,
+                  fontSize: 12,
                   textAnchor: "start",
                   verticalAnchor: "middle",
+                  dx: 6,
                 })}
               />
             </Group>
           </svg>
-          <div className="overflow-x-auto" ref={scrollRef}>
-            <svg width={chartWidth} height={height}>
+          <div>
+            <svg width={innerWidth + margin.left} height={height}>
               <Group left={margin.left} top={margin.top}>
                 <GridRows
                   scale={tempScale}
@@ -188,14 +232,20 @@ const GPUPlot = () => {
                   strokeWidth={1}
                   numTicks={Math.min(aggregatedData.length, 10)}
                 />
-                <LinePath
-                  data={aggregatedData}
-                  x={(d) => timeScale(getTime(d))}
-                  y={(d) => tempScale(getTemperature(d))}
-                  stroke="oklch(55.1% 0.027 264.364)"
-                  strokeWidth={2}
-                  curve={curveMonotoneX}
-                />
+
+                {/* 세그먼트별로 선 그리기 */}
+                {segmentedData.map((segment, segmentIndex) => (
+                  <LinePath
+                    key={`temp-segment-${segmentIndex}`}
+                    data={segment}
+                    x={(d) => timeScale(getTime(d))}
+                    y={(d) => tempScale(getTemperature(d))}
+                    stroke="oklch(55.1% 0.027 264.364)"
+                    strokeWidth={2}
+                    curve={curveMonotoneX}
+                  />
+                ))}
+
                 {aggregatedData.length > 0 &&
                   aggregatedData.map((d, i) => (
                     <Circle
@@ -203,16 +253,17 @@ const GPUPlot = () => {
                       cx={timeScale(getTime(d))}
                       cy={tempScale(getTemperature(d))}
                       r={3}
-                      fill="oklch(55.1% 0.027 264.364)"
+                      fill="#bdbdbd"
+                      stroke="#424242"
                     />
                   ))}
 
                 <AxisBottom
                   top={innerHeight}
                   scale={timeScale}
-                  numTicks={Math.min(aggregatedData.length, 6)}
+                  numTicks={4}
                   tickFormat={(value) => {
-                    const date = new Date(value);
+                    const date = new Date(Number(value));
                     return `${date
                       .getHours()
                       .toString()
@@ -221,9 +272,10 @@ const GPUPlot = () => {
                       .toString()
                       .padStart(2, "0")}`;
                   }}
+                  tickLength={6}
                   tickLabelProps={() => ({
                     fill: "oklch(55.1% 0.027 264.364)",
-                    fontSize: 13,
+                    fontSize: 12,
                     textAnchor: "middle",
                     verticalAnchor: "middle",
                   })}
@@ -245,18 +297,20 @@ const GPUPlot = () => {
               <AxisRight
                 scale={utilizationScale}
                 numTicks={4}
-                tickFormat={(value) => `${Math.round(value)}%`}
+                tickFormat={(value) => `${Math.round(Number(value))}%`}
+                tickLength={4}
                 tickLabelProps={() => ({
                   fill: "oklch(55.1% 0.027 264.364)",
-                  fontSize: 13,
+                  fontSize: 12,
                   textAnchor: "start",
                   verticalAnchor: "middle",
+                  dx: 6,
                 })}
               />
             </Group>
           </svg>
-          <div className="overflow-x-auto" ref={scrollRef2}>
-            <svg width={chartWidth} height={height}>
+          <div>
+            <svg width={innerWidth + margin.left} height={height}>
               <Group left={margin.left} top={margin.top}>
                 <GridRows
                   scale={utilizationScale}
@@ -273,14 +327,19 @@ const GPUPlot = () => {
                   strokeWidth={1}
                   numTicks={Math.min(aggregatedData.length, 10)}
                 />
-                <LinePath
-                  data={aggregatedData}
-                  x={(d) => timeScale(getTime(d))}
-                  y={(d) => utilizationScale(getUtilization(d))}
-                  stroke="oklch(55.1% 0.027 264.364)"
-                  strokeWidth={2}
-                  curve={curveMonotoneX}
-                />
+
+                {segmentedData.map((segment, segmentIndex) => (
+                  <LinePath
+                    key={`util-segment-${segmentIndex}`}
+                    data={segment}
+                    x={(d) => timeScale(getTime(d))}
+                    y={(d) => utilizationScale(getUtilization(d))}
+                    stroke="oklch(55.1% 0.027 264.364)"
+                    strokeWidth={2}
+                    curve={curveMonotoneX}
+                  />
+                ))}
+
                 {aggregatedData.length > 0 &&
                   aggregatedData.map((d, i) => (
                     <Circle
@@ -288,33 +347,17 @@ const GPUPlot = () => {
                       cx={timeScale(getTime(d))}
                       cy={utilizationScale(getUtilization(d))}
                       r={3}
-                      fill="oklch(55.1% 0.027 264.364)"
+                      fill="#bdbdbd"
+                      stroke="#424242"
                     />
                   ))}
 
-                {/* <LinePath
-                data={aggregatedData}
-                x={(d) => timeScale(getTime(d))}
-                y={(d) => utilizationScale(getMemoryUsage(d))}
-                stroke="#10b981"
-                strokeWidth={2}
-                curve={curveMonotoneX}
-                strokeDasharray="5,3"
-              /> */}
-                {/* <LinePath
-                data={aggregatedData}
-                x={(d) => timeScale(getTime(d))}
-                y={(d) => utilizationScale(get(d))}
-                stroke="#ef4444"
-                strokeWidth={2}
-                curve={curveMonotoneX}
-              /> */}
                 <AxisBottom
                   top={innerHeight}
                   scale={timeScale}
-                  numTicks={Math.min(aggregatedData.length, 6)}
+                  numTicks={4}
                   tickFormat={(value) => {
-                    const date = new Date(value);
+                    const date = new Date(Number(value));
                     return `${date
                       .getHours()
                       .toString()
@@ -323,10 +366,12 @@ const GPUPlot = () => {
                       .toString()
                       .padStart(2, "0")}`;
                   }}
+                  tickLength={6}
                   tickLabelProps={() => ({
                     fill: "#666",
-                    fontSize: 13,
+                    fontSize: 12,
                     textAnchor: "middle",
+                    verticalAnchor: "middle",
                   })}
                 />
               </Group>
@@ -334,6 +379,16 @@ const GPUPlot = () => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const GPUPlot = () => {
+  return (
+    <div className="w-full">
+      <ParentSize>
+        {({ width, height }) => <GPUPlotInner width={width} height={height} />}
+      </ParentSize>
     </div>
   );
 };

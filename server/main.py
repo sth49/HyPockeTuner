@@ -2,7 +2,8 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from queue import PriorityQueue
 import asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.security import HTTPBearer
 from uuid import uuid4
 import argparse
 from exp import Exp
@@ -222,6 +223,7 @@ async def request_current_state(sid: str):
                     try:
                         exp_json = _exp.to_json()
                         # 안전하게 정화
+                        exp_json['runningExp'] = exp.id if exp and exp.id == _exp.id else None
                         curr_exp = clean_data_for_json(exp_json)
                         break
                     except Exception as e:
@@ -527,40 +529,237 @@ async def capture(request: Request):
     capture_exp.capture(data)
     return {"success": True}
 ###########################################################################
-# login
+# login and authentication
 ###########################################################################
+
+# 활성 사용자 세션 관리
+active_sessions = {}  # {user_id: {"login_time": timestamp, "last_activity": timestamp}}
+
+def validate_user_exists(user_id: str) -> bool:
+    """사용자 디렉토리가 존재하는지 확인"""
+    return os.path.exists(f"./users/{user_id}")
+
+def create_user_directories(user_id: str) -> bool:
+    """사용자 디렉토리 구조 생성"""
+    try:
+        base_path = f"./users/{user_id}"
+        os.makedirs(base_path, exist_ok=True)
+        os.makedirs(f"{base_path}/experiments", exist_ok=True)
+        os.makedirs(f"{base_path}/log", exist_ok=True)
+        os.makedirs(f"{base_path}/config", exist_ok=True)
+        os.makedirs(f"{base_path}/trash", exist_ok=True)
+        
+        # 기본 설정 파일 복사 (존재하는 경우)
+        if os.path.exists("./config/list.json"):
+            shutil.copy("./config/list.json", f"{base_path}/config/list.json")
+        if os.path.exists("./config/kernel_info.json"):
+            shutil.copy("./config/kernel_info.json", f"{base_path}/config/kernel_info.json")
+            
+        return True
+    except Exception as e:
+        print(f"사용자 디렉토리 생성 실패: {e}")
+        return False
+
+def update_user_activity(user_id: str):
+    """사용자 활동 시간 업데이트"""
+    if user_id in active_sessions:
+        active_sessions[user_id]["last_activity"] = time.time()
+
+# HTTP Bearer token 스키마
+security = HTTPBearer(auto_error=False)
+
+async def get_current_user(request: Request, token: HTTPBearer = Depends(security)):
+    """
+    현재 인증된 사용자를 반환하는 의존성 함수
+    토큰이 없거나 유효하지 않으면 None 반환
+    """
+    # Authorization 헤더에서 토큰 추출
+    auth_header = request.headers.get("Authorization")
+    user_token = None
+    
+    if auth_header and auth_header.startswith("Bearer "):
+        user_token = auth_header.split(" ")[1]
+    elif token and token.credentials:
+        user_token = token.credentials
+    
+    # URL 쿼리 파라미터에서도 토큰 확인 (필요한 경우)
+    if not user_token:
+        user_token = request.query_params.get("token")
+    
+    if not user_token:
+        return None
+    
+    # 토큰 검증 (현재는 사용자 ID와 동일)
+    if validate_user_exists(user_token) and user_token in active_sessions:
+        update_user_activity(user_token)
+        return user_token
+    
+    return None
+
+async def require_auth(current_user: str = Depends(get_current_user)):
+    """
+    인증이 필요한 엔드포인트에서 사용하는 의존성
+    인증되지 않은 경우 401 오류 발생
+    """
+    if not current_user:
+        raise HTTPException(
+            status_code=401, 
+            detail="Authentication required. Please login first."
+        )
+    return current_user
+
+async def get_optional_user(current_user: str = Depends(get_current_user)):
+    """
+    인증이 선택적인 엔드포인트에서 사용하는 의존성
+    인증되지 않아도 None 반환
+    """
+    return current_user
+
 @app.get("/login/{id}")
-def login(id: str):
+async def login(id: str, request: Request):
     global curr_user
-    print("login", id)
-    if curr_user != id and os.path.exists(f"./users/{id}"):
-        curr_user = id
-        load_exps(id)
-        return {"success": True}
-    else:
-        return {"success": False, "message": "ID does not exist"}
+    client_host = request.client.host
+    
+    print(f"로그인 시도: {id} from {client_host}")
+    
+    if not id or len(id.strip()) == 0:
+        return {"success": False, "message": "사용자 ID가 필요합니다"}
+    
+    id = id.strip()
+    
+    if not validate_user_exists(id):
+        return {"success": False, "message": "존재하지 않는 사용자입니다"}
+    
+    try:
+        # 현재 사용자 설정 및 실험 로드
+        if curr_user != id:
+            curr_user = id
+            load_exps(id)
+        
+        # 세션 정보 업데이트
+        current_time = time.time()
+        active_sessions[id] = {
+            "login_time": current_time,
+            "last_activity": current_time,
+            "ip": client_host
+        }
+        
+        server_log("user_login", ip=client_host, data={"user_id": id, "login_time": current_time})
+        
+        return {
+            "success": True, 
+            "message": "로그인 성공",
+            "user_id": id,
+            "login_time": current_time
+        }
+        
+    except Exception as e:
+        print(f"로그인 처리 중 오류: {e}")
+        server_log("login_error", ip=client_host, data={"user_id": id, "error": str(e)})
+        return {"success": False, "message": "로그인 처리 중 오류가 발생했습니다"}
+
 @app.get("/add_user/{id}/{pw}")
-def add_user(id: str, pw: str):
-    print("login", id)
+async def add_user(id: str, pw: str, request: Request):
+    client_host = request.client.host
+    
+    print(f"회원가입 시도: {id} from {client_host}")
+    
+    if not id or len(id.strip()) == 0:
+        return {"success": False, "message": "사용자 ID가 필요합니다"}
+    
+    if not pw or len(pw.strip()) == 0:
+        return {"success": False, "message": "비밀번호가 필요합니다"}
+    
+    id = id.strip()
+    
+    # 간단한 비밀번호 검증 (실제 운영에서는 더 강력한 검증 필요)
     if pw != "xoals0409!":
-        return {"success": False, "message": "Wrong password"}
-    elif os.path.exists(f"./users/{id}"):
-        return {"success": False, "message": "ID already exists"}
-    else:
-        os.mkdir(f"./users/{id}")
-        os.mkdir(f"./users/{id}/experiments")
-        os.mkdir(f"./users/{id}/log")
-        return {"success": True}
+        return {"success": False, "message": "잘못된 비밀번호입니다"}
+    
+    if validate_user_exists(id):
+        return {"success": False, "message": "이미 존재하는 사용자 ID입니다"}
+    
+    try:
+        if create_user_directories(id):
+            server_log("user_signup", ip=client_host, data={"user_id": id})
+            return {
+                "success": True, 
+                "message": "회원가입이 완료되었습니다",
+                "user_id": id
+            }
+        else:
+            return {"success": False, "message": "사용자 계정 생성에 실패했습니다"}
+            
+    except Exception as e:
+        print(f"회원가입 처리 중 오류: {e}")
+        server_log("signup_error", ip=client_host, data={"user_id": id, "error": str(e)})
+        return {"success": False, "message": "회원가입 처리 중 오류가 발생했습니다"}
+
 @app.get("/check_token/{token}")
-def check_token(token: str):
+async def check_token(token: str, request: Request):
+    client_host = request.client.host
+    
+    if not token or len(token.strip()) == 0:
+        return {"success": False, "message": "토큰이 필요합니다"}
+    
+    token = token.strip()
+    
+    # 현재는 토큰이 사용자 ID와 동일하게 처리
+    if not validate_user_exists(token):
+        return {"success": False, "message": "유효하지 않은 토큰입니다"}
+    
+    # 세션 확인 및 활동 시간 업데이트
+    if token in active_sessions:
+        update_user_activity(token)
+        return {
+            "success": True, 
+            "message": "유효한 토큰입니다",
+            "user_id": token,
+            "last_activity": active_sessions[token]["last_activity"]
+        }
+    else:
+        return {"success": False, "message": "세션이 만료되었습니다"}
+
+@app.get("/logout/{user_id}")
+async def logout(user_id: str, request: Request):
     global curr_user
-    print("token", token)
-    if curr_user is None:
-        return {"success": False}
-    elif token == curr_user:
-        return {"success": True}
-    else :
-        return {"success": False}
+    client_host = request.client.host
+    
+    if user_id in active_sessions:
+        del active_sessions[user_id]
+    
+    if curr_user == user_id:
+        curr_user = None
+    
+    server_log("user_logout", ip=client_host, data={"user_id": user_id})
+    
+    return {
+        "success": True, 
+        "message": "로그아웃되었습니다"
+    }
+
+@app.get("/session/info")
+async def get_session_info(request: Request):
+    """현재 활성 세션 정보 반환 (관리자용)"""
+    client_host = request.client.host
+    
+    # 간단한 세션 정보만 반환 (보안상 민감한 정보 제외)
+    session_summary = {
+        "active_users": len(active_sessions),
+        "current_user": curr_user,
+        "sessions": {
+            user_id: {
+                "login_time": session["login_time"],
+                "last_activity": session["last_activity"]
+            }
+            for user_id, session in active_sessions.items()
+        }
+    }
+    
+    return {
+        "success": True,
+        "data": session_summary
+    }
 ###########################################################################
 # load initial information for client
 ###########################################################################
@@ -571,34 +770,50 @@ def global_page():
     return {"success": True, "data": global_page}
 
 @app.get("/load_information")
-async def load_information():
-    global exp_list, client_exp, exp, last_state, global_page, curr_user
-    with open(f"./users/{curr_user}/config/list.json", "r") as f:
-        exp_option = json.load(f)
-    with open(f"./users/{curr_user}/config/kernel_info.json", "r") as f:
-        kernel_info = json.load(f)
-
-    exp_summary_list = [ep.summary() for ep in exp_list]
-    curr_exp = None
-
-    if client_exp != None:
-        print("!!!!!!!!!!!!!!!!!!!!!! load information", client_exp.id)
+async def load_information(current_user: str = Depends(require_auth)):
+    global exp_list, client_exp, exp, last_state, global_page
     
-    if client_exp:
-        for _exp in exp_list:
-            if _exp.id == client_exp.id:
-                curr_exp = _exp.to_json()
+    try:
+        with open(f"./users/{current_user}/config/list.json", "r") as f:
+            exp_option = json.load(f)
+        with open(f"./users/{current_user}/config/kernel_info.json", "r") as f:
+            kernel_info = json.load(f)
 
-    data = {"exp_option": exp_option, "exp_list": exp_summary_list, "curr_exp": curr_exp,  "kernel_info": kernel_info, "global_page": global_page}
-    global_page = None
-    return {"success": True, "data": data}
+        exp_summary_list = [ep.summary() for ep in exp_list]
+        curr_exp = None
+
+        if client_exp != None:
+            print("!!!!!!!!!!!!!!!!!!!!!! load information", client_exp.id)
+        
+        if client_exp:
+            for _exp in exp_list:
+                if _exp.id == client_exp.id:
+                    curr_exp = _exp.to_json()
+        
+        if exp is not None:
+            client_exp['runningExp'] = exp.id
+
+        data = {"exp_option": exp_option, "exp_list": exp_summary_list, "curr_exp": curr_exp,  "kernel_info": kernel_info, "global_page": global_page}
+        global_page = None
+        return {"success": True, "data": data}
+        
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="사용자 설정 파일을 찾을 수 없습니다")
+    except Exception as e:
+        print(f"정보 로드 중 오류: {e}")
+        raise HTTPException(status_code=500, detail="정보 로드 중 오류가 발생했습니다")
 
 @app.get("/load_kernel")
-async def load_kernel():
-    global curr_user
-    with open(f"./users/{curr_user}/config/kernel_info.json", "r") as f:
-        kernel_info = json.load(f)
-    return {"success": True, "kernel_info": kernel_info}
+async def load_kernel(current_user: str = Depends(require_auth)):
+    try:
+        with open(f"./users/{current_user}/config/kernel_info.json", "r") as f:
+            kernel_info = json.load(f)
+        return {"success": True, "kernel_info": kernel_info}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="커널 정보 파일을 찾을 수 없습니다")
+    except Exception as e:
+        print(f"커널 정보 로드 중 오류: {e}")
+        raise HTTPException(status_code=500, detail="커널 정보 로드 중 오류가 발생했습니다")
 
 ###########################################################################
 # load experiment setting for new experiment
@@ -617,7 +832,7 @@ async def load_kernel():
 ###########################################################################
 
 async def manage_exp(request, exp_id, action, immediately=False):
-    global exp, exp_list, reserved, el, client_exp
+    global exp, exp_list, reserved, el, client_exp, restore_trial, curr_trial
     if request is None:
         client_host = None
     else:
@@ -640,11 +855,34 @@ async def manage_exp(request, exp_id, action, immediately=False):
             # reserved.insert(0, exp.id)
             # server_log("reserve_exp", ip=client_host, data={"exp_id": exp.id, "reserved": reserved})
 
+            # 현재 실행 중인 실험 일시정지
+            old_exp = exp
             exp.pause()
+            # Only restore BOHB trials, not user trials
+            if curr_trial and not curr_trial.is_user_trial:
+                exp.restore_trial(restore_trial, curr_trial)
+            elif curr_trial and curr_trial.is_user_trial:
+                # Notify client that user trial was killed
+                user_trial_exp = next((e for e in exp_list if e.id == curr_trial.exp_id), None)
+                if user_trial_exp:
+                    curr_trial.end_time = datetime.now().timestamp()
+                    kill_data = curr_trial.to_dict()
+                    kill_data['status'] = 'killed'
+                    kill_data['loss'] = 'None'
+                    kill_data['metric'] = 'None'
+                    user_trial_exp.state.add_callback("trialKilled", kill_data)
+                    print(f"User trial {curr_trial.id} killed due to experiment switch")
             server_log("pause_exp", ip=client_host, data={"exp_id": exp.id})
-            start_exp = next((e for e in exp_list if e.id == exp_id), None)
-            reserved.insert(0, start_exp.id)
-            server_log("reserve_exp", ip=client_host, data={"exp_id": start_exp.id, "reserved": reserved})
+            await send_callbacks(old_exp.id)
+            
+            # 새 실험 즉시 시작
+            exp = next((e for e in exp_list if e.id == exp_id), None)
+            if action == "start":
+                exp.start()
+                server_log("start_exp", ip=client_host, data={"exp_id": exp.id})
+            elif action == "resume":
+                exp.resume()
+                server_log("resume_exp", ip=client_host, data={"exp_id": exp.id})
             await send_callbacks(exp.id)
         else:
             start_exp = next((e for e in exp_list if e.id == exp_id), None)
@@ -657,11 +895,15 @@ async def manage_exp(request, exp_id, action, immediately=False):
     await broadcast([{"key": "experiment_list", "value": data, "id": str(uuid4())}])
 
 @app.post("/new_exp/add")
-async def add_experiment(request: Request, data: dict):
+async def add_experiment(request: Request, data: dict, current_user: str = Depends(require_auth)):
     global exp_list, curr_user, exp, client_exp, reserved, el
     client_host = request.client.host
+    
+    # 현재 사용자 설정
+    curr_user = current_user
+    
     server_log("add_exp", ip=client_host, data=data)
-    newExp = Exp(data, user=curr_user)
+    newExp = Exp(data, user=current_user)
     newExp.load()
     newExp.state.init_info()
     newExp.save()
@@ -669,6 +911,7 @@ async def add_experiment(request: Request, data: dict):
 
     await manage_exp(request, newExp.id, "start")
     return {"success": True}
+
 
     # id = newExp.id
     # if exp is None: # 진행중인 실험이 없을 때
@@ -689,12 +932,56 @@ async def add_experiment(request: Request, data: dict):
     #     kernel_info = json.load(f)
     # return {"success": True,  "kernel_info": kernel_info }
 
+@app.post("/redefine_exp/add")
+async def add_redefine_experiment(request: Request, data: dict, current_user: str = Depends(require_auth)):
+    global exp_list, curr_user, exp, client_exp, reserved, el
+    client_host = request.client.host
+    
+
+    client_exp.redefine(data)
+    # 현재 사용자 설정
+    curr_user = current_user
+    
+    server_log("add_exp", ip=client_host, data=data)
+    newExp = Exp(data, user=current_user)
+    newExp.load()
+    newExp.state.init_info()
+    newExp.save()
+    exp_list.insert(0, newExp)
+
+    await manage_exp(request, newExp.id, "start")
+    return {"success": True}
+
 @app.post("/new_exp/add_launch")
-async def add_experiment(request: Request, data: dict):
+async def add_experiment_launch(request: Request, data: dict, current_user: str = Depends(require_auth)):
     global exp_list, curr_user, exp, reserved, subs, el
     client_host = request.client.host
+    
+    # 현재 사용자 설정
+    curr_user = current_user
+    
     server_log("launch_immediately_exp", ip=client_host, data=data)
-    newExp = Exp(data, user=curr_user)
+    newExp = Exp(data, user=current_user)
+    newExp.load()
+    newExp.state.init_info()
+    newExp.save()
+    exp_list.insert(0, newExp)
+    id = newExp.id
+    await manage_exp(request, id, "start", immediately=True)
+    return {"success": True}
+
+@app.post("/redefine_exp/add_launch")
+async def add_redefine_experiment_launch(request: Request, data: dict, current_user: str = Depends(require_auth)):
+    global exp_list, curr_user, exp, reserved, subs, el
+    client_host = request.client.host
+    
+    client_exp.redefine(data)
+    
+    # 현재 사용자 설정
+    curr_user = current_user
+    
+    server_log("launch_immediately_exp_redefine", ip=client_host, data=data)
+    newExp = Exp(data, user=current_user)
     newExp.load()
     newExp.state.init_info()
     newExp.save()
@@ -733,7 +1020,9 @@ async def get_experiment(request: Request, id: str):
     if get_exp:
         client_exp = get_exp
         server_log("get_exp", ip=client_host, data={"exp_id": id})
-        return get_exp.to_json()
+        data = get_exp.to_json()
+        data['runningExp'] = exp.id if exp  else None
+        return data
     else:
         server_log("get_exp_fail", ip=client_host, data={"exp_id": id})
         return {"success": False}
@@ -775,12 +1064,37 @@ async def exp_pause(request: Request, id: str):
     client_host = request.client.host   
     if exp and exp.id == id:
         exp.pause()
-        exp.restore_trial(restore_trial, curr_trial)
+        # Only restore BOHB trials, not user trials
+        if curr_trial and not curr_trial.is_user_trial:
+            exp.restore_trial(restore_trial, curr_trial)
+        elif curr_trial and curr_trial.is_user_trial:
+            # Notify client that user trial was killed
+            user_trial_exp = next((e for e in exp_list if e.id == curr_trial.exp_id), None)
+            if user_trial_exp:
+                curr_trial.end_time = datetime.now().timestamp()
+                kill_data = curr_trial.to_dict()
+                kill_data['status'] = 'killed'
+                kill_data['loss'] = 'None'
+                kill_data['metric'] = 'None'
+                user_trial_exp.state.add_callback("trialKilled", kill_data)
+                print(f"User trial {curr_trial.id} killed due to experiment pause")
         server_log("pause_exp", ip=client_host, data={"exp_id": id})
     else :
         pause_exp = next((e for e in exp_list if e.id == id), None)
         pause_exp.pause()
-        pause_exp.restore_trial(restore_trial, curr_trial)
+        # Only restore BOHB trials, not user trials
+        if curr_trial and not curr_trial.is_user_trial:
+            pause_exp.restore_trial(restore_trial, curr_trial)
+        elif curr_trial and curr_trial.is_user_trial:
+            # Notify client that user trial was killed
+            if pause_exp:
+                curr_trial.end_time = datetime.now().timestamp()
+                kill_data = curr_trial.to_dict()
+                kill_data['status'] = 'killed'
+                kill_data['loss'] = 'None'
+                kill_data['metric'] = 'None'
+                pause_exp.state.add_callback("trialKilled", kill_data)
+                print(f"User trial {curr_trial.id} killed due to experiment pause")
         server_log("pause_exp", ip=client_host, data={"exp_id": id})
 
     await send_callbacks(id)
@@ -947,9 +1261,15 @@ async def trials_first():
             if exp.state.current_trial != None and exp.state.current_trial.is_paused:
                 print("current trial is paused trial ============================================")
                 curr_trial = exp.state.current_trial
-                # curr_trial.start_time = datetime.now().timestamp()
-                exp.state.current_trial_type = 'bohb'
-                return {"success": True, "trial":[curr_trial.bracket_id, curr_trial.round_id, curr_trial.trial_id]}
+                # Check if it's a paused user trial - if so, skip it and get next BOHB trial
+                if curr_trial.is_user_trial:
+                    print("Skipping paused user trial, getting next BOHB trial")
+                    exp.state.current_trial = None  # Clear the paused user trial
+                    # Continue to get next BOHB trial below
+                else:
+                    # It's a paused BOHB trial, restore it
+                    exp.state.current_trial_type = 'bohb'
+                    return {"success": True, "trial":[curr_trial.bracket_id, curr_trial.round_id, curr_trial.trial_id]}
             trial = exp.que.get()
             restore_trial = trial 
     else:
@@ -1034,7 +1354,7 @@ async def register_trial():
 
 @app.get('/trials/report/result/{loss}/{metric}', tags=['loss', 'metric'])
 async def trials_report(loss: float, metric: float):
-    global exp, curr_trial, el, client_exp, curr_user, exp_list
+    global exp, curr_trial, el, client_exp, curr_user, exp_list, restore_trial
     if curr_trial is None:
         return {"success": False}  
     if curr_trial.is_user_trial:
@@ -1042,6 +1362,15 @@ async def trials_report(loss: float, metric: float):
         user_trial_exp = next((e for e in exp_list if e.id == curr_trial.exp_id), None)
         await user_trial_exp.report_trial(curr_trial, loss, metric, True)
         await send_callbacks(user_trial_exp.id)
+        
+        # Clear restore_trial if it was a user trial to prevent infinite user trial loop
+        if restore_trial and len(restore_trial) > 1 and restore_trial[1].get('exp_id') == curr_trial.exp_id:
+            restore_trial = None
+            print("Cleared restore_trial after user trial completion")
+        
+        # Clear current trial after user trial completion
+        curr_trial = None
+        print("Cleared curr_trial after user trial completion")
     else:
         if (exp.exp_state == EXP_PAUSED or exp.exp_state == EXP_AUTO_PAUSED):
             print("experiment is paused, cannot report result")
@@ -1092,8 +1421,8 @@ async def trials_report(curr_epoch: int, total_epoch: int):
 async def trials_paused(exp_id: str):
     global exp, curr_trial, el, client_exp, curr_user, exp_list, restore_trial, user_trial_que
     print("check if paused", exp_id)
-    if curr_trial.is_user_trial:
-        return {"paused": False}
+    # if curr_trial.is_user_trial:
+    #     return {"paused": False}
     paused_exp = next((e for e in exp_list if e.id == exp_id), None)
 
     if paused_exp.exp_state == EXP_PAUSED or paused_exp.exp_state == EXP_AUTO_PAUSED or user_trial_que.qsize() != 0:
@@ -1106,13 +1435,22 @@ async def trials_paused(exp_id: str):
 @app.post('/trials/report/error')
 async def error_report(data:dict):
     err_msg = data["error"]
-    global exp, curr_trial, el, client_exp, curr_user, exp_list
+    global exp, curr_trial, el, client_exp, curr_user, exp_list, restore_trial
     
     if curr_trial.is_user_trial:
         server_log("error_user_trial", data={"exp_id": curr_trial.exp_id, "config": curr_trial.config, "error": err_msg})
         user_trial_exp = next((e for e in exp_list if e.id == curr_trial.exp_id), None)
         user_trial_exp.report_error(curr_trial, err_msg, True)
         await send_callbacks(user_trial_exp.id)
+        
+        # Clear restore_trial if it was a user trial to prevent infinite user trial loop
+        if restore_trial and len(restore_trial) > 1 and restore_trial[1].get('exp_id') == curr_trial.exp_id:
+            restore_trial = None
+            print("Cleared restore_trial after user trial error")
+        
+        # Clear current trial after user trial error
+        curr_trial = None
+        print("Cleared curr_trial after user trial error")
     else:
         server_log("error_bohb_trial", data={"id": f"[{curr_trial.bracket_id}, {curr_trial.round_id}, {curr_trial.trial_id}]", "config": curr_trial.config, "error": err_msg})
         exp.report_error(curr_trial, err_msg)

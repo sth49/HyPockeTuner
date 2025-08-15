@@ -9,7 +9,6 @@ export function cleanViewingData(
   } = options;
 
   // 1단계: visible 세션들을 추출
-  console.log("Raw visibility data:", data);
   const rawSessions = [];
   let currentStart = null;
 
@@ -34,18 +33,21 @@ export function cleanViewingData(
     }
   }
 
-  console.log("Raw sessions:", rawSessions);
-
-  // 마지막 세션 처리
-  if (currentStart !== null) {
-    const duration = (data[data.length - 1].time - currentStart) / 1000;
-    if (duration >= minSessionSeconds) {
-      rawSessions.push({
-        start: currentStart,
-        end: data[data.length - 1].time,
-        duration: duration,
-      });
+  // 마지막 세션 처리 - 현재 방문 중인 경우는 제외 (타임라인에 표시하지 않음)
+  if (currentStart !== null && data.length > 0) {
+    const lastEvent = data[data.length - 1];
+    // 마지막 이벤트가 false(방문 종료)인 경우만 세션에 추가
+    if (!lastEvent.isViewing) {
+      const duration = (lastEvent.time - currentStart) / 1000;
+      if (duration >= minSessionSeconds) {
+        rawSessions.push({
+          start: currentStart,
+          end: lastEvent.time,
+          duration: duration,
+        });
+      }
     }
+    // 현재 방문 중인 경우(마지막 이벤트가 true)는 타임라인에 표시하지 않음
   }
 
   // 2단계: 짧은 간격으로 분리된 세션들을 병합
@@ -82,7 +84,7 @@ export function cleanViewingData(
   }
 
   // 3단계: 세션에 추가 정보 추가
-  const finalSessions = rawSessions.map((session, index) => ({
+  const finalSessions = mergedSessions.map((session, index) => ({
     id: index + 1,
     startTime: session.start,
     endTime: session.end,
@@ -91,6 +93,15 @@ export function cleanViewingData(
     startDate: new Date(session.start).toLocaleString("ko-KR"),
     endDate: new Date(session.end).toLocaleString("ko-KR"),
   }));
+
+  // console.log("👁️ Visibility sessions processed:", {
+  //   inputEvents: data.length,
+  //   rawSessions: rawSessions.length,
+  //   mergedSessions: mergedSessions.length,
+  //   finalSessions: finalSessions.length,
+  //   currentlyViewing: data.length > 0 ? data[data.length - 1]?.isViewing : false,
+  //   sessions: finalSessions
+  // });
 
   return finalSessions;
 }

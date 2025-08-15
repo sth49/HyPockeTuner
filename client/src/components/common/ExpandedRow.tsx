@@ -5,6 +5,9 @@ import { MdAdd, MdOutlineContentCopy } from "react-icons/md";
 import { useNavigation } from "../../hooks/useNavigation";
 import { TrialRowType } from "../../types/table";
 import { formatDate } from "../../utils";
+import { useExperimentStore } from "../../stores/experimentStore";
+import { hpTypeIcons } from "../../utils/icon";
+import { HyperparamTypes } from "../../types";
 
 interface Props {
   row: Row<TrialRowType>;
@@ -12,6 +15,8 @@ interface Props {
 const ExpandedRow: React.FC<Props> = ({ row }) => {
   const isExpanded = row.getIsExpanded();
   const rowData = row.original;
+
+  const hyperparams = useExperimentStore((state) => state.hyperparams);
   const { handleNavigate } = useNavigation();
   return (
     <tr key={`${row.id}-expanded`}>
@@ -80,7 +85,30 @@ const ExpandedRow: React.FC<Props> = ({ row }) => {
                       Hyperparameters
                     </p>
                     <div className="flex text-xs gap-1 flex-col">
-                      {Object.entries(rowData)
+                      {hyperparams?.map((h) => {
+                        const Icon =
+                          hpTypeIcons[HyperparamTypes[h.type].toLowerCase()] ||
+                          (() => <span>?</span>);
+
+                        return (
+                          <div
+                            key={h.displayName}
+                            className="flex justify-between"
+                          >
+                            <span className="flex items-center gap-1">
+                              {Icon && <Icon size={15} />}
+                              {h.displayName}
+                            </span>
+                            <span>
+                              {h.formatting(
+                                rowData[h.name as keyof TrialRowType]
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                      {/* {Object.entries(rowData)
                         .filter(
                           ([key]) =>
                             ![
@@ -101,7 +129,7 @@ const ExpandedRow: React.FC<Props> = ({ row }) => {
                             <span>{key}</span>
                             <span>{value}</span>
                           </div>
-                        ))}
+                        ))} */}
                     </div>
                   </>
                 )}
@@ -128,7 +156,7 @@ const ExpandedRow: React.FC<Props> = ({ row }) => {
                 }}
               >
                 <MdAdd size={18} />
-                Create New
+                Create a User Trial
               </button>
             </div>
           </div>

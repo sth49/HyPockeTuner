@@ -3,9 +3,11 @@ import HeaderText from "../common/HeaderText";
 import { useExperimentStore } from "../../stores/experimentStore";
 import { ParentSize } from "@visx/responsive";
 import * as d3 from "d3";
-import { formatDate } from "../../utils";
+import { formatting, useColorScale } from "../../utils";
 import { GlyphStar } from "@visx/glyph";
 import { LinePath } from "@visx/shape";
+import { scaleTime } from "@visx/scale";
+import { AxisBottom } from "@visx/axis";
 interface PerformancePlotInnerProps {
   width: number;
   height: number;
@@ -13,7 +15,6 @@ interface PerformancePlotInnerProps {
 
 const PerformancePlotInner = ({
   width: parentWidth,
-  height: parentHeight,
 }: PerformancePlotInnerProps) => {
   const brackets = useExperimentStore((state) => state.brackets);
   const userTrials = useExperimentStore((state) => state.userTrials);
@@ -92,7 +93,13 @@ const PerformancePlotInner = ({
     });
 
     // Find the overall best trial
-    const bestTrial = combinedData.reduce((best, trial) => {
+    const bestTrial = combinedData.reduce<{
+      id: string;
+      loss: number | undefined;
+      metric: number | undefined;
+      time: number;
+      type: string;
+    } | null>((best, trial) => {
       if (
         typeof trial.metric === "number" &&
         (best === null ||
@@ -114,22 +121,33 @@ const PerformancePlotInner = ({
 
   // Chart dimensions
   const width = parentWidth || 300;
-  const height = 200;
-  const margin = { top: 5, right: 30, bottom: 30, left: 5 };
+  const height = 120;
+  const margin = { top: 15, right: 30, bottom: 30, left: 10 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
   // Scales
+  // const xScale = useMemo(() => {
+  //   if (combinedData.length === 0) return d3.scaleLinear();
+  //   const timeExtent = d3.extent(combinedData, (d) => d.time);
+  //   if (timeExtent[0] === undefined || timeExtent[1] === undefined) {
+  //     return d3.scaleLinear().domain([0, 1]).range([0, innerWidth]);
+  //   }
+  //   return d3
+  //     .scaleLinear()
+  //     .domain([timeExtent[0], timeExtent[1]])
+  //     .range([0, innerWidth]);
+  // }, [combinedData, innerWidth]);
+
   const xScale = useMemo(() => {
-    if (combinedData.length === 0) return d3.scaleLinear();
-    const timeExtent = d3.extent(combinedData, (d) => d.time);
-    if (timeExtent[0] === undefined || timeExtent[1] === undefined) {
-      return d3.scaleLinear().domain([0, 1]).range([0, innerWidth]);
-    }
-    return d3
-      .scaleLinear()
-      .domain([timeExtent[0], timeExtent[1]])
-      .range([0, innerWidth]);
+    if (combinedData.length === 0) return d3.scaleTime();
+    return scaleTime({
+      domain: [
+        Math.min(...combinedData.map((d) => d.time)) - 10000,
+        Math.max(...combinedData.map((d) => d.time)) + 10000,
+      ] as [number, number],
+      range: [0, innerWidth],
+    });
   }, [combinedData, innerWidth]);
 
   const yScale = useMemo(() => {
@@ -146,27 +164,26 @@ const PerformancePlotInner = ({
       .range([innerHeight, 0]);
   }, [combinedData, innerHeight]);
 
-  const line = d3
-    .line()
-    .x((d) => xScale(d.time))
-    .y((d) => yScale(d.metric))
-    .curve(d3.curveMonotoneX);
+  // const line = d3
+  //   .line()
+  //   .x((d) => xScale(d.time))
+  //   .y((d) => yScale(d.metric))
+  //   .curve(d3.curveMonotoneX);
 
-  const pathData =
-    bestTrialsOverTime.length > 1
-      ? line(
-          bestTrialsOverTime
-            .filter(
-              (trial): trial is typeof trial & { metric: number } =>
-                typeof trial.metric === "number"
-            )
-            .map((trial) => [trial.time, trial.metric] as [number, number])
-        )
-      : "";
+  // const pathData =
+  //   bestTrialsOverTime.length > 1
+  //     ? line(
+  //         bestTrialsOverTime
+  //           .filter(
+  //             (trial): trial is typeof trial & { metric: number } =>
+  //               typeof trial.metric === "number"
+  //           )
+  //           .map((trial) => [trial.time, trial.metric] as [number, number])
+  //       )
+  //     : "";
+  const metric = useExperimentStore((state) => state.metric);
 
-  console.log("Performance Plot Data:", combinedData);
-  console.log("Best Trials Over Time:", bestTrialsOverTime);
-
+  const { getMetricColor } = useColorScale();
   return (
     <svg width={width} height={height}>
       {/* Chart area */}
@@ -237,7 +254,9 @@ const PerformancePlotInner = ({
               y1={yScale(bestTrial.metric)}
               x2={innerWidth}
               y2={yScale(bestTrial.metric)}
-              stroke="#10b981"
+              stroke={
+                getMetricColor(bestTrial.metric) || "oklch(55.1% 0.027 264.364)"
+              }
               strokeWidth={2}
               strokeDasharray="5,5"
               opacity={0.6}
@@ -246,11 +265,14 @@ const PerformancePlotInner = ({
               x={innerWidth - 5}
               y={yScale(bestTrial.metric) - 5}
               textAnchor="end"
-              fontSize={10}
-              fill="#10b981"
+              fontSize={12}
+              // fill="#10b981"
+              fill={
+                getMetricColor(bestTrial.metric) || "oklch(55.1% 0.027 264.364)"
+              }
               fontWeight="600"
             >
-              Best: {bestTrial.metric}
+              Best {metric.name}: {formatting(bestTrial.metric, "float", 2)}
             </text>
           </g>
         )}
@@ -261,7 +283,9 @@ const PerformancePlotInner = ({
             cx={xScale(trial.time)}
             cy={yScale(trial.metric ?? 0)}
             r={3}
-            fill="oklch(55.1% 0.027 264.364)"
+            // fill="oklch(55.1% 0.027 264.364)"
+            fill="#bdbdbd"
+            stroke="#424242"
             strokeWidth={1}
             opacity={0.7}
           />
@@ -272,8 +296,8 @@ const PerformancePlotInner = ({
             cx={xScale(trial.time)}
             cy={yScale(trial.metric ?? 0)}
             r={4}
-            fill="oklch(55.1% 0.027 264.364)"
-            stroke="oklch(55.1% 0.027 264.364)"
+            fill="#bdbdbd"
+            stroke="#424242"
             strokeWidth={2}
             opacity={0.8}
           />
@@ -302,37 +326,25 @@ const PerformancePlotInner = ({
           />
         ))}
         {/* X Axis */}
-        <g transform={`translate(0, ${innerHeight})`}>
-          <line
-            x1={0}
-            y1={0}
-            x2={innerWidth}
-            y2={0}
-            stroke="#374151"
-            strokeWidth={1}
-          />
-          {xScale
-            .ticks(Math.min(6, Math.floor(innerWidth / 80)))
-            .map((tick, i) => (
-              <g
-                key={`x-tick-${i}`}
-                transform={`translate(${xScale(tick)}, 0)`}
-              >
-                <line y1={0} y2={6} stroke="#374151" strokeWidth={1} />
-                <text
-                  y={20}
-                  textAnchor="middle"
-                  fontSize={13}
-                  //   fill="#374151"
-
-                  fill="oklch(55.1% 0.027 264.364)"
-                  dominantBaseline="middle"
-                >
-                  {formatDate(tick, "time")}
-                </text>
-              </g>
-            ))}
-        </g>
+        <AxisBottom
+          top={innerHeight}
+          scale={xScale}
+          numTicks={4}
+          tickFormat={(value) => {
+            const date = new Date(Number(value));
+            return `${date.getHours().toString().padStart(2, "0")}:${date
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}`;
+          }}
+          tickLabelProps={() => ({
+            fill: "oklch(55.1% 0.027 264.364)",
+            fontSize: 13,
+            textAnchor: "middle",
+            verticalAnchor: "middle",
+            tickLength: 4,
+          })}
+        />
       </g>
     </svg>
   );
@@ -341,7 +353,21 @@ const PerformancePlotInner = ({
 const PerformancePlot = () => {
   return (
     <div className="w-full flex gap-1.5 flex-col bg-white p-4">
-      <HeaderText text="Performance" />
+      <div className="flex items-center justify-between">
+        <HeaderText text="Performance" />
+        <div className="flex items-center">
+          <svg width="28" height="28" fill="none">
+            <GlyphStar
+              left={14}
+              top={14}
+              fill="oklch(85.486% 0.089 84.093)"
+              stroke="oklch(55.1% 0.027 264.364)"
+              size={50}
+            />
+          </svg>
+          <p className="text-xs text-oklch(55.1% 0.027 264.364) ">Improver</p>
+        </div>
+      </div>
       <div className="w-full ">
         <ParentSize>
           {({ width, height }) => (

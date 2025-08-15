@@ -164,183 +164,185 @@ const getNodeDirection = (
   return [borderRadius];
 };
 
-const UserBand: React.FC<{
-  bracket?: number;
-  sizes: Sizes;
-  dir?: Direction;
-  direction: NodePosition;
-}> = ({ bracket, sizes, direction }) => {
-  const { bandWidth, bandHeight, linkWidth } = sizes;
-  if (direction === "ltr-start") {
-    return (
-      <div
-        className="absolute top-0 left-0 w-full h-full z-5 bg-white"
-        style={{
-          width: `${bandWidth + linkWidth}px`,
-          height: `${bandHeight + linkWidth}px`,
-        }}
-      >
-        <div
-          className="flex items-center justify-center absolute top-0 right-0 "
-          style={{
-            width: `${bandWidth / 2 + linkWidth}px`,
-            height: `${bandHeight}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(0% 50%, 100% 0%, 100% 100%)",
-          }}
-        ></div>
-        <div
-          className="h-full flex flex-col items-center justify-center absolute bottom-0 left-0 "
-          style={{
-            width: `${bandWidth}px`,
-            height: `${linkWidth + bandHeight / 2}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
-          }}
-        ></div>
-      </div>
-    );
-  } else if (direction === "rtl-start") {
-    return (
-      <div
-        className="absolute top-0 right-0 w-full h-full justify-center z-5 bg-white"
-        style={{
-          width: `${bandWidth + linkWidth}px`,
-          height: `${bandHeight + linkWidth}px`,
-        }}
-      >
-        <div
-          className="flex items-center justify-center absolute top-0 left-0 "
-          style={{
-            width: `${bandWidth / 2 + linkWidth}px`,
-            height: `${bandHeight}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
-          }}
-        ></div>
-        <div
-          className="h-full flex flex-col items-center justify-center absolute bottom-0 right-0 "
-          style={{
-            width: `${bandWidth}px`,
-            height: `${linkWidth + bandHeight / 2}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
-          }}
-        ></div>
-      </div>
-    );
-  } else if (direction === "ltr-end") {
-    return (
-      <div
-        className="absolute bottom-0 right-0 w-full h-full justify-center z-5 bg-white"
-        style={{
-          width: `${bandWidth + linkWidth}px`,
-          height: `${bandHeight + linkWidth}px`,
-        }}
-      >
-        <div
-          className="flex items-center justify-center absolute bottom-0 left-0 "
-          style={{
-            width: `${bandWidth / 2 + linkWidth}px`,
-            height: `${bandHeight}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
-          }}
-        ></div>
-        <div
-          className="h-full flex flex-col items-center justify-center absolute top-0 right-0 "
-          style={{
-            width: `${bandWidth}px`,
-            height: `${linkWidth + bandHeight / 2}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)",
-          }}
-        ></div>
-      </div>
-    );
-  } else if (direction === "rtl-end") {
-    return (
-      <div
-        className="absolute bottom-0 left-0 w-full h-full justify-center z-5 bg-white"
-        style={{
-          width: `${bandWidth + linkWidth}px`,
-          height: `${bandHeight + linkWidth}px`,
-        }}
-      >
-        <div
-          className="flex items-center justify-center absolute bottom-0 right-0 "
-          style={{
-            width: `${bandWidth / 2 + linkWidth}px`,
-            height: `${bandHeight}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(0% 50%, 100% 0%, 100% 100%)",
-          }}
-        ></div>
-        <div
-          className="h-full flex flex-col items-center justify-center absolute top-0 left-0 "
-          style={{
-            width: `${bandWidth}px`,
-            height: `${linkWidth + bandHeight / 2}px`,
-            backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-            clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)",
-          }}
-        ></div>
-      </div>
-    );
-  }
+// const UserBand: React.FC<{
+//   bracket?: number;
+//   sizes: Sizes;
+//   dir?: Direction;
+//   direction: NodePosition;
+// }> = ({ bracket, sizes, direction }) => {
+//   const { bandWidth, bandHeight, linkWidth } = sizes;
+//   if (direction === "ltr-start") {
+//     return (
+//       <div
+//         className="absolute top-0 left-0 w-full h-full z-5 bg-white"
+//         style={{
+//           width: `${bandWidth + linkWidth}px`,
+//           height: `${bandHeight + linkWidth}px`,
+//         }}
+//       >
+//         <div
+//           className="flex items-center justify-center absolute top-0 right-0 "
+//           style={{
+//             width: `${bandWidth / 2 + linkWidth}px`,
+//             height: `${bandHeight}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(0% 50%, 100% 0%, 100% 100%)",
+//           }}
+//         ></div>
+//         <div
+//           className="h-full flex flex-col items-center justify-center absolute bottom-0 left-0 "
+//           style={{
+//             width: `${bandWidth}px`,
+//             height: `${linkWidth + bandHeight / 2}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+//           }}
+//         ></div>
+//       </div>
+//     );
+//   } else if (direction === "rtl-start") {
+//     return (
+//       <div
+//         className="absolute top-0 right-0 w-full h-full justify-center z-5 bg-white"
+//         style={{
+//           width: `${bandWidth + linkWidth}px`,
+//           height: `${bandHeight + linkWidth}px`,
+//         }}
+//       >
+//         <div
+//           className="flex items-center justify-center absolute top-0 left-0 "
+//           style={{
+//             width: `${bandWidth / 2 + linkWidth}px`,
+//             height: `${bandHeight}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
+//           }}
+//         ></div>
+//         <div
+//           className="h-full flex flex-col items-center justify-center absolute bottom-0 right-0 "
+//           style={{
+//             width: `${bandWidth}px`,
+//             height: `${linkWidth + bandHeight / 2}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+//           }}
+//         ></div>
+//       </div>
+//     );
+//   } else if (direction === "ltr-end") {
+//     return (
+//       <div
+//         className="absolute bottom-0 right-0 w-full h-full justify-center z-5 bg-white"
+//         style={{
+//           width: `${bandWidth + linkWidth}px`,
+//           height: `${bandHeight + linkWidth}px`,
+//         }}
+//       >
+//         <div
+//           className="flex items-center justify-center absolute bottom-0 left-0 "
+//           style={{
+//             width: `${bandWidth / 2 + linkWidth}px`,
+//             height: `${bandHeight}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
+//           }}
+//         ></div>
+//         <div
+//           className="h-full flex flex-col items-center justify-center absolute top-0 right-0 "
+//           style={{
+//             width: `${bandWidth}px`,
+//             height: `${linkWidth + bandHeight / 2}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)",
+//           }}
+//         ></div>
+//       </div>
+//     );
+//   } else if (direction === "rtl-end") {
+//     return (
+//       <div
+//         className="absolute bottom-0 left-0 w-full h-full justify-center z-5 bg-white"
+//         style={{
+//           width: `${bandWidth + linkWidth}px`,
+//           height: `${bandHeight + linkWidth}px`,
+//         }}
+//       >
+//         <div
+//           className="flex items-center justify-center absolute bottom-0 right-0 "
+//           style={{
+//             width: `${bandWidth / 2 + linkWidth}px`,
+//             height: `${bandHeight}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(0% 50%, 100% 0%, 100% 100%)",
+//           }}
+//         ></div>
+//         <div
+//           className="h-full flex flex-col items-center justify-center absolute top-0 left-0 "
+//           style={{
+//             width: `${bandWidth}px`,
+//             height: `${linkWidth + bandHeight / 2}px`,
+//             backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//             clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)",
+//           }}
+//         ></div>
+//       </div>
+//     );
+//   }
 
-  return (
-    <div
-      className="absolute top-0 w-full h-full flex items-center justify-center z-5 bg-white"
-      style={{
-        // left: dir === "ltr" ? `${-linkWidth}px` : 0,
-        width: `${linkWidth + bandHeight + linkWidth * 2}px`,
-        // backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
-      }}
-    >
-      <div
-        className="w-[10%] h-full "
-        style={{
-          backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//   return (
+//     <div
+//       className="absolute top-0 w-full h-full flex items-center justify-center z-5 bg-white"
+//       style={{
+//         // left: dir === "ltr" ? `${-linkWidth}px` : 0,
+//         width: `${linkWidth + bandHeight + linkWidth * 2}px`,
+//         // backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//       }}
+//     >
+//       <div
+//         className="w-[10%] h-full "
+//         style={{
+//           backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
 
-          // clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
-        }}
-      ></div>
-      <div
-        className="w-[40%] h-full "
-        style={{
-          backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//           // clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
+//         }}
+//       ></div>
+//       <div
+//         className="w-[40%] h-full "
+//         style={{
+//           backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
 
-          clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
-        }}
-      ></div>
-      <div
-        className="w-[40%] h-full "
-        style={{
-          backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//           clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
+//         }}
+//       ></div>
+//       <div
+//         className="w-[40%] h-full "
+//         style={{
+//           backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
 
-          clipPath: "polygon(0% 50%, 100% 0%, 100% 100%)",
-        }}
-      ></div>
-      <div
-        className="w-[10%] h-full "
-        style={{
-          backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
+//           clipPath: "polygon(0% 50%, 100% 0%, 100% 100%)",
+//         }}
+//       ></div>
+//       <div
+//         className="w-[10%] h-full "
+//         style={{
+//           backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
 
-          // clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
-        }}
-      ></div>
-    </div>
-  );
-};
+//           // clipPath: "polygon(100% 50%, 0% 0%, 0% 100%)",
+//         }}
+//       ></div>
+//     </div>
+//   );
+// };
 // 메인 Node 컴포넌트
 const MiniBand: React.FC<
   BandProps & {
     sizes: Sizes;
     isVertical?: boolean;
     dir?: Direction;
-    isShowBest?: boolean;
+    isCollapse?: boolean;
     mergeType?: "individual" | "bracket" | "round" | "all";
+    searchType?: string; // Optional prop for search type
+    isCurrentFocusedLink?: boolean; // Optional prop to indicate if this link is currently focused
   }
 > = (props) => {
   const {
@@ -350,7 +352,9 @@ const MiniBand: React.FC<
     sizes,
     isVertical = false,
     dir = "ltr",
-    mergeType = "individual",
+    searchType = "", // Default to empty string if not provided
+    isCollapse = false,
+    isCurrentFocusedLink = false, // Default to false if not provided
   } = props;
 
   if (!data) {
@@ -367,12 +371,21 @@ const MiniBand: React.FC<
   //   eventWidth: 0,
   // };
 
-  const { bandWidth, bandHeight, linkWidth } = sizes;
+  const { bandWidth, bandHeight, linkWidth, linkHeight } = sizes;
 
   // console.log("Band props:", props);
 
   const [borderRadius] = getNodeDirection(props);
-  const [direction] = getNodePosition(props.order, dir);
+  // const bgColor =
+  //   // mergeType === "all" ||
+  //   (type === "link" && data.type === "pseudo") ||
+  //   data.type === "user" ||
+  //   bracket === -2
+  //     ? CONFIG.COLORS.WHITE
+  //     : bracket === -1
+  //     ? "oklch(92% 0.004 286.32)"
+  //     : CONFIG.COLORS.BAND[(bracket ?? 0) % 2];
+
   const bgColor =
     // mergeType === "all" ||
     (type === "link" && data.type === "pseudo") ||
@@ -380,18 +393,41 @@ const MiniBand: React.FC<
     bracket === -2
       ? CONFIG.COLORS.WHITE
       : bracket === -1
-      ? "oklch(92% 0.004 286.32)"
+      ? "oklch(92% 0.004 286.32)" // pseudo
       : CONFIG.COLORS.BAND[(bracket ?? 0) % 2];
 
   // 링크 타입 렌더링
   // console.log("bracket:", bracket, "type:", type, "bgColor", bgColor);
   if (type === "link") {
+    // Only access events if data is LinkProps
+    const events = "events" in data ? data.events || [] : [];
+    // console.log("Events:", events);
+    // console.log("searchType:", searchType);
+    const isInSearchType = events.some((event) => event.type === searchType);
+
+    // console.log("isInSearchType:", isInSearchType);
+
     return (
       <div
         style={{
           width: `${isVertical ? bandWidth : linkWidth}px`,
-          height: `${isVertical ? linkWidth : bandHeight}px`,
-          backgroundColor: bgColor,
+          height: `${isVertical ? linkHeight : bandHeight}px`,
+          backgroundColor: isInSearchType
+            ? "oklch(77.464% 0.062 217.469)"
+            : bgColor,
+          opacity: isInSearchType && !isCurrentFocusedLink ? 0.5 : 1,
+          backgroundImage:
+            bracket === -1
+              ? `
+      repeating-linear-gradient(
+      45deg,
+        ${CONFIG.COLORS.BAND[1]} 0px,
+        ${CONFIG.COLORS.BAND[1]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 16px
+      )
+    `
+              : "none",
         }}
         className="flex justify-center items-center relative"
       >
@@ -401,8 +437,8 @@ const MiniBand: React.FC<
             className="absolute"
             style={{
               top: 0,
-              left: dir === "ltr" ? "0px" : "calc(100% - 3px)",
-              width: "3px",
+              left: dir === "ltr" ? "0px" : "calc(100% - 1px)",
+              width: "1px",
               height: "100%",
               backgroundColor: CONFIG.COLORS.BAND[(bracket ?? 0) % 2],
             }}
@@ -413,12 +449,29 @@ const MiniBand: React.FC<
                 width: "100%",
                 height: "100%",
                 borderRadius:
-                  dir === "ltr" ? "0px 3px 3px 0px" : "3px 0px 0px 3px",
+                  dir === "ltr" ? "0px 1px 1px 0px" : "1px 0px 0px 1px",
                 backgroundColor: CONFIG.COLORS.WHITE,
               }}
             ></div>
           </div>
         )}
+        {/* 라운드 시작 밴드 끊김 */}
+        {!isCollapse &&
+          data.trials.length > 0 &&
+          data.trials[0].isFirstRound &&
+          data.trials[0].roundId !== 1 && (
+            <div
+              className="absolute"
+              style={{
+                top: isVertical ? "calc(50% - 1.5px)" : 0,
+                left: isVertical ? `0` : "calc(50% - 1.5px)",
+                width: isVertical ? "100%" : "3px",
+                height: isVertical ? "3px" : "100%",
+                backgroundColor: CONFIG.COLORS.WHITE,
+                zIndex: 100,
+              }}
+            ></div>
+          )}
       </div>
     );
   }
@@ -431,17 +484,29 @@ const MiniBand: React.FC<
         height: `${bandHeight}px`,
         backgroundColor: bgColor,
         // backgroundColor: color,
+        backgroundImage:
+          bracket === -1
+            ? `
+      repeating-linear-gradient(
+      45deg,
+        ${CONFIG.COLORS.BAND[1]} 0px,
+        ${CONFIG.COLORS.BAND[1]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 16px
+      )
+    `
+            : "none",
         borderRadius: borderRadius,
       }}
     >
-      {mergeType !== "all" && data.trials[0].type === "user" && (
+      {/* {mergeType !== "all" && data.trials[0].type === "user" && (
         <UserBand
           bracket={bracket}
           sizes={sizes}
           dir={dir}
           direction={direction}
         />
-      )}
+      )} */}
     </div>
   );
 };

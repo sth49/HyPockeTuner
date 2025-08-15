@@ -6,6 +6,7 @@ import { Push } from "../../types/experiment";
 // import {notiTypeIcons } as
 import { notiTypeIcons } from "../../utils/icon"; // Uncomment if you have icons for notifications
 import { formatDate, formatDistance } from "../../utils/formatting";
+import { getBorderColor, NotiType } from "../../models/notification";
 const PushView = () => {
   const [page, setPage] = useState(1);
   const push = useExperimentStore((state) => state.push);
@@ -38,14 +39,21 @@ const PushView = () => {
             const Icon = notiTypeIcons[item.type] || null;
             return (
               <li
-                className="h-[60px] bg-white flex items-center"
+                className="h-[60px] bg-white flex items-center gap-4 "
                 style={{
                   borderBottom: "1px solid #e5e7eb",
                 }}
                 key={index}
               >
                 <div className="w-[10%] flex items-center justify-center">
-                  {Icon && <Icon size={24} />}
+                  {/* {Icon && <Icon size={24} />} */}
+                  <div
+                    className={`rounded-[3px] w-[30px] h-[30px] border-[1px] flex justify-center items-center ${getBorderColor(
+                      (item.type as NotiType) ?? NotiType.TIMEOUT
+                    )}`}
+                  >
+                    {Icon && <Icon size={24} />}
+                  </div>
                 </div>
                 <div className="flex flex-col justify-center items-start w-[90%]">
                   <p className="font-semibold">{item.title}</p>
@@ -64,7 +72,7 @@ const PushView = () => {
               borderBottom: "1px solid #e5e7eb", // Tailwind's gray-200
             }}
           >
-            <p className="text-gray-500">No push notifications</p>
+            <p>No push notifications</p>
           </li>
         )}
       </ul>
@@ -79,7 +87,6 @@ const PushView = () => {
           <IoIosArrowBack className="size-4" />
         </button>
         <p
-          className="text-sm text-gray-600"
           style={{
             width: "30px",
             textAlign: "center",

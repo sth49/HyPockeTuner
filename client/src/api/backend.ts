@@ -121,24 +121,7 @@ export class Backend {
     this.setupSocketEvents();
   }
 
-  private isDevelopmentMode(): boolean {
-    // Vite 환경
-    if (typeof import.meta !== "undefined" && import.meta.env) {
-      return import.meta.env.MODE === "development" || import.meta.env.DEV;
-    }
-
-    // CRA/Webpack 환경
-    if (typeof process !== "undefined" && (process as any)?.env) {
-      return (process as any).env.NODE_ENV === "development";
-    }
-
-    // 브라우저에서 개발 모드 감지
-    return (
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1" ||
-      window.location.port !== ""
-    );
-  }
+  // isDevelopmentMode 함수는 사용되지 않으므로 제거됨
 
   private setupSocketEvents() {
     if (!this.socket) return;
@@ -380,7 +363,7 @@ export class Backend {
   }
 
   // 소켓 완전 정리
-  private cleanup() {
+  public cleanup() {
     console.log(`🧹 Cleaning up socket on instance: ${this.instanceId}`);
 
     if (this.socket) {

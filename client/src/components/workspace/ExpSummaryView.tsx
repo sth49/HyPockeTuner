@@ -21,7 +21,9 @@ const ExpSummaryView = ({ exp }: ExpSummaryViewProps) => {
     hparamLength: exp.hparamList.length,
     budget: exp.budget,
     bestMetric:
-      exp.id === expId && bestTrial ? bestTrial.metric : exp.bestTrial,
+      exp.id === expId && bestTrial
+        ? formatting(bestTrial.metric ? bestTrial.metric : 0, "float", 2)
+        : formatting(exp.bestTrial, "float", 2),
     doneTrials: `${exp.doneTrials} / ${exp.allTrials}`,
     lastUpdatedAt: formatDate(Number(exp.lastUpdatedAt) * 1000, "day"),
     // format(Number(exp.lastUpdatedAt) * 1000, "MM/dd"),
@@ -69,7 +71,7 @@ const ExpSummaryView = ({ exp }: ExpSummaryViewProps) => {
           aria-valuenow={(exp.doneTrials / exp.allTrials) * 100}
           role="progressbar"
         >
-          <p className="text-[0.6rem]">
+          <p className="text-[0.6rem] text-gray-500">
             {formatting((exp.doneTrials / exp.allTrials) * 100, "int")}%
           </p>
         </div>

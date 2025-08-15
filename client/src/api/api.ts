@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NotiCondPair } from "../models/notification";
 import { useExperimentStore } from "../stores/experimentStore";
+import { useAuthStore } from "../stores/authStore";
 import { SERVER_URL } from "./const";
 // import { NotiCondPair } from "./models/noti-cond-pair";
 // import { useCurrExp } from "./store";
@@ -13,18 +14,53 @@ function normalizeUrl(path: string): string {
   return `${SERVER_URL}${normalizedPath}`;
 }
 
-function fetchSingle(url: string, payload?: any, method = "post") {
-  if (!payload) return fetch(url).then((res) => res.json());
+function getAuthHeaders(): Record<string, string> {
+  const { token } = useAuthStore.getState();
+  const headers: Record<string, string> = {
+    Accept: "application/json, text/plain, */*",
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+function fetchSingle<T = any>(url: string, payload?: any, method = "post"): Promise<T> {
+  const headers = getAuthHeaders();
+
+  if (!payload) {
+    return fetch(url, {
+      method: "GET",
+      headers,
+      mode: "cors",
+    }).then(async (res) => {
+      if (res.status === 401) {
+        // Handle authentication errors by logging out
+        const { logout } = useAuthStore.getState();
+        logout();
+        window.location.reload();
+        throw new Error("Authentication required");
+      }
+      return res.json();
+    });
+  }
 
   return fetch(url, {
     method: method,
-    headers: new Headers({
-      Accpet: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-    }),
+    headers,
     body: JSON.stringify(payload),
     mode: "cors",
-  }).then((res) => {
+  }).then(async (res) => {
+    if (res.status === 401) {
+      // Handle authentication errors by logging out
+      const { logout } = useAuthStore.getState();
+      logout();
+      window.location.reload();
+      throw new Error("Authentication required");
+    }
     return res.json();
   });
 }
@@ -63,7 +99,12 @@ const ApiClient = {
    * @param exp 실험 데이터
    * @returns Promise<응답 데이터>
    */
-  addExperiment: function <T = any>(exp: any): Promise<T> {
+  addExperiment: function <T = any>(exp: any, type: string = ""): Promise<T> {
+    if (type === "redefine") {
+      console.log("Adding redefine experiment:", exp);
+      return fetchSingle(`${SERVER_URL}redefine_exp/add`, exp);
+    }
+    console.log("Adding new experiment:", exp);
     return fetchSingle(`${SERVER_URL}new_exp/add`, exp);
   },
 
@@ -72,8 +113,14 @@ const ApiClient = {
    * @param exp 실험 데이터
    * @returns Promise<응답 데이터>
    */
-  addLaunchExperiment: function <T = any>(exp: any): Promise<T> {
-    return fetchSingle(`${SERVER_URL}new_exp/add_launch`, exp);
+  addLaunchExperiment: function <T = any>(
+    exp: any,
+    type: string = ""
+  ): Promise<T> {
+    if (type === "redefine") {
+      console.log("Adding redefine experiment:", exp);
+      return fetchSingle(`${SERVER_URL}redefine_exp/add_launch`, exp);
+    } else return fetchSingle(`${SERVER_URL}new_exp/add_launch`, exp);
   },
 
   /**
@@ -84,7 +131,7 @@ const ApiClient = {
   addCondition: function <T = any>(notiCondPair: NotiCondPair): Promise<T> {
     const expId = useExperimentStore.getState().expId;
     if (!expId) {
-      return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
+      return Promise.reject(new Error("No active experiment found"));
     }
 
     const data = {
@@ -92,6 +139,7 @@ const ApiClient = {
       exp_id: expId,
     };
 
+    //@ts-ignore
     return fetchSingle<T>(`${SERVER_URL}add_condition`, data);
   },
 
@@ -109,7 +157,7 @@ const ApiClient = {
     // const currExp = useCurrExp.getState().currExp;
     const expId = useExperimentStore.getState().expId;
     if (!expId) {
-      return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
+      return Promise.reject(new Error("No active experiment found"));
     }
 
     const data = {
@@ -130,7 +178,7 @@ const ApiClient = {
   //   removeCondition: function <T = any>(notiCondPair: NotiCondPair): Promise<T> {
   //     const currExp = useCurrExp.getState().currExp;
   //     if (!currExp || !currExp.id) {
-  //       return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
+  //       return Promise.reject(new Error("No active experiment found"));
   //     }
 
   //     const data = {
@@ -150,10 +198,10 @@ const ApiClient = {
     // const currExp = useCurrExp.getState().currExp;
     const expId = useExperimentStore.getState().expId;
     if (!expId) {
-      return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
+      return Promise.reject(new Error("No active experiment found"));
     }
     // if (!currExp || !currExp.id) {
-    //   return Promise.reject(new Error("현재 활성화된 실험이 없습니다"));
+    //   return Promise.reject(new Error("No active experiment found"));
     // }
 
     const data = {
@@ -284,6 +332,55 @@ const ApiClient = {
    */
   capture: function <T = any>(data: any): Promise<T> {
     return fetchSingle(`${SERVER_URL}/capture`, data, "post");
+  },
+
+  /**
+   * 사용자 로그인
+   * @param userId 사용자 ID
+   * @returns Promise<응답 데이터>
+   */
+  login: function <T = any>(userId: string): Promise<T> {
+    return fetchSingle(`${SERVER_URL}login/${userId}`, null, "get");
+  },
+
+  /**
+   * 새 사용자 추가
+   * @param userId 사용자 ID
+   * @param password 비밀번호
+   * @returns Promise<응답 데이터>
+   */
+  addUser: function <T = any>(userId: string, password: string): Promise<T> {
+    return fetchSingle(
+      `${SERVER_URL}add_user/${userId}/${password}`,
+      null,
+      "get"
+    );
+  },
+
+  /**
+   * 토큰 검증
+   * @param token 검증할 토큰
+   * @returns Promise<응답 데이터>
+   */
+  checkToken: function <T = any>(token: string): Promise<T> {
+    return fetchSingle(`${SERVER_URL}/check_token/${token}`, null, "get");
+  },
+
+  /**
+   * 사용자 로그아웃
+   * @param userId 사용자 ID
+   * @returns Promise<응답 데이터>
+   */
+  logout: function <T = any>(userId: string): Promise<T> {
+    return fetchSingle(`${SERVER_URL}/logout/${userId}`, null, "get");
+  },
+
+  /**
+   * 세션 정보 조회
+   * @returns Promise<응답 데이터>
+   */
+  getSessionInfo: function <T = any>(): Promise<T> {
+    return fetchSingle(`${SERVER_URL}/session/info`, null, "get");
   },
 };
 

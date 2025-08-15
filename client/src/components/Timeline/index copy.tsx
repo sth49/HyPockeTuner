@@ -15,7 +15,7 @@ const Overview: React.FC = () => {
   const [graphData, pendingData] = useGraphData();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const [mergeType, setMergeType] = useState("individual");
+  const [mergeType, setMergeType] = useState<"individual" | "bracket" | "round" | "all">("individual");
   const [isShowBest, setIsShowBest] = useState(true);
 
   // 스크롤 상태 추가
@@ -24,7 +24,7 @@ const Overview: React.FC = () => {
   const [scrollHeight, setScrollHeight] = useState(0);
   const [clientHeight, setClientHeight] = useState(0);
 
-  const sizes = useResponsiveSize(isShowBest);
+  const sizes = useResponsiveSize();
 
   const zigzagRows = useMemo(() => {
     return createZigzagLayout(
@@ -68,13 +68,23 @@ const Overview: React.FC = () => {
     if (contentElement) {
       contentElement.addEventListener("scroll", handleScroll);
       // 초기 값 설정 (약간의 지연을 두어 DOM이 완전히 렌더링된 후 실행)
-      setTimeout(handleScroll, 100);
-
+      const timeoutId = setTimeout(handleScroll, 100);
       return () => {
+        clearTimeout(timeoutId);
         contentElement.removeEventListener("scroll", handleScroll);
       };
+
     }
   }, [reversedRows]); // reversedRows가 변경될 때도 재계산
+
+  // 특정 링크가 현재 포커스된 검색 결과인지 확인하는 함수 (빈 구현)
+  const isCurrentFocusedLink = (
+    _rowIndex: number,
+    _linkIndex: number,
+    _isVertical: boolean
+  ) => {
+    return false; // 기본 구현
+  };
 
   // 미니맵에서 스크롤 위치 변경 핸들러
   const handleMiniMapScroll = (scrollRatio: number) => {
@@ -112,7 +122,9 @@ const Overview: React.FC = () => {
             label: mergeType.charAt(0).toUpperCase() + mergeType.slice(1),
           }}
           onChange={(e: { value: string; label: string } | null) => {
-            if (e) setMergeType(e.value);
+            if (e && (e.value === "individual" || e.value === "bracket" || e.value === "round" || e.value === "all")) {
+              setMergeType(e.value);
+            }
           }}
         />
         <p className="text-xs font-semibold" style={{ fontSize: "0.8rem" }}>
@@ -189,6 +201,7 @@ const Overview: React.FC = () => {
           scrollHeight={scrollHeight}
           clientHeight={clientHeight}
           onScrollChange={handleMiniMapScroll}
+          isCurrentFocusedLink={isCurrentFocusedLink}
         />
       </div>
       <div
@@ -211,7 +224,7 @@ const Overview: React.FC = () => {
                   sizes={sizes}
                   isVertical={true}
                   dir={row.direction}
-                  isShowBest={true}
+                  isCollapse={isShowBest}
                   mergeType={mergeType}
                 />
               </div>
@@ -231,7 +244,7 @@ const Overview: React.FC = () => {
                     sizes={sizes}
                     isVertical={undefined}
                     dir={row.direction}
-                    isShowBest={true}
+                    isCollapse={isShowBest}
                     mergeType={mergeType}
                   />
                   {index < row.horizontalLinks.length && (
@@ -240,7 +253,7 @@ const Overview: React.FC = () => {
                       isVertical={false}
                       sizes={sizes}
                       dir={row.direction}
-                      isShowBest={true}
+                      isCollapse={isShowBest}
                       mergeType={mergeType}
                     />
                   )}

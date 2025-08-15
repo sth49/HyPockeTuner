@@ -22,7 +22,9 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
   const [data, setData] = useState<TrialRowType[]>([]);
   const [expanded, setExpanded] = useState({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "metric", desc: true }, // Default sort by metric (Accuracy) in descending order
+  ]);
   const [isLoading, setIsLoading] = useState(true);
   const { getMetricColor, getFontColor, getLossColor } = useColorScale();
 
@@ -49,6 +51,9 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
     brackets.forEach((bracket) => {
       bracket.rounds.forEach((round) => {
         round.trials.forEach((trial) => {
+          if (trial.status !== "done") {
+            return; // Only include completed trials
+          }
           if (!trial.id) {
             return;
           }
@@ -83,6 +88,9 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
 
     if (userTrials) {
       userTrials.forEach((trial) => {
+        if (trial.status !== "done") {
+          return; // Only include completed trials
+        }
         const params = hyperparams?.reduce((acc, h) => {
           acc[h.name] =
             h.type === HyperparamTypes.Uniform

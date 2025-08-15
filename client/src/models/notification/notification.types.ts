@@ -27,6 +27,25 @@ export enum NotiType {
   CUSTOM = "custom",
 }
 
+export const getBorderColor = (type: NotiType) => {
+  switch (type) {
+    case NotiType.METRIC_IMPROVE_BY:
+    case NotiType.METRIC_IMPROVE:
+    case NotiType.METRIC_REACH:
+    case NotiType.BRACKET_FINISH:
+    case NotiType.ROUND_FINISH:
+      return "border-teal-700/50 text-teal-700";
+    case NotiType.TIMEOUT:
+    case NotiType.EXCEPTION_HAPPEN:
+    case NotiType.HIGH_TEMPERATURE:
+    case NotiType.LOW_UTILIZATION:
+    case NotiType.HIGH_USAGE:
+      return "border-rose-700/50 text-rose-700";
+    default:
+      return "border-gray-700/50"; // 기본 색상
+  }
+};
+
 export const Type = {
   ExperimentStart: NotiType.EXPERIMENT_START,
   ExperimentResume: NotiType.EXPERIMENT_RESUME,

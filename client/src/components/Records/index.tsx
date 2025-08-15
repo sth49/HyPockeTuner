@@ -35,7 +35,7 @@ const Records = () => {
         </div>
         <div className="flex-1 h-full flex items-center justify-center">
           <button
-            className="btn btn-xs btn-primary text-xs text-gray-500 text-white"
+            className="btn btn-xs btn-primary text-xs text-white"
             onClick={() => {
               handleNavigate("/trial/new");
             }}

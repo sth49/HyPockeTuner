@@ -76,6 +76,7 @@ export interface Sizes {
   nodeWidth: number;
   nodeHeight: number;
   linkWidth: number;
+  linkHeight?: number;
   gap: number;
   eventWidth: number;
 }

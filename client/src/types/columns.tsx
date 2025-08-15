@@ -25,7 +25,7 @@ export const columns = (
         accessorKey: h.name,
         header: h.displayName,
         cell: (info: { getValue: () => any }) => {
-          return info.getValue();
+          return h.formatting(info.getValue());
         },
         size: 60,
       })) ?? [];

@@ -42,16 +42,23 @@ export interface ExpOption {
   name: string;
   model: string;
   dataset: string;
-  metric: string;
+  metric: {
+    name: string;
+    range: [number, number]; // [min, max]
+  };
   hyperparams: HyperparamOption[];
   bohb: BOHBOption;
 }
 export const toJSON = (option: ExpOption): any => {
+  console.log("toJSON called with option:", option);
   return {
     name: option.name,
     model: option.model,
     dataset: option.dataset,
-    metric: { name: option.metric },
+    metric: {
+      name: option.metric.name,
+      range: option.metric.range,
+    },
     hyperparameters: option.hyperparams.map((hparam) => hparam.toJSON()),
     bohb: {
       min_budget: option.bohb.minBudget,
@@ -79,7 +86,10 @@ export const createExpOption = (json: any): ExpOption => {
     name: json.name || "Exp",
     model: json.model,
     dataset: json.dataset,
-    metric: json.metric.name,
+    metric: {
+      name: json.metric.name,
+      range: json.metric.range || [0, 1], // 기본값 설정
+    },
     hyperparams: hyperparams,
     bohb: {
       minBudget: json.bohb.min_budget,

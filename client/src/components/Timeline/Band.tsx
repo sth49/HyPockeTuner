@@ -477,6 +477,7 @@ const Band: React.FC<
     dir?: Direction;
     isCollapse?: boolean;
     mergeType?: "individual" | "bracket" | "round" | "all";
+    highlightEventType?: string;
   }
 > = (props) => {
   const {
@@ -488,6 +489,7 @@ const Band: React.FC<
     dir = "ltr",
     isCollapse = false,
     mergeType = "individual",
+    highlightEventType = "",
   } = props;
 
   if (!data) {
@@ -510,27 +512,29 @@ const Band: React.FC<
       : bracket === -1
       ? "oklch(92% 0.004 286.32)" // pseudo
       : CONFIG.COLORS.BAND[(bracket ?? 0) % 2];
-
+  
+  // Special handling for collapsed user trials
+  const isCollapsedUserTrial = isCollapse && data.type === "user" && data.trials?.some(trial => trial.type === "user");
+  const finalBgColor = isCollapsedUserTrial ? CONFIG.COLORS.BAND[0] : bgColor;
   if (type === "link") {
     return (
       <div
         style={{
           width: `${isVertical ? bandWidth : linkWidth}px`,
           height: `${isVertical ? linkWidth : bandHeight}px`,
-          backgroundColor: bgColor,
+          backgroundColor: finalBgColor,
           backgroundImage:
             bracket === -1
               ? `
       repeating-linear-gradient(
       45deg,
         ${CONFIG.COLORS.BAND[1]} 0px,
-        ${CONFIG.COLORS.BAND[1]} 4px,
-        ${CONFIG.COLORS.BAND[0]} 4px,
-        ${CONFIG.COLORS.BAND[0]} 8px
+        ${CONFIG.COLORS.BAND[1]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 16px
       )
     `
               : "none",
-          // backgroundColor: color,
         }}
         className="flex justify-center items-center relative"
       >
@@ -551,8 +555,8 @@ const Band: React.FC<
               style={{
                 width: "100%",
                 height: "100%",
-                // borderRadius:
-                //   dir === "ltr" ? "0px 5px 5px 0px" : "5px 0px 0px 5px",
+                borderRadius:
+                  dir === "ltr" ? "0px 5px 5px 0px" : "5px 0px 0px 5px",
                 backgroundColor: CONFIG.COLORS.WHITE,
               }}
             ></div>
@@ -571,6 +575,7 @@ const Band: React.FC<
                 width: isVertical ? "100%" : "10px",
                 height: isVertical ? "10px" : "100%",
                 backgroundColor: CONFIG.COLORS.WHITE,
+                zIndex: 100,
               }}
             ></div>
           )}
@@ -580,6 +585,7 @@ const Band: React.FC<
           isVertical={isVertical}
           sizes={sizes}
           dir={dir}
+          highlightEventType={highlightEventType}
         />
       </div>
     );
@@ -591,24 +597,23 @@ const Band: React.FC<
       style={{
         width: `${bandWidth}px`,
         height: `${bandHeight}px`,
-        backgroundColor: bgColor,
-        // backgroundColor: color,
+        backgroundColor: finalBgColor,
         backgroundImage:
           bracket === -1
             ? `
       repeating-linear-gradient(
       45deg,
         ${CONFIG.COLORS.BAND[1]} 0px,
-        ${CONFIG.COLORS.BAND[1]} 4px,
-        ${CONFIG.COLORS.BAND[0]} 4px,
-        ${CONFIG.COLORS.BAND[0]} 8px
+        ${CONFIG.COLORS.BAND[1]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 8px,
+        ${CONFIG.COLORS.BAND[0]} 16px
       )
     `
             : "none",
         borderRadius: borderRadius,
       }}
     >
-      {mergeType !== "all" && data.trials[0].type === "user" && (
+      {mergeType !== "all" && data.trials[0].type === "user" && !isCollapse && (
         <UserBand
           bracket={bracket}
           sizes={sizes}

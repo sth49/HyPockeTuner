@@ -38,6 +38,7 @@ export const useExperimentStore = create<ExperimentStore>()(
     },
     metric: {
       name: "", // 고정
+      range: [0, 1], // 고정
     },
     status: "pending",
     hyperparams: [], // 바뀜
@@ -77,6 +78,7 @@ export const useExperimentStore = create<ExperimentStore>()(
       });
 
       set({
+        runningExp: expData.runningExp || null, // 현재 실행 중인 실험 ID
         expId: expData.expId,
         name: expData.name,
         model: expData.model,
@@ -91,12 +93,12 @@ export const useExperimentStore = create<ExperimentStore>()(
         hyperparams: hparams,
         bestTrial: null,
 
-        lastUpdated: undefined,
-        startTime: undefined, // 고정
-        endTime: undefined, // 고정
+        lastUpdated: expData.lastUpdated * 1000,
+        startTime: expData.startTime * 1000, // 고정
+        endTime: expData.endTime * 1000, // 고정
 
-        totalTrials: 0,
-        curNumTrials: 0,
+        totalTrials: expData.totalTrials,
+        curNumTrials: expData.curNumTrials,
 
         brackets: [],
         push: [],
@@ -115,7 +117,12 @@ export const useExperimentStore = create<ExperimentStore>()(
       });
 
       const allCallbacks = expData.allCallbacks.filter(
-        (callback: any) => callback.key !== "lastUpdated"
+        (callback: any) =>
+          callback.key !== "lastUpdated" &&
+          callback.key !== "startTime" &&
+          callback.key !== "endTime" &&
+          callback.key !== "status" &&
+          callback.key !== "runningExp"
       );
 
       if (allCallbacks) {
@@ -130,18 +137,22 @@ export const useExperimentStore = create<ExperimentStore>()(
     processEvent: (event: SocketEvent) => {
       const state = get();
       const updatedState = processExperimentEvent(state, event);
-      console.log("Before Processing event:", state);
-      console.log("After Processing event:", updatedState);
-      set({
-        ...state,
-        ...updatedState,
+      console.log("🔍 Before Processing event:", {
+        runningExp: state.runningExp,
+        status: state.status,
+        expId: state.expId,
       });
-      // 상태가 실제로 변경되었는지 확인
-      // if (
-      //   JSON.stringify(state.brackets) !== JSON.stringify(updatedState.brackets)
-      // ) {
-      //   console.log("Brackets changed:", updatedState.brackets);
-      // }
+      console.log("🔍 After Processing event:", updatedState);
+
+      set(updatedState);
+
+      // 변경 확인
+      const finalState = get();
+      console.log("🔍 Final state after set:", {
+        runningExp: finalState.runningExp,
+        status: finalState.status,
+        expId: finalState.expId,
+      });
     },
 
     processEvents: (events: SocketEvent[]) => {
@@ -151,7 +162,10 @@ export const useExperimentStore = create<ExperimentStore>()(
       for (const event of events) {
         const newState = processExperimentEvent(state, event);
         if (
-          JSON.stringify(state.brackets) !== JSON.stringify(newState.brackets)
+          JSON.stringify(state.brackets) !==
+            JSON.stringify(newState.brackets) ||
+          state.runningExp !== newState.runningExp ||
+          state.status !== newState.status
         ) {
           hasChanged = true;
         }
@@ -159,8 +173,8 @@ export const useExperimentStore = create<ExperimentStore>()(
       }
 
       if (hasChanged) {
-        set({ ...state });
-        console.log("After processing events:", state);
+        set(state);
+        console.log("🔍 After processing events:", state);
       }
     },
     setSelectedTrials: (trials: TrialRowType[]) => {

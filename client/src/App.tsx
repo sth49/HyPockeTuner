@@ -1,14 +1,15 @@
 // src/App.tsx
-import { BrowserRouter, useLocation, useRoutes } from "react-router";
+import { BrowserRouter, useRoutes } from "react-router";
 import { routes } from "./routes/routes";
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import { NotificationService } from "./utils/NotificationService";
 import { useAppStore } from "./stores/appStore";
+import { useAuthStore } from "./stores/authStore";
 import ApiClient from "./api/api";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import { Backend } from "./api/backend";
-import { PageTracker } from "./utils/pageTracker";
 // 라우트 설정을 적용하는 컴포넌트
 // const AppRoutes = () => {
 //   const routeElements = useRoutes(routes);
@@ -17,7 +18,6 @@ import { PageTracker } from "./utils/pageTracker";
 // 라우트 설정을 적용하는 컴포넌트
 const AppRoutes = () => {
   const routeElements = useRoutes(routes);
-  const location = useLocation();
   // const pageTrackerRef = useRef<PageTracker | null>(null);
 
   // 페이지 변경 감지
@@ -54,21 +54,25 @@ const App = () => {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        ApiClient.postVisibility(
-          "user1",
-          false // 페이지가 숨겨졌을 때
-        ).catch((error) => {
-          console.error("Failed to send visibility data:", error);
-        });
-      } else {
-        console.log("Page is visible");
-        ApiClient.postVisibility(
-          "user1",
-          true // 페이지가 보일 때
-        ).catch((error) => {
-          console.error("Failed to send visibility data:", error);
-        });
+      const { currentUser, isAuthenticated } = useAuthStore.getState();
+
+      if (isAuthenticated && currentUser) {
+        if (document.hidden) {
+          ApiClient.postVisibility(
+            currentUser,
+            false // 페이지가 숨겨졌을 때
+          ).catch((error) => {
+            console.error("Failed to send visibility data:", error);
+          });
+        } else {
+          console.log("Page is visible");
+          ApiClient.postVisibility(
+            currentUser,
+            true // 페이지가 보일 때
+          ).catch((error) => {
+            console.error("Failed to send visibility data:", error);
+          });
+        }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -77,18 +81,72 @@ const App = () => {
     };
   });
 
+  // 인증 상태 변경을 감지하여 백엔드 연결을 관리하는 effect
+  useEffect(() => {
+    let prevIsAuthenticated = useAuthStore.getState().isAuthenticated;
+
+    const unsubscribe = useAuthStore.subscribe((state) => {
+      const { isAuthenticated, currentUser } = state;
+
+      // 인증 상태가 실제로 변경되었을 때만 처리
+      if (prevIsAuthenticated !== isAuthenticated) {
+        console.log("🔄 Auth state changed:", { isAuthenticated, currentUser });
+
+        if (isAuthenticated && currentUser) {
+          console.log("✅ User authenticated, initializing backend...");
+
+          const initializeBackend = async () => {
+            try {
+              // Verify login status with server
+              await ApiClient.login(currentUser);
+
+              if (!backendRef.current) {
+                console.log("🆕 Creating Backend instance");
+                backendRef.current = new Backend();
+              }
+
+              backendRef.current.connect();
+              setIsAppInitialized(true);
+            } catch (error) {
+              console.error("❌ Failed to initialize backend:", error);
+            }
+          };
+
+          initializeBackend();
+        } else {
+          console.log("❌ User not authenticated, cleaning up backend...");
+          if (backendRef.current) {
+            backendRef.current.cleanup();
+            backendRef.current = null;
+          }
+          setIsAppInitialized(false);
+        }
+
+        prevIsAuthenticated = isAuthenticated;
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await ApiClient.call(["login/user1"]);
-        if (!backendRef.current) {
-          console.log("🆕 Creating Backend instance");
-          backendRef.current = new Backend();
-        } else {
-          console.log("♻️ Reusing existing Backend instance");
-        }
+        const { currentUser, isAuthenticated } = useAuthStore.getState();
 
-        backendRef.current.connect();
+        // Connect backend if user is already authenticated on initial load
+        if (isAuthenticated && currentUser) {
+          console.log("🔄 Initial load with authenticated user:", currentUser);
+
+          await ApiClient.login(currentUser);
+
+          if (!backendRef.current) {
+            console.log("🆕 Creating Backend instance");
+            backendRef.current = new Backend();
+          }
+
+          backendRef.current.connect();
+        }
 
         // 🚀 페이지 추적기 초기화
         // if (!pageTrackerRef.current) {
@@ -170,8 +228,10 @@ const App = () => {
   }
 
   return (
-    <BrowserRouter>
-      <AppRoutes />
+    <BrowserRouter basename="/HyPockeTuner_new">
+      <ProtectedRoute>
+        <AppRoutes />
+      </ProtectedRoute>
     </BrowserRouter>
   );
 };

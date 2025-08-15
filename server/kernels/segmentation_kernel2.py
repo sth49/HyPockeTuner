@@ -154,7 +154,7 @@ def evaluate(model, test_loader, loss_fn, device):
             correct += output.argmax(dim=1).eq(target).sum().item()
     
     test_loss /= len(test_loader.dataset)
-    accuracy = 100. * correct / len(test_loader.dataset)
+    accuracy =  correct / len(test_loader.dataset)
     return test_loss, accuracy
 
 

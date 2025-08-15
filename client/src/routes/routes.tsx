@@ -81,14 +81,6 @@ export const routes: RouteObject[] = [
     path: "/refine/narrow/hpspace",
     element: withSuspense(HpSpace, "hyperparameterSpace"),
   },
-  // {
-  //   path: "/refine/redefine/1",
-  //   element: withSuspense(NewExperiment1, "experiment1"),
-  // },
-  // {
-  //   path: "/refine/redefine/2",
-  //   element: withSuspense(NewExperiment2, "experiment2"),
-  // },
   {
     path: "/main/notification",
     element: withSuspense(Notification, "notification", true),

@@ -21,6 +21,7 @@ const ExpInfo = () => {
       <div className="w-full h-full p-2 bg-red-50">Experiment not found</div>
     );
   }
+  console.log("expData", expData);
   const data = {
     hparamLength: expData.hparamList.length,
     budget: expData.budget,
@@ -59,11 +60,7 @@ const ExpInfo = () => {
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
       {/* Overview Header */}
       <div className="w-full flex gap-1 uppercase items-center text-lg mb-2">
-        <div
-          className={`badge ${
-            progressBadgeColor[expData.status]
-          } badge-sm text-white`}
-        >
+        <div className={`badge ${progressBadgeColor[expData.status]} badge-sm`}>
           {expData.status}
         </div>
         <p className="text-lg font-semibold ">
@@ -105,15 +102,17 @@ const ExpInfo = () => {
             {expData.status === "finished" ? (
               <p>100%</p>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full">
-                <p>
+              <div className="flex flex-col items-center justify-center h-full relative">
+                <p className="text-gray-500">
                   {formatting(
                     (expData.doneTrials / expData.allTrials) * 100,
                     "int"
                   )}
                   %
                 </p>
-                <ProgressButton isGhost={false} />
+                <div className="relative z-10">
+                  <ProgressButton isGhost={false} />
+                </div>
               </div>
             )}
           </div>

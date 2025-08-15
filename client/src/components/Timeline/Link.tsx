@@ -8,12 +8,14 @@ import {
   BORDER_STYLES,
   BORDER_WIDTH,
 } from "../../constants/timelineLayout";
+import React from "react";
 
 export const Link: React.FC<
   LinkProps & {
     isVertical: boolean;
     sizes: Sizes;
     dir?: Direction;
+    highlightEventType?: string; // 추가된 prop
   }
 > = (props) => {
   const { isVertical, sizes, type, events, dir, trials } = props;
@@ -74,6 +76,7 @@ export const Link: React.FC<
               events={events.filter((_item, i) => i % 2 === 0)}
               position="top"
               numOfEvents={events.length}
+              highlightEventType={props.highlightEventType} // 추가된 prop 전달
             />
             <LinkEvents
               isVertical={isVertical}
@@ -82,6 +85,7 @@ export const Link: React.FC<
               events={events.filter((_item, i) => i % 2 === 1)}
               position="bottom"
               numOfEvents={events.length}
+              highlightEventType={props.highlightEventType} // 추가된 prop 전달
             />
           </div>
         </div>
@@ -97,7 +101,16 @@ export const LinkEvents: React.FC<{
   events: any[];
   position: "top" | "bottom";
   numOfEvents: number;
-}> = ({ isVertical, sizes, dir, events, position, numOfEvents }) => {
+  highlightEventType?: string; // 추가된 prop
+}> = ({
+  isVertical,
+  sizes,
+  dir,
+  events,
+  position,
+  numOfEvents,
+  highlightEventType,
+}) => {
   const { gap, eventWidth } = sizes;
   const sortedEvents = [...events].sort((a, b) => {
     if (isVertical) {
@@ -144,14 +157,14 @@ export const LinkEvents: React.FC<{
       }}
     >
       {sortedEvents.map((event, index) => (
-        <>
+        <React.Fragment key={`${event.type}-${event.time}-${index}`}>
           <EventBox
-            key={index}
             isVertical={isVertical}
             eventWidth={eventWidth}
             data={event}
             dir={dir}
             position={position}
+            highlightEventType={highlightEventType} // 추가된 prop 전달
           />
           {index !== sortedEvents.length - 1 && (
             <div
@@ -161,7 +174,7 @@ export const LinkEvents: React.FC<{
               }}
             />
           )}
-        </>
+        </React.Fragment>
       ))}
     </div>
   );
@@ -174,7 +187,14 @@ const EventBox: React.FC<{
   data: any;
   dir?: Direction;
   position: "top" | "bottom";
-}> = ({ isVertical, data, position, dir }) => {
+  highlightEventType?: string; // 추가된 prop
+}> = ({
+  isVertical,
+  data,
+  position,
+  dir,
+  highlightEventType = "", // 추가된 prop
+}) => {
   const IconComponent = icons[data.type as keyof typeof icons];
   const borderRadius = isVertical
     ? position === "top"
@@ -198,14 +218,27 @@ const EventBox: React.FC<{
 
   return (
     <div
-      className="text-gray-500 indicator"
+      className="indicator"
       style={{
         // width: isVertical ? "20px" : `${eventWidth - 2}px`,
         // height: isVertical ? `${eventWidth - 2}px` : "20px",
         width: "20px",
         height: "20px",
-        backgroundColor: "white",
-        border: `1px solid oklch(87.2% 0.01 258.338)`,
+        // backgroundColor: "white",
+        backgroundColor:
+          highlightEventType === data.type
+            ? "oklch(77.464% 0.062 217.469)"
+            : "white",
+        color:
+          highlightEventType === data.type
+            ? "white"
+            : "oklch(70.7% 0.022 261.325)",
+        // border: `1px solid oklch(87.2% 0.01 258.338)`,
+        border: `1px solid ${BAND_COLORS.DEFAULT_BORDER}`,
+        borderColor:
+          highlightEventType === data.type
+            ? "oklch(77.464% 0.062 217.469)"
+            : BAND_COLORS.DEFAULT_BORDER,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",

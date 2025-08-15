@@ -14,28 +14,28 @@ export const tableau10 = [
 ];
 
 export const progressColor: Record<ExpStatus, string> = {
-  pending: "text-neutral-500",
-  paused: "text-neutral-500",
-  auto_paused: "text-neutral-500",
+  pending: "text-neutral-content",
+  paused: "text-neutral-content",
+  auto_paused: "text-neutral-content",
   running: "text-success",
-  reserved: "text-neutral",
+  reserved: "text-neutral-content",
   finished: "text-primary",
 };
 
 export const progressBadgeColor: Record<ExpStatus, string> = {
-  pending: "badge badge-neutral",
-  paused: "badge badge-neutral",
-  auto_paused: "badge badge-neutral",
-  running: "badge badge-success",
-  reserved: "badge badge-neutral",
-  finished: "badge badge-primary",
+  pending: "badge bg-neutral-content text-gray-500",
+  paused: "badge bg-neutral-content text-gray-500",
+  auto_paused: "badge bg-neutral-content text-gray-500",
+  running: "badge badge-success text-white",
+  reserved: "badge bg-neutral-content text-gray-500",
+  finished: "badge badge-primary text-white",
 };
 
 export const progressColor2 = {
-  pending: "grey",
-  paused: "grey",
-  auto_paused: "grey",
+  pending: "oklch(89.925% 0.016 262.749)",
+  paused: "oklch(89.925% 0.016 262.749)",
+  auto_paused: "oklch(89.925% 0.016 262.749)",
   running: "#82BF37",
-  reserved: "grey",
+  reserved: "oklch(89.925% 0.016 262.749)",
   finished: tableau10[0],
 };

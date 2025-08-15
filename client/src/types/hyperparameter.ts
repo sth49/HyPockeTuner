@@ -1,4 +1,5 @@
 import { HyperparamOption } from "../models/HyperparameterOption";
+import { formatting } from "../utils";
 
 export enum HyperparamTypes {
   Ordinal,
@@ -16,7 +17,9 @@ export class Hyperparam {
     public displayName: string,
     public selected: boolean = false, // public values: number[] | string[] = []
     public narrowValue: any,
-    public beforeChange: any
+    public beforeChange: any,
+    public isConstant: boolean = false,
+    public constantValue: any = null
   ) {}
 
   static fromJSON(json: any): Hyperparam {
@@ -44,6 +47,10 @@ export class Hyperparam {
     } else {
       throw new Error(`Unknown hyperparameter type: ${json.type}`);
     }
+  }
+
+  getIsConstant() {
+    return this.isConstant;
   }
 
   getNarrowHistory(data: any) {
@@ -163,15 +170,21 @@ export class Hyperparam {
 
   checkSpaceChange(data: any) {
     if (this.type === HyperparamTypes.Uniform) {
+      // Check if the values are exactly the same (no change)
+      if (+data[0] === this.narrowValue[0] && +data[1] === this.narrowValue[1]) {
+        return false; // No change
+      }
+      
+      // Check if the new range is invalid (outside bounds or empty)
       if (
         +data[0] < this.narrowValue[0] ||
         +data[1] > this.narrowValue[1] ||
-        +data[0] === this.narrowValue[1] ||
-        +data[1] === this.narrowValue[0]
+        +data[0] >= +data[1]
       ) {
-        return false;
+        return false; // Invalid range
       }
-      return true; // 범위가 바뀐 것 -> 이거 다시보기
+      
+      return true; // Valid change detected
     } else {
       const dataSet = new Set(data);
       const narrowSet = new Set(this.narrowValue);
@@ -226,7 +239,14 @@ export class Hyperparam {
     } else if (this.type === HyperparamTypes.Ordinal) {
       return value.toString();
     } else if (this.type === HyperparamTypes.Uniform) {
-      return value.toFixed(2);
+      const numValue = Number(value);
+      if (numValue === 0) {
+        return "0"; // 0은 그대로 표시
+      }
+      if (Math.abs(numValue) < 0.001 && numValue !== 0) {
+        return numValue.toExponential(0); // 2자리 정밀도의 과학적 표기법
+      }
+      return formatting(numValue, "float", 3);
     }
     return value.toString();
   }
@@ -239,7 +259,15 @@ export class OrderedHyperparam extends Hyperparam {
     selected: boolean,
     public values: number[]
   ) {
-    super(name, displayName, selected, values, values);
+    super(
+      name,
+      displayName,
+      selected,
+      values,
+      values,
+      values.length === 1 ? true : false,
+      values.length === 1 ? values[0] : null
+    );
   }
 }
 export class UnorderedHyperparam extends Hyperparam {
@@ -250,7 +278,15 @@ export class UnorderedHyperparam extends Hyperparam {
     selected: boolean,
     public values: string[] | boolean[] = []
   ) {
-    super(name, displayName, selected, values, values);
+    super(
+      name,
+      displayName,
+      selected,
+      values,
+      values,
+      values.length === 1 ? true : false,
+      values.length === 1 ? values[0] : null
+    );
   }
 }
 export function range(n: number) {
@@ -265,7 +301,15 @@ export class UniformHyperparam extends Hyperparam {
     selected: boolean = false,
     public range: [number, number]
   ) {
-    super(name, displayName, selected, range, range);
+    super(
+      name,
+      displayName,
+      selected,
+      range,
+      range,
+      range[0] === range[1] ? true : false,
+      range[0] === range[1] ? range[0] : null
+    );
   }
   getThresholds(n = 0) {
     if (!n) n = this.regressionBins;

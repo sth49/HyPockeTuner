@@ -59,6 +59,11 @@ class BOHB:
         state.after_j()
         return state
     
+    def error(self, state, loss):
+        """Handle error cases without incrementing j counter"""
+        state.handle_error(loss)
+        return state
+    
     def add_trial(self, state, trial): # trial은 영향을 안줌
         state.trials.append(trial)
         state.callback.append({ "key": "addTrial",

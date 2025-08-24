@@ -49,19 +49,29 @@ const Settings: React.FC = () => {
 
   // Subscription setup function
   const handleSubscribe = async () => {
+    console.log("🎯 [Settings] handleSubscribe 시작");
     try {
       setIsLoading(true);
+      console.log("⏳ [Settings] 로딩 상태 활성화");
+      
+      console.log("📞 [Settings] NotificationService.setupPush() 호출");
       const success = await NotificationService.setupPush();
+      console.log(`🎯 [Settings] setupPush 결과: ${success}`);
 
       if (success) {
+        console.log("✅ [Settings] 구독 성공, 상태 업데이트");
         setIsSubscribe(true);
-        console.log("Push notification subscription successful");
+        console.log("✅ [Settings] Push notification subscription successful");
       } else {
-        console.error("Push notification subscription failed");
+        console.error("❌ [Settings] Push notification subscription failed");
       }
     } catch (error) {
-      console.error("Push notification subscription error:", error);
+      console.error("💥 [Settings] Push notification subscription error:", error);
+      if (error instanceof Error) {
+        console.error("💥 [Settings] 에러 스택:", error.stack);
+      }
     } finally {
+      console.log("🏁 [Settings] 로딩 상태 비활성화");
       setIsLoading(false);
     }
   };

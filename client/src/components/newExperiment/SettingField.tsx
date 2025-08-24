@@ -8,7 +8,7 @@ interface SettingFieldProps {
 const SettingField = ({ label, children }: SettingFieldProps) => {
   return (
     <div className="flex justify-between items-center">
-      <p>{label}</p>
+      <span>{label}</span>
       {children}
     </div>
   );

@@ -9,6 +9,7 @@ interface Props {
   handleRowClick: (rowId: string) => void;
 }
 const TrialTable: React.FC<Props> = ({ table, handleRowClick }) => {
+  console.log(table.getRowModel().rows);
   return (
     <table className="w-full border-collapse border-gray-200">
       <thead

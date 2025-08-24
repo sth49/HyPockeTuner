@@ -25,7 +25,7 @@ export class MetricImproveByCond extends BaseNotiCond {
 
   toString(): string {
     // const metricName = useCurrExp.getState().currExp.metric.name;
-    const metricName = "Metric"; // Placeholder, replace with actual metric name from state
+    const metricName = "Performance"; // Placeholder, replace with actual metric name from state
     return `${metricName} Improved by ${this.by}`;
   }
 
@@ -53,7 +53,7 @@ export class MetricImproveCond extends BaseNotiCond {
 
   toString(): string {
     // const metricName = useCurrExp.getState().currExp.metric.name;
-    const metricName = "Metric"; // Placeholder, replace with actual metric name from state
+    const metricName = "Performance"; // Placeholder, replace with actual metric name from state
     return `${metricName} Improved`;
   }
 
@@ -81,7 +81,7 @@ export class MetricReachCond extends BaseNotiCond {
 
   toString(): string {
     // const metricName = useCurrExp.getState().currExp.metric.name;
-    const metricName = "Metric"; // Placeholder, replace with actual metric name from state
+    const metricName = "Performance"; // Placeholder, replace with actual metric name from state
     return `${metricName} Reached`;
   }
 

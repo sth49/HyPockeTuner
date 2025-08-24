@@ -24,9 +24,6 @@ export const columns = (
       .map((h) => ({
         accessorKey: h.name,
         header: h.displayName,
-        cell: (info: { getValue: () => any }) => {
-          return h.formatting(info.getValue());
-        },
         size: 60,
       })) ?? [];
 
@@ -64,17 +61,22 @@ export const columns = (
     {
       accessorKey: "loss",
       header: "Loss",
-      cell: (info) => (
-        <div
-          className="h-full flex items-center justify-center font-light"
-          style={{
-            backgroundColor: getLossColor(info.getValue() as number),
-            color: getFontColor(info.getValue() as number, "loss"),
-          }}
-        >
-          {formatting(info.getValue() as number, "float", 3)}
-        </div>
-      ),
+      cell: (info) => {
+        console.log(info.getValue());
+        return (
+          <div
+            className="h-full flex items-center justify-center font-light"
+            style={{
+              backgroundColor: getLossColor(info.getValue() as number),
+              color: getFontColor(info.getValue() as number, "loss"),
+            }}
+          >
+            {info.getValue() === 999 || info.getValue() === "999"
+              ? "999"
+              : formatting(info.getValue() as number, "float", 3)}
+          </div>
+        );
+      },
       size: 56,
     },
     {
@@ -88,7 +90,7 @@ export const columns = (
             color: getFontColor(info.getValue() as number),
           }}
         >
-          {formatting(info.getValue() as number, "float", 2)}
+          {formatting(info.getValue() as number, "float")}
         </div>
       ),
       size: 56,

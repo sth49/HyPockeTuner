@@ -16,7 +16,7 @@ const UnorderedChoices = ({ param, onChange }: UnorderedChoicesProps) => {
   };
 
   return (
-    <div className="w-full flex justify-around gap-1">
+    <div className="w-full flex flex-wrap justify-center gap-2">
       {param.choices.map((choice, i) => (
         <div className="flex items-center gap-1" key={i}>
           <input

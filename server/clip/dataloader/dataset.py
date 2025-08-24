@@ -15,13 +15,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.util import load_config_file, read_json, load_from_yaml_file
 
+# Convert image to RGB - separate function to avoid pickle issues
+def _convert_to_rgb(image):
+    return image.convert("RGB")
+
 # 1개의 이미지에 대해 여러 단계의 전처리 수행 
 def _transform(n_px): # n_px: image size
     return Compose([ # 여러개의 전처리를 묶는 함수 
         # 짧은 변 224로 resize
         Resize(n_px, interpolation=Image.BICUBIC), # 모델에 입력하기 위해 크기 고정 
         CenterCrop(n_px), # 중심에서 224로 잘라냄 
-        lambda image: image.convert("RGB"), # 흑백이미지 강제 RGB 처리 
+        _convert_to_rgb, # 흑백이미지 강제 RGB 처리 
         ToTensor(),
         Normalize((0.4225, 0.4012, 0.3659), (0.2681, 0.2635, 0.2763)), # COCO mean, std
     ])

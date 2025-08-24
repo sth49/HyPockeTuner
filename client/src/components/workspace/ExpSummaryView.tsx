@@ -33,8 +33,8 @@ const ExpSummaryView = ({ exp }: ExpSummaryViewProps) => {
     <div className="w-full h-[70px] p-2 flex gap-1">
       <div className="flex-1 h-full">
         <div className="w-full flex gap-1 uppercase text-primary items-center text-sm">
-          <p className="text-lg font-semibold ">
-            {exp.name} ({exp.id.slice(0, 3)})
+          <p className="text-lg font-semibold  max-w-[130px] truncate">
+            [{exp.id.slice(0, 3)}] {exp.name}
           </p>
           <p>|</p>
           <p> {exp.dataset}</p>

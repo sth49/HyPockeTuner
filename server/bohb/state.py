@@ -277,6 +277,13 @@ class STATE:
         self.ith_samples.append(ret[0])
     
     def save_trial(self, trial, err=False):
+        # Check if trial is already in done_trials to prevent duplicates
+        if self.current_trial_type == "bohb":
+            existing_trial = next((t for t in self.done_trials if t.id == trial.id), None)
+            if existing_trial:
+                print(f"[DUPLICATE] Trial {trial.id} already exists in done_trials, skipping")
+                return
+        
         if err:
             if self.current_trial_type == "user":
                 self.user_done_trials.append(trial)
@@ -309,10 +316,11 @@ class STATE:
         return trials
 
     def check_cond(self, is_user=False, trial=None, round=None, bracket=None, prog_type=False, utilization=None, temperature=None, exception=None, disk_usage=None):
+        total_brackets = self.s_max + 1  # s_max is 0-indexed, so add 1 for total count
         for cond in self.noti_conds:
             if cond.active and cond.status ==None:
                 print("active condition", cond.event_cond.key)
-                if cond.event_cond.test(is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+                if cond.event_cond.test(is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets):
                     print("satisfied condition", cond.event_cond.key)   
                     self.add_callback("updateNotiCond", cond.emit("satisfied"))
                     self.add_callback("push", cond.event_cond.emit(cond.id, "satisfied"))
@@ -397,7 +405,18 @@ class STATE:
         self.loss = loss
         self.ith_losses.append(loss)
 
-
+    def handle_error(self, loss):
+        """Handle error without incrementing j, treating it as a very poor result"""
+        # Add error to ith_losses to track it for round completion
+        self.ith_losses.append(loss)
+        self.ith_samples.append(self.sample if hasattr(self, 'sample') else None)
+        
+        # Don't increment j for errors - this allows next trial to continue properly
+        # Check if we have collected enough trials (including errors) to complete the round
+        if len(self.ith_losses) >= self.n:
+            # We have enough trials, force round completion
+            self.j = self.n - 1
+            self.after_j()
     
     def after_j(self):
         if (self.j == self.n -1):

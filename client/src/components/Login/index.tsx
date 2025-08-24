@@ -105,14 +105,12 @@ const Login: React.FC = () => {
             <div className="form-control mt-6">
               <button
                 type="submit"
-                className={`btn btn-primary w-full ${isLoading ? "loading" : ""}`}
+                className={`btn btn-primary w-full ${
+                  isLoading ? "loading" : ""
+                }`}
                 disabled={isLoading || !userId || (isSignUp && !password)}
               >
-                {isLoading
-                  ? "Processing..."
-                  : isSignUp
-                  ? "Sign Up"
-                  : "Login"}
+                {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Login"}
               </button>
             </div>
           </form>
@@ -129,7 +127,9 @@ const Login: React.FC = () => {
             }}
             disabled={isLoading}
           >
-            {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
+            {isSignUp
+              ? "Already have an account? Login"
+              : "Don't have an account? Sign Up"}
           </button>
         </div>
       </div>

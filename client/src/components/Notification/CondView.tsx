@@ -1,6 +1,6 @@
 import { MdNotificationAdd } from "react-icons/md";
 import { useExperimentStore } from "../../stores/experimentStore";
-
+import { useState, useRef } from "react";
 import { notiTypeIcons } from "../../utils/icon";
 import { useNavigation } from "../../hooks/useNavigation";
 import ApiClient from "../../api/api";
@@ -11,8 +11,20 @@ const CondView = () => {
   const setNotiCondPairs = useExperimentStore(
     (state) => state.setNotiCondPairs
   );
+  
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const pendingToggleIndex = useRef<number | null>(null);
 
-  const handleToggleActive = (index: number) => {
+  const handleToggleClick = (index: number) => {
+    // Store the pending index and show confirmation dialog
+    pendingToggleIndex.current = index;
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmToggle = () => {
+    if (pendingToggleIndex.current === null) return;
+    
+    const index = pendingToggleIndex.current;
     // 원본 객체의 active 속성 토글
     const targetPair = notiCondPairs[index];
     targetPair.active = !targetPair.active;
@@ -23,6 +35,10 @@ const CondView = () => {
     
     // 원본 객체는 toJSON 메서드를 가지고 있으므로 API 호출 가능
     ApiClient.editCondition(targetPair);
+    
+    // Close dialog and clear pending index
+    setShowConfirmDialog(false);
+    pendingToggleIndex.current = null;
   };
 
   const { handleNavigate } = useNavigation();
@@ -118,7 +134,7 @@ const CondView = () => {
                         //     .setNotiCondPairs(notiCondPairs);
                         //   ApiClient.editCondition(notiCondPairs[index]);
                         // }}
-                        onChange={() => handleToggleActive(index)}
+                        onChange={() => handleToggleClick(index)}
                         // defaultChecked
                         className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
                       />
@@ -164,7 +180,7 @@ const CondView = () => {
                         //     .setNotiCondPairs(notiCondPairs);
                         //   ApiClient.editCondition(notiCondPairs[index]);
                         // }}
-                        onChange={() => handleToggleActive(index)}
+                        onChange={() => handleToggleClick(index)}
                         className="toggle toggle-sm toggle-primary checked:bg-primary checked:text-base-100 checked:border-primary "
                       />
                     </div>
@@ -210,6 +226,55 @@ const CondView = () => {
           <p className="text-center">Performance</p>
         </button>
       </div>
+      
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <>
+          {/* Background overlay with opacity */}
+          <div
+            className="fixed inset-0 bg-black opacity-30 z-40"
+            onClick={() => {
+              setShowConfirmDialog(false);
+              pendingToggleIndex.current = null;
+            }}
+          />
+          
+          {/* Dialog container */}
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">
+                Change notification status?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {pendingToggleIndex.current !== null && notiCondPairs[pendingToggleIndex.current] ? (
+                  <>
+                    Do you want to {notiCondPairs[pendingToggleIndex.current].active ? 'deactivate' : 'activate'} this notification condition?
+                  </>
+                ) : (
+                  'Do you want to change this notification condition?'
+                )}
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowConfirmDialog(false);
+                    pendingToggleIndex.current = null;
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleConfirmToggle}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

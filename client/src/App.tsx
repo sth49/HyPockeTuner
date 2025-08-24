@@ -1,5 +1,5 @@
 // src/App.tsx
-import { BrowserRouter, useRoutes } from "react-router";
+import { BrowserRouter, useRoutes, useNavigate } from "react-router";
 import { routes } from "./routes/routes";
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +18,24 @@ import { Backend } from "./api/backend";
 // 라우트 설정을 적용하는 컴포넌트
 const AppRoutes = () => {
   const routeElements = useRoutes(routes);
+  const navigate = useNavigate();
   // const pageTrackerRef = useRef<PageTracker | null>(null);
+
+  // Service Worker 메시지 리스너 추가
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'navigate' && event.data?.page === 'notification') {
+        console.log('Navigating to notification page for experiment:', event.data.exp);
+        navigate('/main/notification');
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, [navigate]);
 
   // 페이지 변경 감지
   // useEffect(() => {

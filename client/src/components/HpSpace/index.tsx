@@ -14,6 +14,25 @@ import CheckBox from "../common/CheckBox";
 import UniformImportancePlot from "../common/UniformImportancePlot";
 import HeaderText from "../common/HeaderText";
 import { useMetadataStore } from "../../stores/metadataStore";
+import { RxReset } from "react-icons/rx";
+// Function to format number with scientific notation for small/large values
+const formatNumberForDisplay = (value: number | string | boolean): string => {
+  if (typeof value === "boolean") return value.toString();
+  if (typeof value === "string") return value;
+
+  const num = Number(value);
+  if (isNaN(num)) return value.toString();
+
+  // Use scientific notation for very small or very large numbers
+  if ((num < 0.001 && num > 0) || num > 1000) {
+    return num.toExponential().replace("+", "");
+  } else if (num === 0) {
+    return "0";
+  } else {
+    return num.toString();
+  }
+};
+
 const Records = () => {
   const shap = useExperimentStore((state) => state.shap);
   const hyperparams = useExperimentStore((state) => state.hyperparams);
@@ -30,7 +49,10 @@ const Records = () => {
   const expId = useExperimentStore((state) => state.expId);
   const expList = useMetadataStore((state) => state.expList);
   const expData = expList.find((exp) => exp.id === expId) || null;
-  const hparamList = expData ? expData.hparamList : [];
+  const hparamList = useMemo(
+    () => (expData ? expData.hparamList : []),
+    [expData]
+  );
 
   // State for toggle values for each parameter
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({});
@@ -52,37 +74,121 @@ const Records = () => {
   // Check if any hyperparameter has changed
   const hasChanges = changedHyperparams.length > 0;
 
-  // Check for validation errors in uniform hyperparameters
-  const hasValidationErrors = useMemo(() => {
-    if (!shap?.shapValues || !hyperparams) return false;
+  // Check if there are any valid narrow values to process
+  const hasValidNarrowValues = useMemo(() => {
+    if (!hyperparams) return false;
 
-    return shap.shapValues.some((param) => {
+    return hyperparams.some((param) => {
+      if (!hparamList.includes(param.name)) return false;
+
+      const values = narrowValues[param.name];
+      if (!values || values.length === 0) return false;
+
       if (param.type === HyperparamTypes.Uniform) {
-        const values = narrowValues[param.name];
-        if (!values || values.length < 2) return false;
+        if (values.length !== 2) return false;
+        if (
+          values[0] === "" ||
+          values[0] === null ||
+          values[0] === undefined ||
+          values[1] === "" ||
+          values[1] === null ||
+          values[1] === undefined
+        ) {
+          return false;
+        }
+        return true;
+      } else {
+        return values.length > 0;
+      }
+    });
+  }, [hyperparams, narrowValues, hparamList]);
 
-        const hp = hyperparams.find(
-          (h) => h.name === param.name && h.type === param.type
-        );
-        if (!hp) return false;
+  // Function to check if a specific parameter has changed
+  const isParameterChanged = (paramName: string) => {
+    const param = hyperparams?.find((hp) => hp.name === paramName);
+    if (!param) return false;
+
+    const paramValues = narrowValues[paramName];
+    if (!paramValues || paramValues.length === 0) return false;
+
+    return param.checkSpaceChange(paramValues);
+  };
+
+  // Function to reset a specific parameter to its original values
+  const resetParameter = (paramName: string) => {
+    const param = hyperparams?.find((hp) => hp.name === paramName);
+    if (!param) return;
+
+    setNarrowValues((prev) => {
+      const newValues = { ...prev };
+
+      if (param.beforeChange) {
+        // Reset to the original values before any changes
+        newValues[paramName] = param.narrowValue || [];
+      } else {
+        // Remove the parameter from narrowValues if it wasn't changed before
+        delete newValues[paramName];
+      }
+
+      return newValues;
+    });
+  };
+
+  // Check for validation errors in hyperparameters
+  const hasValidationErrors = useMemo(() => {
+    if (!hyperparams) return false;
+
+    return hyperparams.some((param) => {
+      // Skip constants (parameters not in hparamList)
+      if (!hparamList.includes(param.name)) return false;
+
+      const values = narrowValues[param.name];
+
+      // If no values are set, no validation error
+      if (!values || values.length === 0) return false;
+
+      if (param.type === HyperparamTypes.Uniform) {
+        // Must have exactly 2 values for uniform parameters
+        if (values.length !== 2) return true;
+
+        // Check for empty values
+        if (
+          values[0] === "" ||
+          values[0] === undefined ||
+          values[0] === null ||
+          values[1] === "" ||
+          values[1] === undefined ||
+          values[1] === null
+        ) {
+          return true;
+        }
 
         const min = Number(values[0]);
         const max = Number(values[1]);
-        const originalMin = hp.narrowValue[0];
-        const originalMax = hp.narrowValue[1];
+        const originalMin = Number(param.narrowValue[0]);
+        const originalMax = Number(param.narrowValue[1]);
 
         // Check for various error conditions
         return (
+          isNaN(min) || // Min should be a valid number
+          isNaN(max) || // Max should be a valid number
           min >= max || // Min should be less than max
           min < originalMin || // Min should not be below original range
-          max > originalMax || // Max should not be above original range
-          isNaN(min) || // Min should be a valid number
-          isNaN(max) // Max should be a valid number
+          max > originalMax // Max should not be above original range
         );
+      } else {
+        // For non-uniform parameters, check that selected values are valid
+        const allValid = values.every((value) =>
+          param.narrowValue.some(
+            (original: any) =>
+              original === value || original?.toString() === value?.toString()
+          )
+        );
+
+        return !allValid;
       }
-      return false;
     });
-  }, [shap?.shapValues, hyperparams, narrowValues]);
+  }, [hyperparams, narrowValues, hparamList]);
 
   useEffect(() => {
     if (selectedTrials.length > 0 && hyperparams) {
@@ -118,24 +224,81 @@ const Records = () => {
     }
   }, [hyperparams, selectedTrials]);
 
+  // Initialize toggle states - only auto-select ordered parameters from base trials
+  useEffect(() => {
+    if (
+      shap?.shapValues &&
+      hyperparams &&
+      hparamList.length > 0 &&
+      selectedTrials.length > 0
+    ) {
+      const initialToggles: Record<string, boolean> = {};
+
+      shap.shapValues.forEach((param) => {
+        const parameter = hyperparams.find((hp) => hp.name === param.name);
+        // Only auto-select ordered parameters that were narrowed from base trials
+        if (parameter && hparamList.includes(parameter.name)) {
+          // Check if this parameter has narrowValue (meaning it came from base trials)
+          if (
+            parameter.type === HyperparamTypes.Ordinal &&
+            parameter.narrowValue &&
+            parameter.narrowValue.length > 0
+          ) {
+            initialToggles[param.name] = true;
+          } else {
+            // For other types, don't auto-select
+            initialToggles[param.name] = false;
+          }
+        }
+      });
+
+      // setToggleStates((prev) => {
+      //   // Only set if toggleStates is empty (first initialization)
+      //   if (Object.keys(prev).length === 0) {
+      //     return initialToggles;
+      //   }
+      //   return prev;
+      // });
+    }
+  }, [shap?.shapValues, hyperparams, hparamList, selectedTrials]);
+
   return (
     <div className="w-full h-full p-2 gap-2 flex flex-col overflow-y-auto">
       {/* Display changed hyperparameters at the top */}
       {hasChanges && (
         <div className="w-full flex gap-1.5 items-between flex-col bg-blue-50 border border-blue-200 rounded p-4">
-          <HeaderText text="Changed Hyperparameters" />
+          <div className="flex items-center justify-between">
+            <HeaderText text="Changed Hyperparameters" />
+            <button
+              onClick={() => {
+                // Reset all changed parameters
+                changedHyperparams.forEach((param) => {
+                  resetParameter(param.name);
+                });
+              }}
+              className="btn btn-xs btn-error text-white rounded-full"
+            >
+              <RxReset size={16} />
+              Reset All
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {changedHyperparams.map((param) => {
               const Icon =
                 hpTypeIcons[HyperparamTypes[param.type].toLowerCase()] || null;
               return (
-                <div
+                <button
                   key={param.name}
                   className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
+                  onClick={() => resetParameter(param.name)}
+                  aria-label={`Reset ${param.name}`}
                 >
                   {Icon && <Icon size={14} />}
-                  {param.name}
-                </div>
+                  <span>{param.name}</span>
+
+                  {/* <MdOutlineChangeCircle size={12} /> */}
+                  <RxReset />
+                </button>
               );
             })}
           </div>
@@ -144,7 +307,27 @@ const Records = () => {
 
       <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
         {shap?.shapValues
-          ? shap.shapValues.map((param, index) => {
+          ? (() => {
+              // Separate constants and non-constants
+              const nonConstants = shap.shapValues.filter((param) => {
+                const parameter = hyperparams?.find(
+                  (hp) => hp.name === param.name
+                );
+                return parameter && hparamList.includes(parameter.name);
+              });
+
+              const constants = shap.shapValues.filter((param) => {
+                const parameter = hyperparams?.find(
+                  (hp) => hp.name === param.name
+                );
+                return parameter && !hparamList.includes(parameter.name);
+              });
+
+              // Combine with non-constants first, then constants
+              const allParams = [...nonConstants, ...constants];
+
+              return allParams;
+            })().map((param, index) => {
               // const Icon =
               //   hpTypeIcons[HyperparamTypes[param.type].toLowerCase()] || null;
 
@@ -173,7 +356,9 @@ const Records = () => {
                   <div className="flex items-center justify-between">
                     <div key={index} className="flex items-center gap-2">
                       {Icon && <Icon size={20} />}
-                      <p>{param.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p>{param.name}</p>
+                      </div>
                       {/* {formatting(shap.ranking[param.name], "float", 2)}) */}
                       <p>
                         {parameter &&
@@ -182,6 +367,16 @@ const Records = () => {
                             formatting(shap.ranking[param.name], "float", 2) +
                             ")"}
                       </p>
+                      {isParameterChanged(param.name) && (
+                        <button
+                          onClick={() => resetParameter(param.name)}
+                          className="btn btn-xs btn-error text-white rounded-full"
+                          data-tip="Reset to original values"
+                          aria-label={`Reset ${param.name} to original values`}
+                        >
+                          <RxReset />
+                        </button>
+                      )}
                     </div>
                     {parameter && hparamList.includes(parameter.name) ? (
                       <input
@@ -195,7 +390,7 @@ const Records = () => {
                     ) : (
                       parameter && (
                         <span className="btn btn-xs h-[20px] btn-primary btn-outline rounded-full w-[60px]">
-                          {parameter.constantValue.toString()}
+                          {formatNumberForDisplay(parameter.constantValue)}
                         </span>
                       )
                     )}
@@ -207,7 +402,7 @@ const Records = () => {
                       <UniformImportancePlot param={param} toggle={toggle} />
                     )
                   ) : null}
-                  <div className="flex gap-1 w-full justify-around">
+                  <div className="flex flex-wrap gap-2 w-full">
                     {parameter && hparamList.includes(parameter.name) ? (
                       parameter?.type === HyperparamTypes.Uniform ? (
                         <div className="flex items-center gap-2 w-full">
@@ -216,30 +411,50 @@ const Records = () => {
                             className={`input input-sm focus:ring-0 focus:outline-none ${(() => {
                               const values = narrowValues[param.name];
                               if (!values || values.length < 2)
-                                return "focus:input-primary";
+                                return "border-gray-300 focus:border-primary";
 
                               const min = Number(values[0]);
                               const max = Number(values[1]);
                               const originalMin = parameter?.narrowValue?.[0];
 
-                              return min >= max ||
-                                (originalMin !== undefined &&
-                                  min < originalMin) ||
-                                isNaN(min)
-                                ? "input-error"
-                                : "focus:input-primary";
+                              // Check for validation errors
+                              if (
+                                values[0] === "" ||
+                                values[0] === undefined ||
+                                values[0] === null
+                              ) {
+                                return "border-error focus:border-error";
+                              }
+
+                              if (
+                                isNaN(min) ||
+                                min >= max ||
+                                (originalMin !== undefined && min < originalMin)
+                              ) {
+                                return "border-error focus:border-error";
+                              }
+
+                              return "border-gray-300 focus:border-primary";
                             })()}`}
-                            value={Number(narrowValues[param.name]?.[0])}
+                            value={
+                              narrowValues[param.name]?.[0] !== undefined &&
+                              narrowValues[param.name]?.[0] !== ""
+                                ? Number(narrowValues[param.name][0])
+                                : ""
+                            }
                             onChange={(e) => {
+                              const value = e.target.value;
                               setNarrowValues((prev) => ({
                                 ...prev,
                                 [param.name]: [
-                                  Number(e.target.value),
+                                  value ? Number(value) : "",
                                   prev[param.name]?.[1] || 0,
                                 ],
                               }));
                             }}
-                            placeholder="Min"
+                            placeholder={`Min: ${
+                              parameter?.narrowValue?.[0] || ""
+                            }`}
                           />
                           <p className="text-sm">-</p>
                           <input
@@ -247,30 +462,50 @@ const Records = () => {
                             className={`input input-sm focus:ring-0 focus:outline-none ${(() => {
                               const values = narrowValues[param.name];
                               if (!values || values.length < 2)
-                                return "focus:input-primary";
+                                return "border-gray-300 focus:border-primary";
 
                               const min = Number(values[0]);
                               const max = Number(values[1]);
                               const originalMax = parameter?.narrowValue?.[1];
 
-                              return max <= min ||
-                                (originalMax !== undefined &&
-                                  max > originalMax) ||
-                                isNaN(max)
-                                ? "input-error"
-                                : "focus:input-primary";
+                              // Check for validation errors
+                              if (
+                                values[1] === "" ||
+                                values[1] === undefined ||
+                                values[1] === null
+                              ) {
+                                return "border-error focus:border-error";
+                              }
+
+                              if (
+                                isNaN(max) ||
+                                max <= min ||
+                                (originalMax !== undefined && max > originalMax)
+                              ) {
+                                return "border-error focus:border-error";
+                              }
+
+                              return "border-gray-300 focus:border-primary";
                             })()}`}
-                            value={Number(narrowValues[param.name]?.[1])}
+                            value={
+                              narrowValues[param.name]?.[1] !== undefined &&
+                              narrowValues[param.name]?.[1] !== ""
+                                ? Number(narrowValues[param.name][1])
+                                : ""
+                            }
                             onChange={(e) => {
+                              const value = e.target.value;
                               setNarrowValues((prev) => ({
                                 ...prev,
                                 [param.name]: [
                                   prev[param.name]?.[0] || 0,
-                                  Number(e.target.value),
+                                  value ? Number(value) : "",
                                 ],
                               }));
                             }}
-                            placeholder="Max"
+                            placeholder={`Max: ${
+                              parameter?.narrowValue?.[1] || ""
+                            }`}
                           />
                         </div>
                       ) : (
@@ -278,15 +513,21 @@ const Records = () => {
                         parameter.narrowValue.map(
                           (before: string | number | boolean, idx: number) => (
                             <CheckBox
-                              label={before.toString()}
+                              label={formatNumberForDisplay(before)}
                               key={idx}
                               checked={
-                                narrowValues[param.name]?.includes(before) ??
+                                (narrowValues[param.name]?.includes(before) ||
+                                  narrowValues[param.name]?.includes(
+                                    before.toString()
+                                  )) ??
                                 false
                               }
                               disabled={
                                 (narrowValues[param.name]?.length === 1 &&
-                                  narrowValues[param.name]?.includes(before)) ||
+                                  (narrowValues[param.name]?.includes(before) ||
+                                    narrowValues[param.name]?.includes(
+                                      before.toString()
+                                    ))) ||
                                 !parameter.narrowValue?.includes(before)
                               }
                               onChange={(e) => {
@@ -297,7 +538,12 @@ const Records = () => {
                                   if (e.target.checked) {
                                     newValues.push(before);
                                   } else {
-                                    const index = newValues.indexOf(before);
+                                    // Handle both the value and its string representation
+                                    const index = newValues.findIndex(
+                                      (v) =>
+                                        v === before ||
+                                        v?.toString() === before?.toString()
+                                    );
                                     if (index > -1) {
                                       newValues.splice(index, 1);
                                     }
@@ -321,7 +567,7 @@ const Records = () => {
       </div>
       <BottomButton
         icon={<GrContract size={16} />}
-        disabled={!hasChanges || hasValidationErrors}
+        disabled={!hasValidNarrowValues || hasValidationErrors}
         onClick={() => {
           const id = uuid.v4(); // Generate a new unique ID for the trial
           const space: (
@@ -343,18 +589,66 @@ const Records = () => {
               }
           )[] = [];
           hyperparams?.map((param) => {
-            if (param.checkSpaceChange(narrowValues[param.name])) {
-              if (param instanceof UniformHyperparam) {
-                space.push(
-                  param.toNarrow(narrowValues[param.name] as [number, number])
-                );
-              } else {
-                // beforeNarrowSet 에다가 narrowValues를 뺀 값을 전송해야 함, 즉 교집합이 아닌 것
-                const filteredValue = param.narrowValue.filter(
-                  (value: string | number | boolean) =>
-                    !narrowValues[param.name].includes(value)
-                );
-                space.push(param.toNarrow(filteredValue));
+            // Skip constants (parameters not in hparamList)
+            if (!hparamList.includes(param.name)) return;
+
+            const values = narrowValues[param.name];
+
+            // Skip parameters without narrowValues
+            if (!values || values.length === 0) return;
+
+            // Only include parameters that have actually changed
+            if (!param.checkSpaceChange(values)) {
+              console.log(`Skipping ${param.name} - no change detected`);
+              return;
+            }
+
+            console.log(
+              `Including ${param.name} in narrowing - change detected`
+            );
+
+            if (param instanceof UniformHyperparam) {
+              // For uniform parameters, validate the values
+              if (values.length !== 2) return;
+
+              if (
+                values[0] === "" ||
+                values[0] === null ||
+                values[0] === undefined ||
+                values[1] === "" ||
+                values[1] === null ||
+                values[1] === undefined
+              ) {
+                return;
+              }
+
+              const min = Number(values[0]);
+              const max = Number(values[1]);
+
+              if (isNaN(min) || isNaN(max) || min >= max) return;
+
+              const narrowed = param.toNarrow([min, max] as [number, number]);
+              space.push(narrowed);
+            } else {
+              // For non-uniform parameters, find values to exclude
+              const valuesToExclude = param.narrowValue.filter(
+                (value: string | number | boolean) => {
+                  const isSelected = values.some(
+                    (selected) =>
+                      selected === value ||
+                      selected?.toString() === value?.toString()
+                  );
+                  return !isSelected; // Return true if NOT selected (to exclude)
+                }
+              );
+
+              // Only send narrowing if we're actually excluding some values
+              if (
+                valuesToExclude.length > 0 &&
+                valuesToExclude.length < param.narrowValue.length
+              ) {
+                const narrowed = param.toNarrow(valuesToExclude);
+                space.push(narrowed);
               }
             }
           });
@@ -362,12 +656,13 @@ const Records = () => {
             id: id,
             config: space,
           };
+
+          console.log("Narrowing config space:", space);
+
           setSelectedTrials([]); // Clear selected trials after narrowing
           ApiClient.narrowConfigspace(data);
 
           handleNavigate("/main/refine");
-
-          // console.log("Narrowed Hyperparameter Space:", space);
         }}
         text="Narrow the hyperparameter space"
       />

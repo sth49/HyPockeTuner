@@ -34,6 +34,7 @@ export const useColorScale = () => {
     return trials.filter(
       (trial) =>
         trial.metric !== undefined ||
+        trial.loss !== 999 ||
         trial.loss !== undefined ||
         trial.metric !== null ||
         trial.loss !== null
@@ -51,7 +52,11 @@ export const useColorScale = () => {
       metricRange.max = metric.range[1];
     }
     allTrials.forEach((trial) => {
-      if (trial.loss !== undefined) {
+      if (
+        trial.loss !== undefined &&
+        trial.loss !== null &&
+        trial.loss !== 999
+      ) {
         lossRange.max = Math.max(lossRange.max, trial.loss);
         lossRange.min = Math.min(lossRange.min, trial.loss);
       }
@@ -126,7 +131,7 @@ export const useColorScale = () => {
 
   const getFontColor = useMemo(() => {
     return (value: number, type: "metric" | "loss" = "metric") => {
-      if (!value) {
+      if (!value && value !== 0) {
         return "oklch(55.1% 0.027 264.364)"; // 기본 폰트 색상
       }
       const color =

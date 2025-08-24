@@ -62,6 +62,14 @@ class KernelBase:
         np.random.seed(SEED)
         if self.dataset=="mnist":
             res = train_mnist(budget=self.budget, hparams=self.hparams, dispatcher=self.dispatcher)
+        elif self.dataset=="mscoco":
+            # MSCOCO should use CLIP kernel, return error for segmentation kernel
+            res = {'loss': 999.0, 'metric': 0.0}
+            self.dispatcher.emit('error', {'message': 'MSCOCO dataset should use CLIP kernel'})
+        else:
+            # Default error for unknown dataset
+            res = {'loss': 999.0, 'metric': 0.0}
+            self.dispatcher.emit('error', {'message': f'Unknown dataset: {self.dataset}'})
         return res
 
     

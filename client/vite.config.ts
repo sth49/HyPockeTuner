@@ -28,15 +28,51 @@ export default defineConfig({
       manifest: {
         name: "HyPockeTuner",
         short_name: "HyPockeTuner",
-        description: "HyPockeTuner",
-        theme_color: "#ffffff",
+        description: "Hyperparameter optimization system using BOHB algorithm",
+        theme_color: "#3B82F6",
+        background_color: "#ffffff",
         start_url: "/HyPockeTuner_new/",
         scope: "/HyPockeTuner_new/",
+        display: "standalone",
+        orientation: "portrait",
+        icons: [
+          {
+            src: "/HyPockeTuner_new/logo192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable"
+          },
+          {
+            src: "/HyPockeTuner_new/logo512.png", 
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
+          },
+          {
+            src: "/HyPockeTuner_new/icon-192.png",
+            sizes: "192x192",
+            type: "image/png"
+          },
+          {
+            src: "/HyPockeTuner_new/icon-512.png",
+            sizes: "512x512",
+            type: "image/png"
+          }
+        ]
       },
 
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
+        globPatterns: ["**/*.{js,css,html}"],
         swDest: "dist/sw.js", // 서비스워커 출력 파일 경로
+        // 특정 파일 제외
+        globIgnores: [
+          "**/node_modules/**/*",
+          "service-worker.js",
+          "**/apple-touch-icon.png",
+          "**/logo192.png",
+          "**/logo512.png",
+          "**/*.svg"
+        ],
         // GitHub Pages base path 고려
         manifestTransforms: [
           (manifestEntries) => {
@@ -52,7 +88,7 @@ export default defineConfig({
       },
 
       devOptions: {
-        enabled: false,
+        enabled: true, // 개발환경에서도 서비스워커 활성화
         navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",

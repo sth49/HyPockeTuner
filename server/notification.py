@@ -79,7 +79,7 @@ def get_condition(cond, exp_id):
 
 
 class NOTIFICATION:
-    def __init__(self, n_type, cond_id, status, title, content):
+    def __init__(self, n_type, cond_id, status, title, content, exp_id=None):
         self.id = str(uuid.uuid4())
         self.type = n_type
         self.time = datetime.now().timestamp()
@@ -87,10 +87,11 @@ class NOTIFICATION:
         self.status = status
         self.title = title
         self.content = content
+        self.exp_id = exp_id
         # self.display = display
 
     def to_json(self):
-        return dict(id=self.id, type=self.type, time=self.time, condId=self.cond_id, title=self.title, content=self.content, status=self.status)
+        return dict(id=self.id, type=self.type, time=self.time, condId=self.cond_id, title=self.title, content=self.content, status=self.status, expId=self.exp_id)
         
 
 
@@ -180,12 +181,12 @@ class ExperimentStartCondition(NotificationCondition):
         self.content = None
         super().__init__(id, exp_id)
     
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         return prog_type=="start"
     
     def emit(self, cond_id, status):
-        self.content = f'Exp ID:({self.exp_id[:3]})'
-        return NOTIFICATION(EXPERIMENT_START, cond_id, status, self.key, self.content ).to_json()
+        self.content = f'Exp ID: {self.exp_id[:3]}'
+        return NOTIFICATION(EXPERIMENT_START, cond_id, status, self.key, self.content, self.exp_id).to_json()
     
     def to_json(self):
         return dict(type=EXPERIMENT_START, id=self.id)
@@ -196,12 +197,12 @@ class ExperimentPauseCondition(NotificationCondition):
         self.content = None
         super().__init__(id, exp_id)
     
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         return prog_type=="pause"
     
     def emit(self, cond_id, status):
-        self.content = f'Exp ID:({self.exp_id[:3]})'
-        return NOTIFICATION(EXPERIMENT_PAUSE, cond_id, status, self.key, self.content ).to_json()
+        self.content = f'Exp ID: {self.exp_id[:3]}'
+        return NOTIFICATION(EXPERIMENT_PAUSE, cond_id, status, self.key, self.content, self.exp_id).to_json()
     
     def to_json(self):
         return dict(type=EXPERIMENT_PAUSE, id=self.id)
@@ -212,13 +213,13 @@ class ExperimentResumeCondition(NotificationCondition):
         self.content = None
         super().__init__(id, exp_id)
     
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         print("resume test", prog_type, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage)
         return prog_type=="resume"
     
     def emit(self, cond_id, status):
-        self.content = f'Exp ID:({self.exp_id[:3]})'
-        return NOTIFICATION(EXPERIMENT_RESUME, cond_id, status, self.key, self.content).to_json()
+        self.content = f'Exp ID: {self.exp_id[:3]}'
+        return NOTIFICATION(EXPERIMENT_RESUME, cond_id, status, self.key, self.content, self.exp_id).to_json()
     
     def to_json(self):
         return dict(type=EXPERIMENT_RESUME, id=self.id)
@@ -230,12 +231,12 @@ class ExperimentFinishCondition(NotificationCondition):
         self.content = None
         super().__init__(id, exp_id)
     
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         return prog_type=="finish"
     
     def emit(self, cond_id, status):
         self.content = f'Exp ID: {self.exp_id[:3]}'
-        return NOTIFICATION(EXPERIMENT_FINISH, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(EXPERIMENT_FINISH, cond_id, status, self.key, self.content, self.exp_id).to_json()
         # return NOTIFICATION(EXPERIMENT_FINISH, cond_id, status, trial.id, trial.metric, self.key).to_json()
     
     def to_json(self):
@@ -246,24 +247,27 @@ class ExperimentFinishCondition(NotificationCondition):
 class MetricReachCondition(NotificationCondition): # target에 도달한 경우
     def __init__(self, id, target, recurring=False, exp_id = None):
         self.target = target 
-        self.key = f'Target Metric({self.target:.3f}) Reached'
+        self.key = f'Target Performance({self.target:.3f}) Reached'
         self.content = None
-        self.timeout_key = f'Target Metric ({self.target:.3f}) Reached'
+        self.timeout_key = f'Target Performance ({self.target:.3f}) Reached'
         self.recurring = recurring
         super().__init__(id, exp_id)
 
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if trial is None:
             return False
         if trial.metric >= self.target:
             # self.key = f'Target Metric ({self.target:.3f}) Reached: {trial.metric:.3f}({trial.id[:3]})'
-            self.content = f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
+            if total_brackets is not None:
+                self.content = f'Trial {total_brackets - trial.bracket_id}-{trial.round_id + 1}-{trial.trial_id + 1} ({trial.metric:.3f})'
+            else:
+                self.content = f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
             return True
         return False
     
     def emit(self, cond_id, status):
 
-        return NOTIFICATION(METRIC_REACH, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(METRIC_REACH, cond_id, status, self.key, self.content, self.exp_id).to_json()
         # noti = NOTIFICATION(METRIC_REACH, cond_id, status, trial.id, trial.metric, self.key).to_json()
         # return noti 
     
@@ -274,26 +278,29 @@ class MetricImproveByCondition(NotificationCondition): # 성능 개선이 일어
     def __init__(self, id, base, by, recurring, exp_id): # 다시보기
         self.base = base
         self.by = by
-        self.key = f'Metric Improved by {self.by} from {self.base:.3f}'
+        self.key = f'Performance Improved by {self.by} from {self.base:.3f}'
         self.content = None
-        self.timeout_key = f'Metric Improved by {self.by}'  
+        self.timeout_key = f'Performance Improved by {self.by}'  
         self.recurring = recurring
         super().__init__(id, exp_id)
 
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if trial is None:
             return False
         if  trial.metric > self.base + self.by:
-            self.content = f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
+            if total_brackets is not None:
+                self.content = f'Trial {total_brackets - trial.bracket_id}-{trial.round_id + 1}-{trial.trial_id + 1} ({trial.metric:.3f})'
+            else:
+                self.content = f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
             # self.key = f'Metric Improved by {self.by}: {self.base:.3f} -> {trial.metric:.3f}({trial.id[:3]})'
             if self.recurring:
+                self.key = f'Performance Improved by {self.by} from {self.base:.3f}'
                 self.base = trial.metric
-                self.key = f'Metric Improved by {self.by} from {self.base:.3f}'
             return True
         return False
     
     def emit(self, cond_id, status):
-        return NOTIFICATION(METRIC_IMPROVE_BY, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(METRIC_IMPROVE_BY, cond_id, status, self.key, self.content, self.exp_id).to_json()
 
     def to_json(self):
         return dict(type=METRIC_IMPROVE_BY, id=self.id, base=self.base, by=self.by, recurring=self.recurring)
@@ -302,26 +309,29 @@ class MetricImproveByCondition(NotificationCondition): # 성능 개선이 일어
 class MetricImproveCondition(NotificationCondition): # 성능 개선이 일어날 
     def __init__(self, id, base, recurring, exp_id): # 다시보기
         self.base = base
-        self.key = f'Metric Improved from {self.base:.3f}'
+        self.key = f'Performance Improved from {self.base:.3f}'
         self.content = None
-        self.timeout_key = f'Metric Improved'
+        self.timeout_key = f'Performance Improved'
         self.recurring = recurring
         super().__init__(id, exp_id)
 
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if trial is None:
             return False
         if trial.metric > self.base:
             # self.key = f'Metric Improved: {self.base:.3f} -> {trial.metric:.3f}({trial.id[:3]})'
-            self.content = f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
+            if total_brackets is not None:
+                self.content = f'Trial {total_brackets - trial.bracket_id}-{trial.round_id + 1}-{trial.trial_id + 1} ({trial.metric:.3f})'
+            else:
+                self.content = f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
             if self.recurring:
+                self.key = f'Performance Improved from {self.base:.3f}'
                 self.base = trial.metric
-                self.key = f'Metric Improved from {self.base:.3f}'
             return True
         return False
     
     def emit(self, cond_id, status):
-        return NOTIFICATION(METRIC_IMPROVE, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(METRIC_IMPROVE, cond_id, status, self.key, self.content, self.exp_id).to_json()
 
     def to_json(self):
         return dict(type=METRIC_IMPROVE, id=self.id, base=self.base, recurring=self.recurring)
@@ -332,15 +342,18 @@ class TrialFinishCondition(NotificationCondition):
         self.content = None
         self.trial_id = trial_id
         super().__init__(id, exp_id)
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if is_user and trial.id==self.trial_id:
-            self.content =  f'Trial ID: {trial.id[:3]}({trial.metric:.3f})'
+            # if total_brackets is not None:
+            #     self.content = f'Trial {total_brackets - trial.bracket_id}-{trial.round_id + 1}-{trial.trial_id + 1} ({trial.metric:.3f})'
+            # else:
+            self.content = f'User Trial ID: {trial.id[:3]} ({trial.metric:.3f})'
             return True
         return False
 
     def emit(self, cond_id, status):
         print("emit trial finish", self.key)
-        return  NOTIFICATION(TRIAL_FINISH, cond_id, status, self.key, self.content).to_json()
+        return  NOTIFICATION(TRIAL_FINISH, cond_id, status, self.key, self.content, self.exp_id).to_json()
         # noti = NOTIFICATION(TRIAL_FINISH, cond_id, status, trial.id, trial.metric, self.key).to_json()
         # return noti
     def to_json(self):
@@ -355,12 +368,12 @@ class BracketFinishCondition(NotificationCondition):
         super().__init__(id, exp_id)
     # def test(self, bracket_id):
     #     return bracket_id==self.bracket_id
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         return round==None and bracket==self.bracket_id
     
     def emit(self, cond_id, status):
 
-        return NOTIFICATION(BRACKET_FINISH, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(BRACKET_FINISH, cond_id, status, self.key, self.content, self.exp_id).to_json()
     # def emit(self, cond_id, status, trial):
     #     noti = NOTIFICATION(BRACKET_FINISH, cond_id, status, bracket_id=self.bracket_id, display=self.key).to_json()
     #     return noti
@@ -379,11 +392,11 @@ class RoundFinishCondition(NotificationCondition):
     
     # def test(self, bracket_id, round_id):
     #     return bracket_id==self.bracket_id and round_id==self.round_id
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         return bracket==self.bracket_id and round==self.round_id
     
     def emit(self, cond_id, status):
-        return NOTIFICATION(ROUND_FINISH, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(ROUND_FINISH, cond_id, status, self.key, self.content, self.exp_id).to_json()
     # def emit(self, cond_id, status, trial):
     #     noti = NOTIFICATION(ROUND_FINISH, cond_id, status,bracket_id=self.bracket_id, round_id=self.round_id, display=self.key).to_json()
     #     return noti
@@ -406,7 +419,7 @@ class TimeoutCondition(NotificationCondition):
     
     def emit(self, cond_id, status, event_cond):
         self.content = f'{event_cond.timeout_key} Timeout'
-        return NOTIFICATION(TIMEOUT, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(TIMEOUT, cond_id, status, self.key, self.content, self.exp_id).to_json()
         # return NOTIFICATION(LOW_UTILIZATION, cond_id, status, self.key, self.content).to_json()
     
 
@@ -424,7 +437,7 @@ class LowUtilizationCondition(NotificationCondition):
         self.utilization = utilization
         super().__init__(id, exp_id)
 
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if utilization is None or self.last_noti and datetime.now().timestamp() - self.last_noti < 600:
             return False
         if utilization < self.utilization:
@@ -434,7 +447,7 @@ class LowUtilizationCondition(NotificationCondition):
     
     def emit(self, cond_id, status):
         self.last_noti = datetime.now().timestamp()
-        return NOTIFICATION(LOW_UTILIZATION, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(LOW_UTILIZATION, cond_id, status, self.key, self.content, self.exp_id).to_json()
 
     def to_json(self):
         return dict(type=LOW_UTILIZATION, id=self.id)
@@ -446,7 +459,7 @@ class HighTemperatureCondition(NotificationCondition):
         self.temperature = temperature
         self.last_noti = None
         super().__init__(id, exp_id)
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if temperature is None or self.last_noti and datetime.now().timestamp() - self.last_noti < 600:
             return False
         if temperature > self.temperature:
@@ -458,7 +471,7 @@ class HighTemperatureCondition(NotificationCondition):
 
     def emit(self, cond_id, status):
         self.last_noti = datetime.now().timestamp()
-        return NOTIFICATION(HIGH_TEMPERATURE, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(HIGH_TEMPERATURE, cond_id, status, self.key, self.content, self.exp_id).to_json()
     def to_json(self):
         return dict(type=HIGH_TEMPERATURE, id=self.id)
     
@@ -470,7 +483,7 @@ class ExceptionHappenCondition(NotificationCondition):
         self.key = "Exception Happened"
         super().__init__(id, exp_id)
 
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if exception:
             # self.key = f'Exception Happened: {str(exception)}'
             self.content = f'{str(exception)}'
@@ -478,7 +491,7 @@ class ExceptionHappenCondition(NotificationCondition):
         return False
     
     def emit(self, cond_id, status):
-        return NOTIFICATION(EXCEPTION_HAPPEN, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(EXCEPTION_HAPPEN, cond_id, status, self.key, self.content, self.exp_id).to_json()
     
     def to_json(self):
         return dict(type=EXCEPTION_HAPPEN, id=self.id)
@@ -491,7 +504,7 @@ class HigUsageCondition(NotificationCondition):
         self.usage = usage
         self.last_noti = None
         super().__init__(id, exp_id)
-    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage):
+    def test(self, is_user, trial, round, bracket, prog_type, utilization, temperature, exception, disk_usage, total_brackets=None):
         if disk_usage is None or self.last_noti and datetime.now().timestamp() - self.last_noti < 600:
             return False
         if disk_usage > self.usage:
@@ -502,6 +515,6 @@ class HigUsageCondition(NotificationCondition):
 
     def emit(self, cond_id, status):
         self.last_noti = datetime.now().timestamp()
-        return NOTIFICATION(HIGH_USAGE, cond_id, status, self.key, self.content).to_json()
+        return NOTIFICATION(HIGH_USAGE, cond_id, status, self.key, self.content, self.exp_id).to_json()
     def to_json(self):
         return dict(type=HIGH_USAGE, id=self.id)

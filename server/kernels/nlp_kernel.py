@@ -30,7 +30,7 @@ from kernels.dataset import transform
 from kernels.dataset.dataset import SatelliteDataset
 from kernels.model.unet import UNet
 from kernels.training.trainer import Trainer
-
+from datasets import load_dataset
 import argparse
 import json
 import logging
@@ -39,21 +39,20 @@ import os
 import random
 from pathlib import Path
 
-import datasets
 import torch
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-import evaluate
 import transformers
 import torch
 
 from transformers import BertTokenizer
-from transformers import BertForSequenceClassification, AdamW, BertConfig, Adafactor
+from transformers import BertForSequenceClassification, BertConfig, Adafactor
+from torch.optim import AdamW  # Use PyTorch's AdamW instead of transformers'
 from transformers import get_linear_schedule_with_warmup, get_constant_schedule, get_constant_schedule_with_warmup, get_cosine_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from keras_preprocessing.sequence import pad_sequences
+# from keras_preprocessing.sequence import pad_sequences  # Replaced with PyTorch native
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, roc_auc_score, accuracy_score, hamming_loss
@@ -65,7 +64,6 @@ import random
 import time
 import datetime
 from tqdm import tqdm
-from datasets import load_dataset
 
 
 
@@ -73,14 +71,24 @@ SEED = 123
 use_cuda = torch.cuda.is_available()
 # device = torch.device("cuda" if use_cuda else "cpu")
 
+class Dispatcher():
+    def __init__(self, queue):
+        self.queue = queue
+    
+    def emit(self, event, data):
+        if self.queue:
+            self.queue.put((event, data))
+
 class KernelBase:
-    def __init__(self, trial):
+    def __init__(self, trial, queue=None):
         print("nlp kernel init")
         self.trial = trial
         self.budget = int(trial['budget'])
         self.params = trial['params']
         self.model = trial['model']
         self.dataset = trial['dataset']
+        self.queue = queue  # For worker communication
+        self.dispatcher = Dispatcher(self.queue)
 
     def run(self):
         np.random.seed(SEED)
@@ -92,11 +100,15 @@ class KernelBase:
             x_train, y_train, x_test, y_test = fetch_mnist()
             res = train_mnist(**self.params, x_train=x_train, y_train=y_train,
                            x_test=x_test, y_test=y_test, n_epochs=self.budget)
-        if self.dataset=="satellite":
-            res = train_satellite(self.trial)
-        if self.dataset=="korean_hate_speech":
-            res = train_korean_hate_speech(self.trial)
+        # if self.dataset=="satellite":
+        #     res = train_satellite(self.trial)
+        if self.dataset=="K-MHaS":
+            res = train_korean_hate_speech(self.trial, self.dispatcher)
 
+        # Report completion to worker if queue exists
+        if self.queue:
+            self.queue.put(('done', res))
+        
         return res
     
 class MNIST(torch.nn.Module):
@@ -221,17 +233,35 @@ def train_mnist(batch_size, n_epochs, optimizer, hidden_size, scheduler_p,
 def fetch_korean_hate_speech(max_length=256, batch_size=32):
     MAX_LEN = max_length
 
-    train = load_dataset("jeanlee/kmhas_korean_hate_speech", split="train")
-    validation = load_dataset("jeanlee/kmhas_korean_hate_speech", split="validation")
-    test = load_dataset("jeanlee/kmhas_korean_hate_speech", split="test")
-    train_sentences = list(map(lambda x: '[CLS] ' + str(x) + ' [SEP]', train['text']))
-    validation_sentences = list(map(lambda x: '[CLS] ' + str(x) + ' [SEP]', validation['text']))
-    test_sentences = list(map(lambda x: '[CLS] ' + str(x) + ' [SEP]', test['text']))
+    # train = load_dataset("jeanlee/kmhas_korean_hate_speech", split="train")
+    # validation = load_dataset("jeanlee/kmhas_korean_hate_speech", split="validation")
+    # test = load_dataset("jeanlee/kmhas_korean_hate_speech", split="test")
+    # Load from local data directory
+    train = load_dataset("csv", data_files="./data/korean-hate-speech-detection/kmhas_train.txt", delimiter="\t")['train']
+    validation = load_dataset("csv", data_files="./data/korean-hate-speech-detection/kmhas_valid.txt", delimiter="\t")['train']
+    test = load_dataset("csv", data_files="./data/korean-hate-speech-detection/kmhas_test.txt", delimiter="\t")['train']
+
+    # Column name is 'document' not 'text' in local files
+    train_sentences = list(map(lambda x: '[CLS] ' + str(x) + ' [SEP]', train['document']))
+    validation_sentences = list(map(lambda x: '[CLS] ' + str(x) + ' [SEP]', validation['document']))
+    test_sentences = list(map(lambda x: '[CLS] ' + str(x) + ' [SEP]', test['document']))
     enc = MultiLabelBinarizer()
 
     def multi_label(example):
-        enc_label = enc.fit_transform(example['label'])
-        float_arr = np.vstack(enc_label[:]).astype(float)
+        # Parse labels from string format like "2,4" to list of lists
+        labels_parsed = []
+        for label_str in example['label']:
+            if str(label_str) == '8':  # not_hate_speech
+                labels_parsed.append([8])
+            else:
+                # Parse comma-separated labels
+                label_nums = [int(x.strip()) for x in str(label_str).split(',')]
+                labels_parsed.append(label_nums)
+        
+        # Fit encoder with all possible labels
+        enc.fit([[i] for i in range(9)])  # Labels 0-8
+        enc_label = enc.transform(labels_parsed)
+        float_arr = enc_label.astype(float)
         update_label = float_arr.tolist()
         return update_label
 
@@ -243,17 +273,28 @@ def fetch_korean_hate_speech(max_length=256, batch_size=32):
     def data_to_tensor (sentences, labels):
         tokenized_texts = [tokenizer.tokenize(sent) for sent in sentences]
         input_ids = [tokenizer.convert_tokens_to_ids(x) for x in tokenized_texts]
-        input_ids = pad_sequences(input_ids, maxlen=MAX_LEN, dtype="long", truncating="post", padding="post") 
-
+        
+        # PyTorch native padding instead of keras pad_sequences
+        padded_input_ids = []
         attention_masks = []
-
+        
         for seq in input_ids:
-            seq_mask = [float(i > 0) for i in seq]
-            attention_masks.append(seq_mask)
+            # Truncate if too long
+            if len(seq) > MAX_LEN:
+                seq = seq[:MAX_LEN]
+            
+            # Create attention mask (1 for real tokens, 0 for padding)
+            attention_mask = [1] * len(seq) + [0] * (MAX_LEN - len(seq))
+            
+            # Pad with zeros
+            padded_seq = seq + [0] * (MAX_LEN - len(seq))
+            
+            padded_input_ids.append(padded_seq)
+            attention_masks.append(attention_mask)
 
-        tensor_inputs = torch.tensor(input_ids)
-        tensor_labels = torch.tensor(labels)
-        tensor_masks = torch.tensor(attention_masks)
+        tensor_inputs = torch.tensor(padded_input_ids, dtype=torch.long)
+        tensor_labels = torch.tensor(labels, dtype=torch.float)
+        tensor_masks = torch.tensor(attention_masks, dtype=torch.float)
 
         return tensor_inputs, tensor_labels, tensor_masks
     
@@ -274,325 +315,256 @@ def fetch_korean_hate_speech(max_length=256, batch_size=32):
     test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=batch_size)
     return train_dataloader, validation_dataloader, test_dataloader
 
-def train_korean_hate_speech(trial):
+def train_korean_hate_speech(trial, dispatcher=None):
     print("train_korean_hate_speech start")
     print("trial", trial)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    params = trial['params']
-    train_dataloader, validation_dataloader, test_dataloader = fetch_korean_hate_speech(batch_size=params['batch_size'])
-
-    num_labels = 9
-    model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased", 
-                                                          num_labels=num_labels, 
-                                                          problem_type="multi_label_classification", 
-                                                          hidden_act=params['activation'],
-                                                          hidden_dropout_prob = params['dropout_probability'],
-                                                          attention_probs_dropout_prob = params['dropout_probability'],
-                                                          position_embedding_type=params['positional_embedding'],
-                                                          classifier_dropout=params['classifier_dropout'],
-                                                          )
-    # print(model.config)
-    model.cuda()
-    model_params = model.parameters()
-    # print("optimizer", params["optimizer"])
-
-    # print("scheduler", params["scheduler"])
-   
     
-    
-    if params["optimizer"]=="adamw":
-        optimizer = AdamW(model.parameters(),
-                      lr = params['learning_rate'],
-                      eps = 1e-8
-                    )
-    elif params["optimizer"]=="adafactor":
-        optimizer = Adafactor(
-            model.parameters(),
-            lr = params['learning_rate'],
-            eps=(1e-30, 1e-3),
-            clip_threshold=1.0,
-            decay_rate=-0.8,
-            beta1=None,
-            weight_decay= params['weight_decay'],
-            scale_parameter=False,
-            warmup_init=False,
-            relative_step=False)
-    else:
-        optimizer = getters.get_optimizer(params["optimizer"], model_params, params)
-
-    # change epochs for improving results (our paper : epochs = 4)
-    epochs = trial['budget']
-    total_steps = len(train_dataloader) * epochs
-
-    if params['scheduler'] == "const":
-        scheduler = get_constant_schedule(optimizer)
-    elif params["scheduler"] == "const_warmup":
-        scheduler = get_constant_schedule_with_warmup(optimizer, 
-                                                    num_warmup_steps = 0,
-                                                    )
-    elif params['scheduler'] == "cos_warmup":
-        scheduler = get_cosine_schedule_with_warmup(
-            optimizer, num_warmup_steps = 0, num_training_steps = total_steps
-        )
-    elif params['scheduler'] == "cos_hard":
-        scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(
-            optimizer, num_warmup_steps = 0, num_training_steps = total_steps
-        )
-    elif params['scheduler'] == "linear_warmup":
-        scheduler = get_linear_schedule_with_warmup(optimizer, 
-                                                    num_warmup_steps = 0,
-                                                    num_training_steps = total_steps)
-    elif params['scheduler'] == "poly_decay":
-        scheduler = get_polynomial_decay_schedule_with_warmup(optimizer,
-                                                            num_warmup_steps = 0,
-                                                            num_training_steps = total_steps,
-                                                            lr_end = 0.0)
-    elif params['scheduler'] == "none":
-        scheduler = None
-    else:
-        raise NotImplementedError
-
-
-    def format_time(elapsed):
-        elapsed_rounded = int(round((elapsed)))
-        return str(datetime.timedelta(seconds=elapsed_rounded))  # hh:mm:ss
-
-    def multi_label_metrics(predictions, labels, threshold=0.5):
-        sigmoid = torch.nn.Sigmoid()
-        probs = sigmoid(torch.Tensor(predictions))
-        y_pred = np.zeros(probs.shape)
-        y_pred[np.where(probs >= threshold)] = 1
-
-        # finally, compute metrics
-        y_true = labels
-        accuracy = accuracy_score(y_true, y_pred)
-        f1_macro_average = f1_score(y_true=y_true, y_pred=y_pred, average='macro', zero_division=0)
-        f1_micro_average = f1_score(y_true=y_true, y_pred=y_pred, average='micro', zero_division=0)
-        f1_weighted_average = f1_score(y_true=y_true, y_pred=y_pred, average='weighted', zero_division=0)
-        roc_auc = roc_auc_score(y_true, y_pred, average = 'micro')
-        hamming = hamming_loss(y_true, y_pred)
-
-        # return as dictionary
-        metrics = {'accuracy': accuracy,
-                'f1_macro': f1_macro_average,
-                'f1_micro': f1_micro_average,
-                'f1_weighted': f1_weighted_average,
-                'roc_auc': roc_auc,
-                'hamming_loss': hamming}
-
-        return metrics  
-    
-
-    seed_val = 42
-    random.seed(seed_val)
-    np.random.seed(seed_val)
-    torch.manual_seed(seed_val)
-    torch.cuda.manual_seed_all(seed_val)
-
-    model.zero_grad()
-    for epoch_i in range(0, epochs):
+    try:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        params = trial['params']
         
-        # ========================================
-        #               Training
-        # ========================================
+        # Signal training start and report initial progress
+        if dispatcher:
+            dispatcher.emit('start', None)
+            dispatcher.emit('progress', {'current': 0, 'total': trial['budget']})
+
+        train_dataloader, validation_dataloader, test_dataloader = fetch_korean_hate_speech(batch_size=params['batch_size'])
+
+        num_labels = 9
+        model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased", 
+                                                              num_labels=num_labels, 
+                                                              problem_type="multi_label_classification", 
+                                                              hidden_act=params['activation'],
+                                                              hidden_dropout_prob = params['dropout_probability'],
+                                                              attention_probs_dropout_prob = params['dropout_probability'],
+                                                              position_embedding_type=params['positional_embedding'],
+                                                              classifier_dropout=params['classifier_dropout'],
+                                                              )
+        # print(model.config)
+        model.cuda()
+        model_params = model.parameters()
+        # print("optimizer", params["optimizer"])
+
+        # print("scheduler", params["scheduler"])
+       
         
-        print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
-        print('Training...')
+        
+        if params["optimizer"]=="adamw":
+            optimizer = AdamW(model.parameters(),
+                          lr = params['learning_rate'],
+                          eps = 1e-8
+                        )
+        elif params["optimizer"]=="adafactor":
+            optimizer = Adafactor(
+                model.parameters(),
+                lr = params['learning_rate'],
+                eps=(1e-30, 1e-3),
+                clip_threshold=1.0,
+                decay_rate=-0.8,
+                beta1=None,
+                weight_decay= params['weight_decay'],
+                scale_parameter=False,
+                warmup_init=False,
+                relative_step=False)
+        else:
+            optimizer = getters.get_optimizer(params["optimizer"], model_params, params)
+
+        # change epochs for improving results (our paper : epochs = 4)
+        epochs = trial['budget']
+        total_steps = len(train_dataloader) * epochs
+
+        if params['scheduler'] == "const":
+            scheduler = get_constant_schedule(optimizer)
+        elif params["scheduler"] == "const_warmup":
+            scheduler = get_constant_schedule_with_warmup(optimizer, 
+                                                        num_warmup_steps = 0,
+                                                        )
+        elif params['scheduler'] == "cos_warmup":
+            scheduler = get_cosine_schedule_with_warmup(
+                optimizer, num_warmup_steps = 0, num_training_steps = total_steps
+            )
+        elif params['scheduler'] == "cos_hard":
+            scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(
+                optimizer, num_warmup_steps = 0, num_training_steps = total_steps
+            )
+        elif params['scheduler'] == "linear_warmup":
+            scheduler = get_linear_schedule_with_warmup(optimizer, 
+                                                        num_warmup_steps = 0,
+                                                        num_training_steps = total_steps)
+        elif params['scheduler'] == "poly_decay":
+            scheduler = get_polynomial_decay_schedule_with_warmup(optimizer,
+                                                                num_warmup_steps = 0,
+                                                                num_training_steps = total_steps,
+                                                                lr_end = 0.0)
+        elif params['scheduler'] == "none":
+            scheduler = None
+        else:
+            raise NotImplementedError
+
+
+        def format_time(elapsed):
+            elapsed_rounded = int(round((elapsed)))
+            return str(datetime.timedelta(seconds=elapsed_rounded))  # hh:mm:ss
+
+        def multi_label_metrics(predictions, labels, threshold=0.5):
+            sigmoid = torch.nn.Sigmoid()
+            probs = sigmoid(torch.Tensor(predictions))
+            y_pred = np.zeros(probs.shape)
+            y_pred[np.where(probs >= threshold)] = 1
+
+            # finally, compute metrics
+            y_true = labels
+            accuracy = accuracy_score(y_true, y_pred)
+            f1_macro_average = f1_score(y_true=y_true, y_pred=y_pred, average='macro', zero_division=0)
+            f1_micro_average = f1_score(y_true=y_true, y_pred=y_pred, average='micro', zero_division=0)
+            f1_weighted_average = f1_score(y_true=y_true, y_pred=y_pred, average='weighted', zero_division=0)
+            roc_auc = roc_auc_score(y_true, y_pred, average = 'micro')
+            hamming = hamming_loss(y_true, y_pred)
+
+            # return as dictionary
+            metrics = {'accuracy': accuracy,
+                    'f1_macro': f1_macro_average,
+                    'f1_micro': f1_micro_average,
+                    'f1_weighted': f1_weighted_average,
+                    'roc_auc': roc_auc,
+                    'hamming_loss': hamming}
+
+            return metrics  
+    
+
+        seed_val = 42
+        random.seed(seed_val)
+        np.random.seed(seed_val)
+        torch.manual_seed(seed_val)
+        torch.cuda.manual_seed_all(seed_val)
+
+        model.zero_grad()
+        for epoch_i in range(0, epochs):
+        
+            # ========================================
+            #               Training
+            # ========================================
+            
+            print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
+            print('Training...')
+
+            t0 = time.time()
+            total_loss = 0
+
+            model.train()
+
+            # Add tqdm progress bar for training batches
+            train_progress = tqdm(train_dataloader, desc=f"Epoch {epoch_i+1}/{epochs} Training", unit="batch")
+            for step, batch in enumerate(train_progress):
+                # if step % 250 == 0 and not step == 0:
+                #     elapsed = format_time(time.time() - t0)
+                #     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
+                #     break
+                
+
+                batch = tuple(t.to(device) for t in batch)
+                b_input_ids, b_input_mask, b_labels = batch
+
+                outputs = model(b_input_ids, 
+                                token_type_ids=None, 
+                                attention_mask=b_input_mask, 
+                                labels=b_labels)
+                
+                loss = outputs[0]
+                total_loss += loss.item()
+                loss.backward()
+
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # gradient clipping if it is over a threshold
+                optimizer.step()
+                if scheduler:
+                    scheduler.step()
+
+                model.zero_grad()
+                
+                # Update progress bar with current loss
+                train_progress.set_postfix({'loss': f'{loss.item():.4f}', 'avg_loss': f'{total_loss/(step+1):.4f}'})
+                # if (step == 200):
+                #     break  # For quicker epochs during testing
+
+            avg_train_loss = total_loss / len(train_dataloader)            
+
+            print("  Average training loss: {0:.4f}".format(avg_train_loss))
+            print("  Training epcoh took: {:}".format(format_time(time.time() - t0)))
+            
+            # Report progress to worker if dispatcher exists
+            if dispatcher:
+                dispatcher.emit('progress', {'current': epoch_i + 1, 'total': epochs})
+            
+            print("")
+            print("Training complete!")
+
+        # Signal evaluation start
+        if dispatcher:
+            dispatcher.emit('progress', {'current': epochs, 'total': epochs, 'phase': 'evaluation'})
 
         t0 = time.time()
-        total_loss = 0
-
-        model.train()
-
-        for step, batch in tqdm(enumerate(train_dataloader)):
-            # if step % 250 == 0 and not step == 0:
+        model.eval()
+        accum_logits, accum_label_ids = [], []
+        total_test_loss = 0
+    
+        # Add tqdm progress bar for evaluation
+        eval_progress = tqdm(test_dataloader, desc="Evaluating", unit="batch")
+        for step, batch in enumerate(eval_progress):
+            # if step % 100 == 0 and not step == 0:
             #     elapsed = format_time(time.time() - t0)
-            #     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
+            #     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(test_dataloader), elapsed))
             #     break
-            
 
             batch = tuple(t.to(device) for t in batch)
             b_input_ids, b_input_mask, b_labels = batch
 
-            outputs = model(b_input_ids, 
-                            token_type_ids=None, 
-                            attention_mask=b_input_mask, 
-                            labels=b_labels)
+            with torch.no_grad():
+                outputs = model(b_input_ids, 
+                                token_type_ids=None, 
+                                attention_mask=b_input_mask)
+                outputs2 = model(b_input_ids, 
+                                token_type_ids=None, 
+                                attention_mask=b_input_mask, 
+                                labels=b_labels)
+            loss = outputs2[0]
+            total_test_loss += loss.item()
+
+            logits = outputs[0]
+            logits = logits.detach().cpu().numpy()
+            label_ids = b_labels.to('cpu').numpy()
             
-            loss = outputs[0]
-            total_loss += loss.item()
-            loss.backward()
+            for b in logits:
+                accum_logits.append(list(b))
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # gradient clipping if it is over a threshold
-            optimizer.step()
-            if scheduler:
-                scheduler.step()
-
-            model.zero_grad()
-
-        avg_train_loss = total_loss / len(train_dataloader)            
-
-        print("  Average training loss: {0:.4f}".format(avg_train_loss))
-        print("  Training epcoh took: {:}".format(format_time(time.time() - t0)))
-        
-    print("")
-    print("Training complete!")
-
-
-    t0 = time.time()
-    model.eval()
-    accum_logits, accum_label_ids = [], []
-    total_test_loss = 0
-    for step, batch in tqdm(enumerate(test_dataloader)):
-        # if step % 100 == 0 and not step == 0:
-        #     elapsed = format_time(time.time() - t0)
-        #     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(test_dataloader), elapsed))
-        #     break
-
-        batch = tuple(t.to(device) for t in batch)
-        b_input_ids, b_input_mask, b_labels = batch
-
-        with torch.no_grad():
-            outputs = model(b_input_ids, 
-                            token_type_ids=None, 
-                            attention_mask=b_input_mask)
-            outputs2 = model(b_input_ids, 
-                            token_type_ids=None, 
-                            attention_mask=b_input_mask, 
-                            labels=b_labels)
-        loss = outputs2[0]
-        total_test_loss += loss.item()
-
-        logits = outputs[0]
-        logits = logits.detach().cpu().numpy()
-        label_ids = b_labels.to('cpu').numpy()
-        
-        for b in logits:
-            accum_logits.append(list(b))
-
-        for b in label_ids:
-            accum_label_ids.append(list(b))
-    avg_val_loss = total_test_loss / len(test_dataloader)
-    accum_logits = np.array(accum_logits)
-    accum_label_ids = np.array(accum_label_ids)
-    results = multi_label_metrics(accum_logits, accum_label_ids)
-    print("Accuracy: {0:.4f}".format(results['accuracy']))
-    print("Total Validation Loss: {0:.4f}".format(avg_val_loss))
-    print("Test took: {:}".format(format_time(time.time() - t0)))
-
-    return {"loss": avg_val_loss, "metric": results['accuracy']}
-
-
-
-
-
-def train_satellite(trial):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("device", device)
-    # print("device", device)
-    # print("Train start")
-    # print("Train start", trial)
-    params = trial['params']
-    params['epoch'] = trial['budget']
-    # print("params start", params)
-
-    if params['pretrained'] == True:
-        params['pretrained'] = "imagenet"
-    else:
-        params['pretrained'] = None
-    if params['activation'] == "none":
-        params['activation'] = None
-    if (params['encoder'] == "resnet"):
-        params['encoder'] = "resnet34"
-    elif (params['encoder'] == "vgg"):
-        params['encoder'] = "vgg19"
-    elif (params['encoder'] == "densenet"):
-        params['encoder'] = "densenet201"
-    elif (params['encoder'] == "xception"):
-        params['encoder'] = "xception"
-    elif (params['encoder'] == "dpn"):
-        params['encoder'] = "dpn68"
-    elif (params['encoder'] == "efficientnet"):
-        params['encoder'] = "efficientnet-b3"
-    elif (params['encoder'] == "mobilenet"):
-        params['encoder'] = "mobilenet_v2"
+            for b in label_ids:
+                accum_label_ids.append(list(b))
+                
+            # Update evaluation progress bar
+            eval_progress.set_postfix({'test_loss': f'{total_test_loss/(step+1):.4f}'})
+            # if (step == 200):
+            #     break
+        avg_val_loss = total_test_loss / len(test_dataloader)
+        accum_logits = np.array(accum_logits)
+        accum_label_ids = np.array(accum_label_ids)
+        results = multi_label_metrics(accum_logits, accum_label_ids)
+        print("Accuracy: {0:.4f}".format(results['accuracy']))
+        print("Total Validation Loss: {0:.4f}".format(avg_val_loss))
+        print("Test took: {:}".format(format_time(time.time() - t0)))
     
-    init_params = {
-        "encoder_name": params['encoder'],
-        "encoder_weights": params['pretrained'],
-        "classes": 1,
-        "activation": params["activation"]
-    }
-    # print("Model load start2")
-    if params['encoder'] == "none":
-        model = UNet()
-    else:
-        model = getters.get_model(architecture="Unet", init_params=init_params)
-    model_params = model.parameters()
-    # print("Dataset load start2")
-    train_dataset = SatelliteDataset(
-        data_dir="./data/satellite", 
-        csv_file="train_edited.csv", 
-        transform=getattr(transform, "train_transform_2"),
-    )
+        # Signal training completion with results
+        result = {"loss": avg_val_loss, "metric": results['accuracy']}
+        if dispatcher:
+            dispatcher.emit('done', result)
 
-    train_dataloader = DataLoader(
-        train_dataset, 
-        batch_size=params['batch_size'], 
-        shuffle=True, 
-        num_workers=4, 
-        # worker_init_fn=worker_init_fn
-    )
-
-    val_dataset = SatelliteDataset(
-            data_dir="./data/satellite", 
-            csv_file="train_edited.csv", 
-            transform=getattr(transform, "test_transform_1"), 
-            val=True
-    )
-    val_dataloader = DataLoader(
-        val_dataset, 
-        batch_size=params['batch_size'], 
-        shuffle=False, 
-        num_workers=4,
-    )
-    losses = {}
-    losses[params["loss_function"]] = getters.get_loss(params["loss_function"], init_params=None)
-
-    metrics = {}
-    metrics["DiceScore"] = getters.get_metric("DiceScore", init_params=None)
-
-    optimizer = getters.get_optimizer(params["optimizer"], model_params, params)
-
-    if params['scheduler'] == "PolyLR":
-            init_params = {"epochs":params["budget"]}
-    else:
-        init_params = None
+        return result
     
-    scheduler = getters.get_scheduler(
-        params['scheduler'],
-        optimizer,
-        init_params=params,
-    )
-    
+    except Exception as e:
+        print(f"Error during training: {str(e)}")
+        # Emit error for notification system
+        if dispatcher:
+            dispatcher.emit('error', str(e))
+        # Return dummy results to keep BOHB algorithm working
+        return {'loss': 999.0, 'metric': 0.0}
 
-    # print("Trainer start")
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trainer = Trainer(
-        model=model, model_device=device,
-    )
-    trainer.compile(optimizer=optimizer, loss=losses, metrics=metrics)
-    # print("Trainer train")
-    result = trainer.train(
-        train_dataloader=train_dataloader,
-        valid_dataloader=val_dataloader,
-        epochs=trial['budget'],
-        accumulation_steps=4,
-        verbose=True,
-        scheduler=scheduler,
-    )
-    
-    return result
-    
-    
+
 

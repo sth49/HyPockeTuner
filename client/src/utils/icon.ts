@@ -80,6 +80,7 @@ export const navIcons: Record<string, IconComponent> = {
 
 export const hpTypeIcons: Record<string, IconComponent> = {
   constant: MdAdjust,
+  fixed: MdAdjust, // fixed와 constant는 같은 아이콘 사용
   uniform: MdNumbers,
   ordinal: MdOutlineSignalCellularAlt,
   unordered: MdCategory,

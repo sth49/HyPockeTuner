@@ -254,8 +254,8 @@ export const useGraphData = () => {
         if (trial.trials[0].metric != null) {
           if (trial.trials[0].metric > bestTrialMetric) {
             bestTrialMetric = trial.trials[0].metric;
+            trial.trials[0].isBest = true;
           }
-          trial.trials[0].isBest = trial.trials[0].metric === bestTrialMetric;
         }
 
         data.push({
@@ -466,6 +466,7 @@ const isValidPush = (push: any) => {
     "metric-improved-by",
     "metric-improved",
     "low-utilization",
+    "exception-raised",
   ];
   return validPushTypes.includes(push.type);
 };

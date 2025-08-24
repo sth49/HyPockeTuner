@@ -1,0 +1,174 @@
+{
+  "name": "Exp",
+  "model": "cnn",
+  "dataset": "mnist",
+  "metric": { "name": "Accuracy" },
+  "hyperparameters": [
+    {
+      "name": "batch_size",
+      "displayName": "bs",
+      "type": "ordered",
+      "values": [32, 64, 128],
+      "selected": true
+    },
+    {
+      "name": "optimizer",
+      "displayName": "optim",
+      "type": "unordered",
+      "values": ["adam", "sgd", "rms"],
+      "selected": true
+    },
+    {
+      "name": "learning_rate",
+      "displayName": "lr",
+      "type": "ordered",
+      "values": [0.0001, 0.001, 0.01, 0.1],
+      "selected": true
+    },
+    {
+      "name": "weight_decay",
+      "displayName": "wd",
+      "type": "uniform",
+      "range": [0, 0.001],
+      "selected": true
+    },
+    {
+      "name": "scheduler_p",
+      "displayName": "sche_p",
+      "type": "unordered",
+      "values": [false, true],
+      "selected": true
+    },
+    {
+      "name": "momentum",
+      "displayName": "mmt",
+      "type": "uniform",
+      "range": [0, 1],
+      "selected": true
+    },
+    {
+      "name": "activation",
+      "displayName": "acti",
+      "type": "unordered",
+      "values": ["relu", "lrelu", "tanh"],
+      "selected": true
+    },
+    {
+      "name": "hidden_size",
+      "displayName": "hs",
+      "type": "ordered",
+      "values": [16, 32, 64],
+      "selected": true
+    }
+  ],
+  "bohb": { "min_budget": 1, "max_budget": 3, "eta": 3 },
+  "cond_list": [
+    {
+      "id": "3ca51c4a-fb89-467b-9988-dde91424c558",
+      "eventCond": {
+        "id": "d5b2ce95-5a99-4355-a539-057d6ce910f6",
+        "type": "experiment-started"
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "efea17ae-a834-483a-b150-f56213e44a7d",
+      "eventCond": {
+        "id": "3904a6f6-eafe-487c-960e-f5c024e953d5",
+        "type": "experiment-paused"
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "415112f4-27f9-4850-8991-69cbdbd25674",
+      "eventCond": {
+        "id": "2a96038d-1015-4a41-9b3f-086255d760c9",
+        "type": "experiment-resumed"
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "57e26c68-ab86-48f4-965e-4b24cf751b18",
+      "eventCond": {
+        "id": "c4f4945b-3182-43dc-88a9-648d3feebee1",
+        "type": "experiment-done"
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "dee8a1c4-97e8-47dc-acf1-b5dcece951da",
+      "eventCond": {
+        "id": "2de11816-bfd1-493f-9bbc-1d4cfeae809c",
+        "type": "low-utilization",
+        "utilization": 1
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "cb202b41-e884-4f27-abe6-029b5fa4fb8b",
+      "eventCond": {
+        "id": "a823a9fe-01da-41ee-a1ac-bb12dcf5abf5",
+        "type": "high-temperature",
+        "temperature": 90
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "236b143f-e9fd-4ce0-bc47-a17ab73e1467",
+      "eventCond": {
+        "id": "4c78f38f-c8f0-4fd6-8425-95fcda77e0ef",
+        "type": "high-usage",
+        "usage": 85
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    },
+    {
+      "id": "b0d8e348-da0d-4671-ae6a-d3d33a12a6d7",
+      "eventCond": {
+        "id": "118684da-d1ae-4d13-9b28-79584df02572",
+        "type": "exception-raised"
+      },
+      "timeoutCond": null,
+      "createdAt": 1751852825,
+      "active": true,
+      "status": null,
+      "confirmed": false
+    }
+  ],
+  "lastViewedState": {
+    "metric": 0,
+    "currNumTrials": 0,
+    "totalTrials": 0,
+    "expId": "",
+    "capturedAt": 0
+  },
+  "expId": "3ac872ca-3ea2-4d6e-943b-736d939b3a0b"
+}

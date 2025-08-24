@@ -28,6 +28,16 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
     state.hyperparams?.find((h) => h.name === param.name)
   );
 
+  // 텍스트를 중간에서 자르고 말줄임표를 추가하는 함수
+  const truncateMiddle = (text: string, maxLength: number = 8) => {
+    if (text.length <= maxLength) return text;
+
+    const start = Math.ceil(maxLength / 2) - 1;
+    const end = Math.floor(maxLength / 2) - 1;
+
+    return text.slice(0, start) + "..." + text.slice(-end);
+  };
+
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -51,51 +61,99 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
   useEffect(() => {
     const shapData: { name: string; value: number; metricValues: any }[] = [];
 
+    // 숫자 값을 일관된 형태로 정규화하는 함수
+    const normalizeValue = (value: any): string => {
+      if (value === true) return "True";
+      if (value === false) return "False";
+
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        // 과학적 표기법으로 통일 (1e-05 형태)
+        if (num < 0.001 && num > 0) {
+          return num.toExponential().replace("+", "");
+        } else if (num > 1000) {
+          return num.toExponential().replace("+", "");
+        } else {
+          return num.toString();
+        }
+      }
+
+      return value.toString();
+    };
+
     const range = param.values as string[] | boolean[] | number[];
 
+    // 먼저 모든 범위의 값에 대해 초기 데이터 생성
     range.forEach((value) => {
-      const data = {
-        name:
-          value === true
-            ? "True"
-            : value === false
-            ? "False"
-            : value.toString(),
+      const normalizedName = normalizeValue(value);
+      shapData.push({
+        name: normalizedName,
         value: 0,
-        metricValues: [], // Assuming shapValues is an object with keys as string representations of values
-      };
-      shapData.push(data);
+        metricValues: [],
+      });
     });
-
-    Object.entries(param.shapValues).forEach(([key, value]) => {
-      const existingData = shapData.find((d) => d.name === key);
-      if (existingData) {
-        existingData.value = value.meanImpact; // Assuming meanImpact is the value you want to use
-        existingData.metricValues = value.metricValues || [];
+    // 실제 SHAP 값이 있는 데이터로 업데이트
+    if (param.shapValues && Object.keys(param.shapValues).length > 0) {
+      Object.entries(param.shapValues).forEach(([key, value]) => {
+        const normalizedKey = normalizeValue(key);
+        const existingData = shapData.find((d) => d.name === normalizedKey);
+        if (existingData) {
+          existingData.value = value.meanImpact || 0;
+          existingData.metricValues = value.metricValues || [];
+        } else {
+          // range에 없는 값이 샘플링된 경우 추가
+          shapData.push({
+            name: normalizedKey,
+            value: value.meanImpact || 0,
+            metricValues: value.metricValues || [],
+          });
+        }
+      });
+    }
+    // 중복 제거
+    const uniqueData = shapData.reduce((acc, current) => {
+      const existing = acc.find((item) => item.name === current.name);
+      if (existing) {
+        // 기존 데이터가 있으면 값이 더 큰 것으로 업데이트 (또는 병합)
+        existing.value = existing.value || current.value;
+        existing.metricValues = [
+          ...(existing.metricValues || []),
+          ...(current.metricValues || []),
+        ];
       } else {
-        shapData.push({
-          name: key,
-          value: value.meanImpact, // Assuming meanImpact is the value you want to use
-          metricValues: value.metricValues || [],
-        });
+        acc.push(current);
       }
-    });
+      return acc;
+    }, [] as typeof shapData);
 
-    setData(shapData);
+    setData(uniqueData);
   }, [param]);
 
   const width = svgWidth;
   const fixedBarHeight = 20;
-  const totalBarHeight = data.length * fixedBarHeight + (data.length - 1) * 5; // 5px margin between bars
+  // 최소 높이를 보장하여 값이 1개일 때도 충분한 공간 확보
+  const minHeight = 60;
+  const calculatedHeight =
+    data.length * fixedBarHeight + Math.max(0, data.length - 1) * 5;
+  const totalBarHeight = Math.max(minHeight, calculatedHeight);
   const height = totalBarHeight + margin.top + margin.bottom;
   const xMax = width - margin.left - margin.right;
   const yMax = height - margin.top - margin.bottom;
 
   const xAbsoluteMaxValue = useMemo(() => {
-    const max = Math.max(...data.map((d) => Math.abs(d.value)), 0);
-    const min = Math.min(...data.map((d) => Math.abs(d.value)), 0);
+    // NaN 값을 필터링하고 유효한 숫자만 사용
+    const validValues = data
+      .map((d) => d.value)
+      .filter((v) => !isNaN(v) && isFinite(v));
+
+    if (validValues.length === 0) {
+      return 1; // 기본값으로 1 사용
+    }
+
+    const max = Math.max(...validValues.map((d) => Math.abs(d)), 0);
+    const min = Math.min(...validValues.map((d) => Math.abs(d)), 0);
     const absValue = Math.max(Math.abs(max), Math.abs(min));
-    return absValue * 1.1;
+    return Math.max(absValue * 1.1, 0.1); // 최소값 보장
   }, [data]);
 
   // Scales
@@ -112,7 +170,23 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
 
   const yScale = scaleBand<string>({
     range: [0, totalBarHeight],
-    domain: data.map((d) => d.name),
+    domain: data
+      .slice()
+      .sort((a, b) => {
+        // ordinal 하이퍼파라미터인 경우 숫자 크기 순으로 정렬
+        const numA = parseFloat(a.name);
+        const numB = parseFloat(b.name);
+
+        // 둘 다 숫자로 변환 가능한 경우 숫자 크기 순으로 정렬
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+
+        // 그 외의 경우 문자열 순으로 정렬 (Boolean 등)
+        return a.name.localeCompare(b.name);
+      })
+      .map((d) => d.name),
+    padding: 0.2, // padding 추가로 간격 확보
   });
   const getStableJitter = (value: number, index: number, bandWidth: number) => {
     // 값과 인덱스를 조합해서 안정적인 해시 생성
@@ -155,7 +229,7 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                   }
 
                   return (
-                    <>
+                    <g key={`circles-${d.name}`}>
                       {d.metricValues.map((v: NumberValue, index: number) => {
                         const numValue = Number(v);
                         const circleX = metricX(numValue) ?? 0;
@@ -179,7 +253,7 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                           />
                         );
                       })}
-                    </>
+                    </g>
                   );
                 })}
                 <AxisBottom
@@ -210,6 +284,11 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
             ) : (
               <>
                 {data.map((d) => {
+                  // Effect 값이 유효하지 않으면 막대를 그리지 않음 (하지만 Y축 레이블은 표시됨)
+                  if (isNaN(d.value) || d.value === 0) {
+                    return null;
+                  }
+
                   const barWidth = Math.abs(xScale(d.value) - xScale(0));
                   const barX = d.value > 0 ? xScale(0) : xScale(d.value);
                   const barY = yScale(d.name) ?? 0;
@@ -287,12 +366,18 @@ const ImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                   >
                     <>
                       {isValidValue ? (
-                        <span className="btn btn-xs h-[20px] btn-primary text-white rounded-full w-[60px]">
-                          {formattedValue}
+                        <span
+                          className="btn btn-xs h-[20px] btn-primary text-white rounded-full w-[60px]"
+                          title={formattedValue || ''}
+                        >
+                          {truncateMiddle(formattedValue || '')}
                         </span>
                       ) : (
-                        <span className="btn btn-xs h-[20px] btn-outline rounded-full w-[60px] italic line-through">
-                          {formattedValue}
+                        <span
+                          className="btn btn-xs h-[20px] btn-outline rounded-full w-[60px] italic line-through"
+                          title={formattedValue || ''}
+                        >
+                          {truncateMiddle(formattedValue || '')}
                         </span>
                       )}
                     </>

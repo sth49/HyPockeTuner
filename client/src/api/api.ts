@@ -30,6 +30,13 @@ function getAuthHeaders(): Record<string, string> {
 
 function fetchSingle<T = any>(url: string, payload?: any, method = "post"): Promise<T> {
   const headers = getAuthHeaders();
+  console.log(`🌐 [fetchSingle] ${method.toUpperCase()} 요청:`, url);
+  console.log("🌐 [fetchSingle] 헤더:", headers);
+  
+  if (payload) {
+    console.log("🌐 [fetchSingle] 페이로드:", payload);
+    console.log("🌐 [fetchSingle] 직렬화된 페이로드:", JSON.stringify(payload));
+  }
 
   if (!payload) {
     return fetch(url, {
@@ -37,14 +44,22 @@ function fetchSingle<T = any>(url: string, payload?: any, method = "post"): Prom
       headers,
       mode: "cors",
     }).then(async (res) => {
+      console.log(`🌐 [fetchSingle] GET 응답 상태: ${res.status} ${res.statusText}`);
+      
       if (res.status === 401) {
-        // Handle authentication errors by logging out
+        console.error("🌐 [fetchSingle] 인증 실패, 로그아웃 처리");
         const { logout } = useAuthStore.getState();
         logout();
         window.location.reload();
         throw new Error("Authentication required");
       }
-      return res.json();
+      
+      const responseData = await res.json();
+      console.log("🌐 [fetchSingle] GET 응답 데이터:", responseData);
+      return responseData;
+    }).catch(error => {
+      console.error("🌐 [fetchSingle] GET 요청 에러:", error);
+      throw error;
     });
   }
 
@@ -54,14 +69,22 @@ function fetchSingle<T = any>(url: string, payload?: any, method = "post"): Prom
     body: JSON.stringify(payload),
     mode: "cors",
   }).then(async (res) => {
+    console.log(`🌐 [fetchSingle] ${method.toUpperCase()} 응답 상태: ${res.status} ${res.statusText}`);
+    
     if (res.status === 401) {
-      // Handle authentication errors by logging out
+      console.error("🌐 [fetchSingle] 인증 실패, 로그아웃 처리");
       const { logout } = useAuthStore.getState();
       logout();
       window.location.reload();
       throw new Error("Authentication required");
     }
-    return res.json();
+    
+    const responseData = await res.json();
+    console.log(`🌐 [fetchSingle] ${method.toUpperCase()} 응답 데이터:`, responseData);
+    return responseData;
+  }).catch(error => {
+    console.error(`🌐 [fetchSingle] ${method.toUpperCase()} 요청 에러:`, error);
+    throw error;
   });
 }
 
@@ -281,8 +304,20 @@ const ApiClient = {
   // registerSubscription 메서드 추가 또는 수정
 
   registerSubscription: function <T = any>(subscription: any): Promise<T> {
+    console.log("📡 [ApiClient] registerSubscription 호출");
+    console.log("📡 [ApiClient] 구독 데이터:", subscription);
+    console.log("📡 [ApiClient] 요청 URL:", normalizeUrl("subscribe"));
+    
     // 서버의 /subscribe 엔드포인트로 구독 정보 전송
-    return fetchSingle(normalizeUrl("subscribe"), subscription, "post");
+    return fetchSingle(normalizeUrl("subscribe"), subscription, "post")
+      .then(response => {
+        console.log("📡 [ApiClient] registerSubscription 응답:", response);
+        return response;
+      })
+      .catch(error => {
+        console.error("📡 [ApiClient] registerSubscription 에러:", error);
+        throw error;
+      });
   },
 
   testPush: function <T = any>(subscription: any): Promise<T> {

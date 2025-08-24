@@ -88,13 +88,13 @@ export const useExperimentOptions = (type: string) => {
   }, []);
 
   const datasetOptions =
-    expOption?.dataset.map((name: string) => ({
+    expOption?.dataset?.map((name: string) => ({
       value: name,
       label: name,
     })) || [];
 
   const modelOptions =
-    newExpOptions.dataset && expOption
+    newExpOptions.dataset && expOption?.dataset_model?.[newExpOptions.dataset]
       ? expOption.dataset_model[newExpOptions.dataset].map((name: string) => ({
           value: name,
           label: name,

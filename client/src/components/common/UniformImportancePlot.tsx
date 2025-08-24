@@ -340,7 +340,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                   textAnchor: "middle",
                   verticalAnchor: "middle",
                 })}
-                numTicks={6}
+                numTicks={3}
                 // tickFormat={(value) => {
                 //   const numValue = Number(value);
                 //   return numValue.toFixed(2);

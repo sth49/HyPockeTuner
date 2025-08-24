@@ -170,33 +170,61 @@ export class Hyperparam {
 
   checkSpaceChange(data: any) {
     if (this.type === HyperparamTypes.Uniform) {
+      // Ensure we're comparing numbers properly
+      const newMin = Number(data[0]);
+      const newMax = Number(data[1]);
+      const originalMin = Number(this.narrowValue[0]);
+      const originalMax = Number(this.narrowValue[1]);
+
       // Check if the values are exactly the same (no change)
-      if (+data[0] === this.narrowValue[0] && +data[1] === this.narrowValue[1]) {
+      if (newMin === originalMin && newMax === originalMax) {
         return false; // No change
       }
-      
+
       // Check if the new range is invalid (outside bounds or empty)
       if (
-        +data[0] < this.narrowValue[0] ||
-        +data[1] > this.narrowValue[1] ||
-        +data[0] >= +data[1]
+        newMin < originalMin ||
+        newMax > originalMax ||
+        newMin >= newMax ||
+        isNaN(newMin) ||
+        isNaN(newMax)
       ) {
         return false; // Invalid range
       }
-      
+
       return true; // Valid change detected
     } else {
-      const dataSet = new Set(data);
-      const narrowSet = new Set(this.narrowValue);
+      // If only 1 value exists, no change is possible
+      if (this.narrowValue.length <= 1) {
+        return false;
+      }
+
+      // Normalize both data and narrowValue to strings for comparison
+      const normalizedData = data.map((v: any) => v?.toString());
+      const normalizedNarrowValue = this.narrowValue.map((v: any) =>
+        v?.toString()
+      );
+
+      const dataSet = new Set(normalizedData);
+      const narrowSet = new Set(normalizedNarrowValue);
+
+      // console.log(`checkSpaceChange for non-uniform ${this.name}:`);
+      // console.log('  data:', data, '→ normalized:', normalizedData);
+      // console.log('  narrowValue:', this.narrowValue, '→ normalized:', normalizedNarrowValue);
+      // console.log('  dataSet:', Array.from(dataSet), 'narrowSet:', Array.from(narrowSet));
+
       // dataSet이랑 narrowSet이랑 똑같이 생겼으면 안바뀐 것
       if (dataSet.size !== narrowSet.size) {
+        // console.log('  → CHANGED: different sizes');
         return true; // 개수가 다르면 바뀐 것
       }
       for (const value of narrowSet) {
         if (!dataSet.has(value)) {
+          // console.log('  → CHANGED: missing value in data:', value);
           return true; // narrowSet에 있는 값이 dataSet에 없으면 바뀐 것
         }
       }
+      // console.log('  → NO CHANGE: sets are identical');
     }
     return false; // 범위가 안바뀐 것
   }
@@ -239,7 +267,9 @@ export class Hyperparam {
     } else if (this.type === HyperparamTypes.Ordinal) {
       return value.toString();
     } else if (this.type === HyperparamTypes.Uniform) {
+      console.log("number", value, typeof value);
       const numValue = Number(value);
+
       if (numValue === 0) {
         return "0"; // 0은 그대로 표시
       }

@@ -324,18 +324,47 @@ async def request_current_state(sid: str):
 
 def pushAll(data):
     global subs
-    for sub_string in subs:
-        sub = json.loads(sub_string)
+    invalid_subs = set()  # Track invalid subscriptions to remove later
+    
+    for sub_string in subs.copy():  # Use copy to avoid modification during iteration
         try:
+            # Add validation for JSON string
+            if not sub_string or not sub_string.strip():
+                print(f"Warning: Empty subscription string, skipping...")
+                invalid_subs.add(sub_string)
+                continue
+                
+            sub = json.loads(sub_string)
+            
+            # Validate that sub is a dictionary with required fields
+            if not isinstance(sub, dict):
+                print(f"Warning: Invalid subscription format (not a dict), skipping...")
+                invalid_subs.add(sub_string)
+                continue
+                
             res = webpush(
-            sub, data=json.dumps(data),
-            vapid_private_key=PRIVATE_KEY,
-            vapid_claims={"sub": "mailto:hdh12345@g.skku.edu"}
-        )
+                sub, data=json.dumps(data),
+                vapid_private_key=PRIVATE_KEY,
+                vapid_claims={"sub": "mailto:hdh12345@g.skku.edu"}
+            )
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error for subscription: {e}")
+            print(f"Problematic subscription string: {repr(sub_string)}")
+            invalid_subs.add(sub_string)
+            continue
         except Exception as e:
-            print("push error", e)
+            print(f"Push notification error: {e}")
+            # Don't remove subscription for temporary errors (network, etc.)
             import traceback    
             traceback.print_exc()
+    
+    # Remove all invalid subscriptions after iteration
+    for invalid_sub in invalid_subs:
+        subs.discard(invalid_sub)
+        print(f"Removed invalid subscription from list")
+    
+    if invalid_subs:
+        print(f"Cleaned up {len(invalid_subs)} invalid subscriptions")
 
 async def broadcast(callback):
     for cb in callback:
@@ -386,11 +415,46 @@ def get_gpu_usage(device_id=0):
 
 def load_exps(u_id):
     global exp_list, el, exp, client_exp
-    exp_list = [Exp(None, id=ep, user=u_id) for ep in os.listdir(f"./users/{u_id}/experiments")]
-    exp_list.sort(key=lambda x: float(x.created_at), reverse=True)
-    data = [ep.summary() for ep in exp_list]
+    
+    # 안전하게 실험 로드
+    exp_list = []
+    experiments_dir = f"./users/{u_id}/experiments"
+    
+    if not os.path.exists(experiments_dir):
+        print(f"❌ Experiments directory not found: {experiments_dir}")
+        exp_list = []
+        el = Logger(f"./users/{u_id}/log/")
+        server_log("load_exps", [])
+        return
+    
+    for exp_id in os.listdir(experiments_dir):
+        try:
+            exp_instance = Exp(None, id=exp_id, user=u_id)
+            exp_list.append(exp_instance)
+            print(f"✅ Loaded experiment: {exp_id}")
+        except Exception as e:
+            print(f"❌ Failed to load experiment {exp_id}: {e}")
+            continue
+    
+    # 생성 시간 순으로 정렬
+    try:
+        exp_list.sort(key=lambda x: float(x.created_at), reverse=True)
+    except Exception as e:
+        print(f"⚠️ Warning: Failed to sort experiments by created_at: {e}")
+    
+    # Summary 생성
+    data = []
+    for ep in exp_list:
+        try:
+            summary = ep.summary()
+            data.append(summary)
+        except Exception as e:
+            print(f"❌ Failed to get summary for experiment {getattr(ep, 'id', 'unknown')}: {e}")
+            continue
+    
     el = Logger(f"./users/{u_id}/log/")
     server_log("load_exps", data)
+    print(f"📊 Successfully loaded {len(exp_list)} experiments for user {u_id}")
     
     # for ep in exp_list:
     #     print(ep.summary())
@@ -472,17 +536,48 @@ from pywebpush import webpush
 @app.post('/subscribe')
 async def subscribe(request: Request):
     global subs, exp, curr_user, client_exp, client_exp, el
-    data = await request.json()
-    sub = str(data)
-    # print("subscribe", sub)
-    subs.add(sub)
-    # print("subs length:", len(subs))
-    # el.log("Subscribe", ip=request.client.host, user_id=curr_user, curr_exp=exp, client_exp=client_exp, data=sub)
-    server_log("subscribe", ip=request.client.host,  data=sub)
-    if exp:
-        exp.state.subs = subs
+    print("🔔 [Server] /subscribe 엔드포인트 호출됨")
+    
+    try:
+        print("📥 [Server] 요청 데이터 파싱 시도...")
+        data = await request.json()
+        print(f"📥 [Server] 받은 데이터: {data}")
+        print(f"📥 [Server] 데이터 타입: {type(data)}")
         
-    return {"success": True}
+        # Convert to proper JSON string instead of str() representation
+        sub = json.dumps(data)
+        print(f"📝 [Server] JSON으로 변환된 구독: {sub[:100]}..." if len(sub) > 100 else f"📝 [Server] JSON으로 변환된 구독: {sub}")
+        
+        # Validate that it can be parsed back
+        try:
+            test_parse = json.loads(sub)
+            print(f"✅ [Server] JSON 파싱 검증 성공")
+        except json.JSONDecodeError as e:
+            print(f"❌ [Server] JSON 파싱 검증 실패: {e}")
+            return {"status": "error", "message": "Invalid subscription format"}
+        
+        print(f"📋 [Server] 구독 추가 전 subs 개수: {len(subs)}")
+        subs.add(sub)
+        print(f"📋 [Server] 구독 추가 후 subs 개수: {len(subs)}")
+        
+        server_log("subscribe", ip=request.client.host, data=sub)
+        print(f"✅ [Server] 서버 로그 기록 완료")
+        
+        if exp:
+            exp.state.subs = subs
+            print(f"✅ [Server] 실험 상태에 구독 정보 동기화 완료")
+        else:
+            print(f"⚠️ [Server] 활성 실험이 없음")
+            
+        print("🎯 [Server] 구독 처리 성공, 응답 반환")
+        return {"success": True}
+        
+    except Exception as e:
+        print(f"💥 [Server] 구독 처리 중 에러: {e}")
+        print(f"💥 [Server] 에러 타입: {type(e)}")
+        import traceback
+        print(f"💥 [Server] 스택 트레이스: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
 
 
 @app.post('/test/push')
@@ -497,7 +592,6 @@ async def test_push(request: Request):
     return {"success": True}
 
 
-    
 @app.post("/visibility")
 async def visibility(request: Request):
     global exp_list, el, exp, client_exp
@@ -697,6 +791,7 @@ async def add_user(id: str, pw: str, request: Request):
 
 @app.get("/check_token/{token}")
 async def check_token(token: str, request: Request):
+    global curr_user
     client_host = request.client.host
     
     if not token or len(token.strip()) == 0:
@@ -711,6 +806,13 @@ async def check_token(token: str, request: Request):
     # 세션 확인 및 활동 시간 업데이트
     if token in active_sessions:
         update_user_activity(token)
+        
+        # 현재 사용자가 다르면 실험 로드
+        if curr_user != token:
+            curr_user = token
+            load_exps(token)
+            print(f"✅ Auto-login: Set curr_user to {token} and loaded experiments")
+        
         return {
             "success": True, 
             "message": "유효한 토큰입니다",
@@ -1356,7 +1458,13 @@ async def register_trial():
 async def trials_report(loss: float, metric: float):
     global exp, curr_trial, el, client_exp, curr_user, exp_list, restore_trial
     if curr_trial is None:
-        return {"success": False}  
+        return {"success": False}
+    
+    # Handle error cases (loss == 999.0) by treating as high loss
+    is_error_trial = (loss == 999.0 or loss >= 999.0)
+    if is_error_trial:
+        print(f"[ERROR RESULT] Treating loss={loss} as error case for trial {curr_trial.id if curr_trial else 'None'}")
+    
     if curr_trial.is_user_trial:
         server_log("finish_user_trial", data={"exp_id": curr_trial.exp_id, "config": curr_trial.config,"loss": loss, "metric": metric})
         user_trial_exp = next((e for e in exp_list if e.id == curr_trial.exp_id), None)

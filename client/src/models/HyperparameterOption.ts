@@ -90,14 +90,27 @@ export class OrderedHyperparamOption extends HyperparamOption {
     console.log("type:", type);
     if (data) {
       if (data.length === 1) {
-        this.selectedType = "constant";
-        this.tp = "value";
-        this.range0 = data[0].toString();
-        this.range1 = data[0].toString();
-        this.constant = data[0].toString();
-        this.newConstant = this.constant;
-        this.range = [data[0], data[0]];
-        this.choices = [data[0]];
+        // For ordinal types with single value, keep as ordinal to allow expansion in narrow config
+        if (type === HyperparamTypes.Ordinal) {
+          this.selectedType = "ordinal";
+          this.tp = "choices";
+          this.choices = [data[0]];
+          this.selected = true;
+          this.range0 = data[0].toString();
+          this.range1 = data[0].toString();
+          this.constant = data[0].toString();
+          this.newConstant = this.constant;
+          this.range = [data[0], data[0]];
+        } else {
+          this.selectedType = "constant";
+          this.tp = "value";
+          this.range0 = data[0].toString();
+          this.range1 = data[0].toString();
+          this.constant = data[0].toString();
+          this.newConstant = this.constant;
+          this.range = [data[0], data[0]];
+          this.choices = [data[0]];
+        }
       } else if (type === HyperparamTypes.Uniform) {
         this.selectedType = "uniform";
         this.tp = "range";

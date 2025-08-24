@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Group } from "@visx/group";
 import { Circle, LinePath } from "@visx/shape";
 import { scaleTime, scaleLinear } from "@visx/scale";
@@ -9,6 +9,28 @@ import { ParentSize } from "@visx/responsive";
 import { useExperimentStore } from "../../stores/experimentStore";
 import HeaderText from "../common/HeaderText";
 
+// Hook to detect mobile screen size
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => setIsMobile(window.innerWidth < 768);
+    checkIsMobile();
+    window.addEventListener("resize", checkIsMobile);
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
+
+  return isMobile;
+};
+
+// Function to sample data for mobile display
+const sampleDataForMobile = (data: any[], maxPoints: number = 50) => {
+  if (data.length <= maxPoints) return data;
+
+  const step = Math.ceil(data.length / maxPoints);
+  return data.filter((_, index) => index % step === 0);
+};
+
 interface GPUPlotInnerProps {
   width: number;
   height: number;
@@ -16,15 +38,16 @@ interface GPUPlotInnerProps {
 
 const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
   const gpuInfo = useExperimentStore((state) => state.gpuInfo);
+  const isMobile = useIsMobile();
 
   const chartWidth = parentWidth || 400;
-  const height = 110; // 모바일에 맞게 높이 축소
-  const margin = { top: 15, right: 50, bottom: 30, left: 10 };
+  const height = isMobile ? 90 : 110;
+  const margin = { top: 15, right: 40, bottom: 30, left: 10 };
   const legendWidth = 30;
   const innerWidth = chartWidth - margin.right - margin.left - legendWidth;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // 1분 단위로 데이터 집계 및 24시간 필터링
+  // 1분 단위로 데이터 집계 및 1시간 필터링
   const aggregatedData = useMemo(() => {
     if (!gpuInfo.length) return [];
 
@@ -32,13 +55,13 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
     const latestTime = Math.max(
       ...gpuInfo.map((item) => new Date(item.time).getTime())
     );
-    // 24시간 전 시간 계산 (24 * 60 * 60 * 1000 = 86400000ms)
-    const twentyFourHoursAgo = latestTime - 24 * 60 * 60 * 1000;
+    // 1시간 전 시간 계산 (1 * 60 * 60 * 1000 = 3600000ms)
+    const oneHourAgo = latestTime - 1 * 60 * 60 * 1000;
 
-    // 24시간 내 데이터만 필터링
+    // 1시간 내 데이터만 필터링
     const filteredGpuInfo = gpuInfo.filter((item) => {
       const itemTime = new Date(item.time).getTime();
-      return itemTime >= twentyFourHoursAgo;
+      return itemTime >= oneHourAgo;
     });
 
     const dataByMinute: Record<
@@ -79,7 +102,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
     });
 
     // 평균 계산
-    return Object.values(dataByMinute)
+    const processedData = Object.values(dataByMinute)
       .map((group) => ({
         time: new Date(group.time),
         temperature:
@@ -93,7 +116,10 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
           group.memoryUsages.length,
       }))
       .sort((a, b) => a.time.getTime() - b.time.getTime());
-  }, [gpuInfo]);
+
+    // 모바일에서는 데이터 포인트 샘플링
+    return isMobile ? sampleDataForMobile(processedData, 30) : processedData;
+  }, [gpuInfo, isMobile]);
 
   // 시간 간격이 큰 경우 선을 분리하기 위한 함수
   const createSegmentedData = (data: any, maxGapMinutes = 10) => {
@@ -178,17 +204,15 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
   if (!aggregatedData.length) {
     return (
       <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
-        <HeaderText text="GPU Monitoring (Last 24 hours)" />
-        <div className="text-sm">
-          No GPU data available in the last 24 hours
-        </div>
+        <HeaderText text="GPU Monitoring (Last 1 hour)" />
+        <div className="text-sm">No GPU data available in the last 1 hour</div>
       </div>
     );
   }
 
   return (
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
-      <HeaderText text="GPU Monitoring (Last 24 hours)" />
+      <HeaderText text="GPU Monitoring (Last 1 hour)" />
       <div className="w-full h-full gap-4 flex flex-col">
         {/* 온도 차트 */}
         <div className="relative ">
@@ -202,11 +226,11 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
             <Group left={0} top={margin.top}>
               <AxisRight
                 scale={tempScale}
-                numTicks={4}
+                numTicks={isMobile ? 3 : 4}
                 tickFormat={(value) => `${Math.round(Number(value))}°`}
                 tickLabelProps={() => ({
                   fill: "#666",
-                  fontSize: 12,
+                  fontSize: isMobile ? 10 : 12,
                   textAnchor: "start",
                   verticalAnchor: "middle",
                   dx: 6,
@@ -230,7 +254,11 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
                   height={innerHeight}
                   stroke="#f0f0f0"
                   strokeWidth={1}
-                  numTicks={Math.min(aggregatedData.length, 10)}
+                  numTicks={
+                    isMobile
+                      ? Math.min(aggregatedData.length, 4)
+                      : Math.min(aggregatedData.length, 10)
+                  }
                 />
 
                 {/* 세그먼트별로 선 그리기 */}
@@ -261,7 +289,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
                 <AxisBottom
                   top={innerHeight}
                   scale={timeScale}
-                  numTicks={4}
+                  numTicks={isMobile ? 3 : 4}
                   tickFormat={(value) => {
                     const date = new Date(Number(value));
                     return `${date
@@ -275,7 +303,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
                   tickLength={6}
                   tickLabelProps={() => ({
                     fill: "oklch(55.1% 0.027 264.364)",
-                    fontSize: 12,
+                    fontSize: isMobile ? 10 : 12,
                     textAnchor: "middle",
                     verticalAnchor: "middle",
                   })}
@@ -296,12 +324,12 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
             <Group left={0} top={margin.top}>
               <AxisRight
                 scale={utilizationScale}
-                numTicks={4}
+                numTicks={isMobile ? 3 : 4}
                 tickFormat={(value) => `${Math.round(Number(value))}%`}
                 tickLength={4}
                 tickLabelProps={() => ({
                   fill: "oklch(55.1% 0.027 264.364)",
-                  fontSize: 12,
+                  fontSize: isMobile ? 10 : 12,
                   textAnchor: "start",
                   verticalAnchor: "middle",
                   dx: 6,
@@ -325,7 +353,11 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
                   height={innerHeight}
                   stroke="#f0f0f0"
                   strokeWidth={1}
-                  numTicks={Math.min(aggregatedData.length, 10)}
+                  numTicks={
+                    isMobile
+                      ? Math.min(aggregatedData.length, 4)
+                      : Math.min(aggregatedData.length, 10)
+                  }
                 />
 
                 {segmentedData.map((segment, segmentIndex) => (
@@ -355,7 +387,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
                 <AxisBottom
                   top={innerHeight}
                   scale={timeScale}
-                  numTicks={4}
+                  numTicks={isMobile ? 3 : 4}
                   tickFormat={(value) => {
                     const date = new Date(Number(value));
                     return `${date

@@ -70,6 +70,7 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("install", () => {
   console.log("Service Worker 설치됨");
+  // 즉시 활성화
   self.skipWaiting();
 });
 
@@ -94,8 +95,11 @@ self.addEventListener("push", function (e) {
   const title = data.key || "기본 제목";
   const options = {
     body: data.value?.content || "기본 메시지",
-    icon: "/HyPockeTuner_new/icons/icon-192x192.png", // base path 추가
-    badge: "/HyPockeTuner_new/icons/badge-72x72.png", // base path 추가
+    icon: "/HyPockeTuner_new/logo192.png",
+    badge: "/HyPockeTuner_new/logo192.png", 
+    data: {
+      exp: data.value?.exp
+    }
   };
 
   e.waitUntil(self.registration.showNotification(title, options));

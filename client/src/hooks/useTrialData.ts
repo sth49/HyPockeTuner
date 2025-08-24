@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-table";
 import { columns as baseColumns } from "../types/columns";
 import { useColorScale } from "../utils/colorScale";
-import { HyperparamTypes } from "../types";
 import { formatting } from "../utils/formatting";
 import { useExperimentStore } from "../stores/experimentStore";
 import { TrialRowType } from "../types";
@@ -58,14 +57,7 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
             return;
           }
           const params = hyperparams?.reduce((acc, h) => {
-            acc[h.name] =
-              h.type === HyperparamTypes.Uniform
-                ? formatting(trial.params?.[h.name] ?? 0, "float", 3)
-                : trial.params?.[h.name] === true
-                ? "True"
-                : trial.params?.[h.name] === false
-                ? "False"
-                : trial.params?.[h.name] ?? 0;
+            acc[h.name] = h.formatting(trial.params?.[h.name]);
             return acc;
           }, {} as Record<string, any>);
 
@@ -75,7 +67,7 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
               trial.trialId + 1
             }`,
             loss: formatting(trial.loss ?? 0, "float", 3),
-            metric: formatting(trial.metric ?? 0, "float", 2),
+            metric: formatting(trial.metric ?? 0, "float"),
             budget: trial.budget ?? 0,
             start:
               (trial.startTime ?? 0) !== 0 ? trial.startTime ?? 0 : Date.now(),
@@ -92,21 +84,22 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
           return; // Only include completed trials
         }
         const params = hyperparams?.reduce((acc, h) => {
-          acc[h.name] =
-            h.type === HyperparamTypes.Uniform
-              ? formatting(trial.params?.[h.name] ?? 0, "float", 3)
-              : trial.params?.[h.name] === true
-              ? "True"
-              : trial.params?.[h.name] === false
-              ? "False"
-              : trial.params?.[h.name] ?? 0;
+          acc[h.name] = h.formatting(trial.params?.[h.name]);
+          //   h.type === HyperparamTypes.Uniform
+          //     ? trial.params?.[h.name] ?? 0
+          //     : trial.params?.[h.name] === true
+          //     ? "True"
+          //     : trial.params?.[h.name] === false
+          //     ? "False"
+          //     : trial.params?.[h.name] ?? 0;
+          // return acc;
           return acc;
         }, {} as Record<string, any>);
         rows.push({
           id: trial.id ?? "USER",
           event: "USER",
           loss: formatting(trial.loss ?? 0, "float", 3),
-          metric: formatting(trial.metric ?? 0, "float", 2),
+          metric: formatting(trial.metric ?? 0, "float"),
           budget: trial.budget ?? 0,
           start:
             (trial.startTime ?? 0) !== 0 ? trial.startTime ?? 0 : Date.now(),

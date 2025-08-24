@@ -4,7 +4,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 import time
 import urllib3
-from kernels import * 
+from kernels import get_kernel_for_trial, load_kernel 
 import multiprocessing as mp
 
 # API = "http://0.0.0.0:8999/"
@@ -76,10 +76,16 @@ def get_is_paused(data):
 
 def train_process(queue, trial):
     try:
-        kernel = KernelBase(trial, queue)
+        # Dynamically select and load the appropriate kernel
+        kernel_name = get_kernel_for_trial(trial)
+        KernelClass = load_kernel(kernel_name)
+        
+        print(f"Using kernel: {kernel_name} for model='{trial.get('model')}', dataset='{trial.get('dataset')}'")
+        
+        kernel = KernelClass(trial, queue)
         kernel.run()
     except Exception as e:
-        print(e)
+        print(f"Error in train_process: {e}")
         queue.put(('error', e))
 
 def main():
@@ -143,6 +149,7 @@ def main():
             
             # 🔧 수정: 큐 메시지 처리 (pause 체크와 분리)
             process_completed = False
+            error_reported = False  # 중복 에러 보고 방지
             while not queue.empty():
                 try:
                     message = queue.get_nowait()
@@ -154,10 +161,13 @@ def main():
                         ret = message[1]
                         report_trial(ret)
                         process_completed = True
-                    elif message[0] == 'error':
+                    elif message[0] == 'error' and not error_reported:
                         error_msg = message[1]
                         report_error(error_msg)
+                        error_reported = True
                         process_completed = True
+                    elif message[0] == 'error' and error_reported:
+                        print(f"Duplicate error message ignored: {message[1]}")
                 except Exception as e:
                     print(f"Error processing queue message: {e}")
                     break

@@ -27,14 +27,96 @@ EXP_RESERVED = "reserved"
 # EXP_STOPPED = "stopped"
 EXP_PAUSED = "paused"   
 EXP_AUTO_PAUSED = "auto_paused"
+
+def parse_clip_config(config, seed, id=None):
+    """Parse configuration for CLIP model"""
+    from bohb.bohb import BOHB
+    import bohb.configspace as cs
+    
+    # Create hyperparameters based on config
+    hyperparams = []
+    
+    for hparam in config['hyperparameters']:
+        name = hparam['name']
+        
+        if hparam['type'] == 'uniform':
+            hp = cs.UniformHyperparameter(
+                name, hparam['range'][0], hparam['range'][1]
+            )
+        elif hparam['type'] in ['ordinal', 'ordered']:
+            hp = cs.OrderedHyperparameter(name, hparam['values'])
+        elif hparam['type'] == 'unordered':
+            hp = cs.UnorderedHyperparameter(name, hparam['values'])
+        else:
+            raise ValueError(f"Unknown hyperparameter type: {hparam['type']}")
+        
+        hyperparams.append(hp)
+    
+    # Create configuration space
+    configspace = cs.ConfigurationSpace(hyperparams, seed=seed)
+    
+    # Create BOHB state and optimizer (using same pattern as original code)
+    state = STATE(
+        configspace, 
+        max_budget=config['bohb']['max_budget'], 
+        min_budget=config['bohb']['min_budget'], 
+        eta=config['bohb']['eta'],
+        id=id
+    )
+    
+    opt = BOHB(
+        configspace=configspace,
+        min_budget=config['bohb']['min_budget'],
+        max_budget=config['bohb']['max_budget'],
+        eta=config['bohb']['eta']
+    )
+    
+    # Process notification conditions (same as in parse_config)
+    for cond in config.get('cond_list', []):
+        state.add_cond(cond)
+    
+    return configspace, state, config, opt
+
 def parse_config(path, seed, id=None):
     np.random.seed(seed)    
     config = json.load(open(path, encoding="utf-8"))
+    
+    # Check if this is a CLIP model configuration
+    if config.get('model') == 'clip':
+        return parse_clip_config(config, seed, id)
+    
+    # Original logic for other models
+    # Initialize all JSON variables to None
+    batch_size_json = None
+    optimizer_json = None  
+    momentum_json = None
+    hidden_size_json = None
+    scheduler_p_json = None
+    learning_rate_json = None
+    activation_json = None
+    regularization_p_json = None
+    weight_decay_json = None
+    loss_json = None
+    encoder_json = None
+    scheduler_json = None
+    pretrained_json = None
+    positional_embedding_json = None
+    dropout_p_json = None
+    classifier_dropout_json = None
+    eps_json = None
+    warmup_ratio_json = None
+    scheduler_type_json = None
+    gradient_clip_norm_json = None
+    dropout_rate_json = None
+    temperature_init_json = None
+
     for hparam in config['hyperparameters']:
         print(hparam['name'])
         if hparam['name'] == 'batch_size':
             batch_size_json = hparam
         elif hparam['name'] == 'optimizer':
+            optimizer_json = hparam
+        elif hparam['name'] == 'optimizer_type':  # For CLIP
             optimizer_json = hparam
         elif hparam['name'] == 'momentum':
             momentum_json = hparam
@@ -64,6 +146,18 @@ def parse_config(path, seed, id=None):
             dropout_p_json = hparam
         elif hparam['name'] == "classifier_dropout":
             classifier_dropout_json = hparam
+        elif hparam['name'] == "eps":  # For CLIP
+            eps_json = hparam
+        elif hparam['name'] == "warmup_ratio":  # For CLIP
+            warmup_ratio_json = hparam
+        elif hparam['name'] == "scheduler_type":  # For CLIP
+            scheduler_type_json = hparam
+        elif hparam['name'] == "gradient_clip_norm":  # For CLIP
+            gradient_clip_norm_json = hparam
+        elif hparam['name'] == "dropout_rate":  # For CLIP
+            dropout_rate_json = hparam
+        elif hparam['name'] == "temperature_init":  # For CLIP
+            temperature_init_json = hparam
 
         
     if batch_size_json['type'] == 'uniform':
@@ -73,57 +167,82 @@ def parse_config(path, seed, id=None):
         batch_size = cs.OrderedHyperparameter('batch_size', batch_size_json['values'])
     optimizer = cs.UnorderedHyperparameter('optimizer', optimizer_json['values'])
     
-    if momentum_json['type'] == 'uniform':
+    if momentum_json and momentum_json['type'] == 'uniform':
         momentum = cs.UniformHyperparameter(
             'momentum', momentum_json['range'][0], momentum_json['range'][1], (optimizer=='sgd') | (optimizer=='rms'))
-    else:
+    elif momentum_json:
         momentum = cs.OrderedHyperparameter(
             'momentum', momentum_json['values'], (optimizer=='sgd') | (optimizer=='rms'))
+    else:
+        momentum = cs.UniformHyperparameter('momentum', 0.9, 0.9, (optimizer=='sgd') | (optimizer=='rms'))
     
     not_momentum = cs.UniformHyperparameter('momentum', 0, 0, ~momentum.cond)
         
     
-    if learning_rate_json['type'] == 'uniform':
+    if learning_rate_json and learning_rate_json['type'] == 'uniform':
         learning_rate = cs.UniformHyperparameter(
             'learning_rate', learning_rate_json['range'][0], learning_rate_json['range'][1], log=True)
-    else:
+    elif learning_rate_json:
         learning_rate = cs.OrderedHyperparameter(
             'learning_rate', learning_rate_json['values'])
+    else:
+        learning_rate = cs.UniformHyperparameter('learning_rate', 1e-4, 1e-1, log=True)
         
-    activation = cs.UnorderedHyperparameter(
-            'activation', activation_json['values'])
+    if activation_json:
+        activation = cs.UnorderedHyperparameter('activation', activation_json['values'])
+    else:
+        activation = cs.UnorderedHyperparameter('activation', ['relu'])
     
     regularization_p = cs.UnorderedHyperparameter(
         'regularization_p', [False, True], dont_pass=True)
-    if weight_decay_json['type'] == 'uniform':
+    if weight_decay_json and weight_decay_json['type'] == 'uniform':
         weight_decay = cs.UniformHyperparameter(
             'weight_decay', weight_decay_json['range'][0], weight_decay_json['range'][1], regularization_p == True)
-    else:
+    elif weight_decay_json:
         weight_decay = cs.OrderedHyperparameter(
             'weight_decay', weight_decay_json['values'], regularization_p == True)
+    else:
+        weight_decay = cs.UniformHyperparameter('weight_decay', 0, 1e-3, regularization_p == True)
     not_weight_decay = cs.UniformHyperparameter(
         'weight_decay', 0, 0, ~weight_decay.cond)
     
         
     if config.get('model') == 'ResNet18':
-        if hidden_size_json['type'] == 'uniform':
+        if hidden_size_json and hidden_size_json['type'] == 'uniform':
             hidden_size = cs.IntegerUniformHyperparameter(
                 'hidden_size', hidden_size_json['range'][0], hidden_size_json['range'][1], is_int=True)
-        else:
+        elif hidden_size_json:
             hidden_size = cs.OrderedHyperparameter(
                 'hidden_size', hidden_size_json['values'])
+        else:
+            hidden_size = cs.IntegerUniformHyperparameter('hidden_size', 16, 64, is_int=True)
         
-        scheduler_p = cs.UnorderedHyperparameter('scheduler_p', scheduler_p_json['values'])
+        if scheduler_p_json:
+            scheduler_p = cs.UnorderedHyperparameter('scheduler_p', scheduler_p_json['values'])
+        else:
+            scheduler_p = cs.UnorderedHyperparameter('scheduler_p', [False, True])
         configspace = cs.ConfigurationSpace([batch_size, optimizer, hidden_size,
                                             scheduler_p, activation, weight_decay,
                                             not_momentum, not_weight_decay,
                                             regularization_p, momentum, learning_rate],
                                             seed=SEED)
     elif config.get('model') == 'unet':
-        encoder = cs.UnorderedHyperparameter('encoder', encoder_json['values'])
-        loss_fn = cs.UnorderedHyperparameter('loss_function', loss_json['values'])
-        scheduler = cs.UnorderedHyperparameter('scheduler', scheduler_json['values'])
-        pretrained = cs.UnorderedHyperparameter('pretrained', pretrained_json['values'])
+        if encoder_json:
+            encoder = cs.UnorderedHyperparameter('encoder', encoder_json['values'])
+        else:
+            encoder = cs.UnorderedHyperparameter('encoder', ['resnet34'])
+        if loss_json:
+            loss_fn = cs.UnorderedHyperparameter('loss_function', loss_json['values'])
+        else:
+            loss_fn = cs.UnorderedHyperparameter('loss_function', ['bce'])
+        if scheduler_json:
+            scheduler = cs.UnorderedHyperparameter('scheduler', scheduler_json['values'])
+        else:
+            scheduler = cs.UnorderedHyperparameter('scheduler', ['none'])
+        if pretrained_json:
+            pretrained = cs.UnorderedHyperparameter('pretrained', pretrained_json['values'])
+        else:
+            pretrained = cs.UnorderedHyperparameter('pretrained', [True])
         configspace = cs.ConfigurationSpace([batch_size, optimizer, 
                                          scheduler, weight_decay, activation,
                                          not_momentum, not_weight_decay,
@@ -141,21 +260,34 @@ def parse_config(path, seed, id=None):
         # "positional_embedding",
         # "use_decoder",
         # "dropout_p",
-        scheduler = cs.UnorderedHyperparameter('scheduler', scheduler_json['values'])
-        positional_embedding = cs.UnorderedHyperparameter('positional_embedding', positional_embedding_json['values'])
-        if dropout_p_json['type'] == 'uniform':
+        if scheduler_json:
+            scheduler = cs.UnorderedHyperparameter('scheduler', scheduler_json['values'])
+        else:
+            scheduler = cs.UnorderedHyperparameter('scheduler', ['none'])
+        
+        if positional_embedding_json:
+            positional_embedding = cs.UnorderedHyperparameter('positional_embedding', positional_embedding_json['values'])
+        else:
+            positional_embedding = cs.UnorderedHyperparameter('positional_embedding', ['absolute'])
+        
+        if dropout_p_json and dropout_p_json['type'] == 'uniform':
             dropout_p = cs.UniformHyperparameter(
                 'dropout_probability', dropout_p_json['range'][0], dropout_p_json['range'][1])
-        else:
+        elif dropout_p_json:
             dropout_p = cs.OrderedHyperparameter(
                 'dropout_probability', dropout_p_json['values'])
-        if classifier_dropout_json['type'] == 'uniform':
+        else:
+            dropout_p = cs.UniformHyperparameter('dropout_probability', 0.1, 0.5)
+        
+        if classifier_dropout_json and classifier_dropout_json['type'] == 'uniform':
             print("dropout range", classifier_dropout_json['range'])
             classifier_dropout = cs.UniformHyperparameter(
                 'classifier_dropout', classifier_dropout_json['range'][0], classifier_dropout_json['range'][1])
-        else:
+        elif classifier_dropout_json:
             classifier_dropout = cs.OrderedHyperparameter(
                 'classifier_dropout', classifier_dropout_json['values'])
+        else:
+            classifier_dropout = cs.UniformHyperparameter('classifier_dropout', 0.1, 0.5)
         
             
         configspace = cs.ConfigurationSpace([learning_rate,
@@ -171,14 +303,19 @@ def parse_config(path, seed, id=None):
     #     activation = cs.OrderedHyperparameter(
     #         'activation', activation_json['values'])
     else:
-        if hidden_size_json['type'] == 'uniform':
+        if hidden_size_json and hidden_size_json['type'] == 'uniform':
             hidden_size = cs.IntegerUniformHyperparameter(
                 'hidden_size', hidden_size_json['range'][0], hidden_size_json['range'][1], is_int=True)
-        else:
+        elif hidden_size_json:
             hidden_size = cs.OrderedHyperparameter(
                 'hidden_size', hidden_size_json['values'])
+        else:
+            hidden_size = cs.IntegerUniformHyperparameter('hidden_size', 16, 64, is_int=True)
         
-        scheduler_p = cs.UnorderedHyperparameter('scheduler_p', scheduler_p_json['values'])
+        if scheduler_p_json:
+            scheduler_p = cs.UnorderedHyperparameter('scheduler_p', scheduler_p_json['values'])
+        else:
+            scheduler_p = cs.UnorderedHyperparameter('scheduler_p', [False, True])
         configspace = cs.ConfigurationSpace([batch_size, optimizer, hidden_size,
                                             scheduler_p, activation, weight_decay,
                                             not_momentum, not_weight_decay,
@@ -479,7 +616,7 @@ class Exp():
         
     def report_error(self, trial, error, is_user_trial=False):
         if not is_user_trial:
-            self.state = self.opt.done(self.state, 1e+3, 0)
+            self.state = self.opt.error(self.state, 1e+3)
         trial.update_result("error", 0)
         self.state.save_trial(trial, True)
         self.state.check_cond(exception=error)

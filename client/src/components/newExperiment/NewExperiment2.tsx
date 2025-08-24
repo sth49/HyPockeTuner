@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMetadataStore } from "../../stores/metadataStore";
 import { useExperimentStore } from "../../stores/experimentStore";
 import {
   HyperparamOption,
   OrderedHyperparamOption,
+  UnorderedHyperparamOption,
 } from "../../models/HyperparameterOption";
 import HyperparameterList from "./HyperparameterList";
 import DeleteConfirmModal from "./DeleteConfirmModal";
@@ -34,6 +35,38 @@ const NewExperiment2 = () => {
   const currentPath = window.location.pathname;
   const hasRunningExperiment = runningExp !== null && runningExp !== "";
 
+  // 하이퍼파라미터 유효성 검사
+  const isValidHyperparams = useMemo(() => {
+    return newExpOptions.hyperparams.every((param) => {
+      // OrderedHyperparamOption의 range 타입 (uniform) 검사
+      if (param instanceof OrderedHyperparamOption && param.tp === "range") {
+        return (
+          param.range0 !== undefined && 
+          param.range1 !== undefined && 
+          !isNaN(Number(param.range0)) && 
+          !isNaN(Number(param.range1)) && 
+          Number(param.range0) < Number(param.range1)
+        );
+      }
+      
+      // OrderedHyperparamOption의 value 타입 (ordinal/constant) 검사
+      if (param instanceof OrderedHyperparamOption && param.tp === "value") {
+        if (param.selectedType === "constant") {
+          return param.constant !== undefined && param.constant !== "" && !isNaN(Number(param.constant));
+        } else {
+          return param.choices && param.choices.length > 0;
+        }
+      }
+      
+      // UnorderedHyperparamOption 검사
+      if (param instanceof UnorderedHyperparamOption) {
+        return param.choices && param.choices.length > 0;
+      }
+      
+      return true;
+    });
+  }, [newExpOptions.hyperparams]);
+
   const handleTypeChange = (
     index: number,
     param: HyperparamOption,
@@ -62,6 +95,65 @@ const NewExperiment2 = () => {
       hyperparams: [...newExpOptions.hyperparams],
     });
   };
+
+  // redefine 등으로 narrowing된 하이퍼파라미터들의 selectedType을 자동 조정
+  useEffect(() => {
+    let hasChanges = false;
+    
+    newExpOptions.hyperparams.forEach((param) => {
+      if (param instanceof OrderedHyperparamOption) {
+        const shouldBeConstant = param.choices.length === 1 && (param.tp === "value" || param.tp === "choices");
+        const shouldBeOrdinal = param.choices.length > 1 && (param.tp === "value" || param.tp === "choices");
+        
+        console.log(`OrderedParam ${param.name}:`, {
+          choices: param.choices,
+          tp: param.tp,
+          currentSelectedType: param.selectedType,
+          shouldBeConstant,
+          shouldBeOrdinal
+        });
+        
+        if (shouldBeConstant && param.selectedType !== "constant") {
+          console.log(`  → Changing ${param.name} to constant`);
+          param.selectedType = "constant";
+          hasChanges = true;
+        } else if (shouldBeOrdinal && param.selectedType !== "ordinal") {
+          console.log(`  → Changing ${param.name} to ordinal`);
+          param.selectedType = "ordinal";
+          hasChanges = true;
+        }
+      }
+      
+      if (param instanceof UnorderedHyperparamOption) {
+        const shouldBeConstant = param.activeChoices.length === 1;
+        const shouldBeUnordered = param.activeChoices.length > 1;
+        
+        console.log(`UnorderedParam ${param.name}:`, {
+          activeChoices: param.activeChoices,
+          currentSelectedType: param.selectedType,
+          shouldBeConstant,
+          shouldBeUnordered
+        });
+        
+        if (shouldBeConstant && param.selectedType !== "constant") {
+          console.log(`  → Changing ${param.name} to constant`);
+          param.selectedType = "constant";
+          hasChanges = true;
+        } else if (shouldBeUnordered && param.selectedType !== "unordered") {
+          console.log(`  → Changing ${param.name} to unordered`);
+          param.selectedType = "unordered";
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setNewExpOptions({
+        ...newExpOptions,
+        hyperparams: [...newExpOptions.hyperparams],
+      });
+    }
+  }, [newExpOptions.hyperparams.length, newExpOptions.hyperparams.map(p => `${p.name}-${p instanceof OrderedHyperparamOption ? p.choices.length : p instanceof UnorderedHyperparamOption ? p.activeChoices.length : 0}-${p.selectedType}`).join(',')]);
 
   const handleDeleteChoice = (param: HyperparamOption, choice: any) => {
     setSelectedHparam([param, choice]);
@@ -190,12 +282,14 @@ const NewExperiment2 = () => {
             <button
               className="btn btn-outline btn-primary flex-1 uppercase"
               onClick={() => handleNewExp("later")}
+              disabled={!isValidHyperparams}
             >
               Add
             </button>
             <button
               className="btn btn-primary flex-1 text-white uppercase"
               onClick={handleLaunchImmediately}
+              disabled={!isValidHyperparams}
             >
               Launch Immediately
             </button>
@@ -205,6 +299,7 @@ const NewExperiment2 = () => {
           <button
             className="btn btn-primary w-full text-white uppercase"
             onClick={() => handleNewExp("immediate")}
+            disabled={!isValidHyperparams}
           >
             Launch Experiment
           </button>

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { OrderedHyperparamOption } from "../../models/HyperparameterOption";
 
 interface RangeInputProps {
@@ -6,6 +7,11 @@ interface RangeInputProps {
 }
 
 const RangeInput = ({ param, onChange }: RangeInputProps) => {
+  useEffect(() => {
+    param.checkRange(0);
+    param.checkRange(1);
+  }, []);
+
   const handleRange0Change = (e: React.ChangeEvent<HTMLInputElement>) => {
     param.range0 = e.target.value;
     param.checkRange(0);
@@ -25,7 +31,11 @@ const RangeInput = ({ param, onChange }: RangeInputProps) => {
       <input
         type="number"
         placeholder="Minimum"
-        className="input input-sm focus:ring-0 focus:outline-none focus:border-primary"
+        className={`input input-sm focus:ring-0 focus:outline-none ${
+          param.error0
+            ? "border-error focus:border-error"
+            : "border-gray-300 focus:border-primary"
+        }`}
         value={param.range0}
         onChange={handleRange0Change}
       />
@@ -33,7 +43,11 @@ const RangeInput = ({ param, onChange }: RangeInputProps) => {
       <input
         type="number"
         placeholder="Maximum"
-        className="input input-sm focus:ring-0 focus:outline-none focus:border-primary"
+        className={`input input-sm focus:ring-0 focus:outline-none ${
+          param.error1
+            ? "border-error focus:border-error"
+            : "border-gray-300 focus:border-primary"
+        }`}
         value={param.range1}
         onChange={handleRange1Change}
       />

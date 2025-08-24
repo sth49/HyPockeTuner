@@ -1,0 +1,52 @@
+{
+  "name": "CLIP-MSCOCO",
+  "model": "clip",
+  "dataset": "mscoco",
+  "hyperparameters": [
+    {
+      "name": "learning_rate",
+      "displayName": "lr",
+      "type": "ordinal",
+      "values": [1e-5, 5e-5, 1e-4, 5e-4, 1e-3],
+      "range": [1e-5, 1e-3],
+      "log": true
+    },
+    {
+      "name": "batch_size",
+      "displayName": "bs",
+      "type": "ordinal",
+      "values": [16, 32, 64, 128],
+      "range": [16, 128]
+    },
+    {
+      "name": "eps",
+      "displayName": "eps",
+      "type": "ordinal",
+      "values": [1e-8, 1e-7, 1e-6],
+      "range": [1e-8, 1e-6],
+      "log": true
+    },
+    {
+      "name": "weight_decay",
+      "displayName": "wd",
+      "type": "uniform",
+      "values": [0.0, 0.01, 0.1, 0.2],
+      "range": [0.0, 0.3]
+    },
+    {
+      "name": "optimizer_type",
+      "displayName": "optim",
+      "type": "unordered",
+      "values": ["AdamW", "Adam"]
+    }
+  ],
+  "bohb": {
+    "max_budget": 27,
+    "eta": 3,
+    "min_budget": 1
+  },
+  "metric": {
+    "name": "Performance Score",
+    "range": [0, 1]
+  }
+}

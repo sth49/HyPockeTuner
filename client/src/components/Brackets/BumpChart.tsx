@@ -24,7 +24,6 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
   const hyperparams = useExperimentStore((state) => state.hyperparams);
   const margin = { top: 50, right: 10, bottom: 20, left: 10 };
   const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
 
   const getMetricColor = useColorScale().getMetricColor;
 
@@ -188,15 +187,23 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
     padding: 0.3,
   });
 
+  // rect 간 간격을 고정으로 설정 (높이 12 + 간격 6 = 18px per position)
+  const rectSpacing = 18;
   const yScale = scaleLinear({
     domain: [0, maxPosition],
-    range: [0, innerHeight],
+    range: [0, maxPosition * rectSpacing],
   });
+
+  // 동적 높이 계산 (maxPosition * rectSpacing + margin)
+  const dynamicHeight = Math.max(
+    height,
+    maxPosition * rectSpacing + margin.top + margin.bottom + 40
+  );
 
   return (
     <>
       <div className="w-full overflow-x-auto">
-        <svg width={width} height={height}>
+        <svg width={width} height={dynamicHeight}>
           <Group left={margin.left} top={margin.top}>
             {/* 트라이얼 점들 */}
             {processedTrials.map((trial, i) => {
@@ -212,9 +219,9 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
                     x={cx - 12}
                     y={cy - 6}
                     width={24}
-                    height={8}
+                    height={12}
                     fill={
-                      trial.metric
+                      trial.metric || trial.metric === 0
                         ? getMetricColor(trial.metric)
                         : "oklch(87.2% 0.01 258.338)"
                     }
@@ -262,9 +269,9 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
               }
 
               const pathId = `connection-path-${i}`;
-              const pathData = `M${x1 + 12},${y1 - 2} C${(x1 + x2) / 2},${
-                y1 - 2
-              } ${(x1 + x2) / 2},${y2 - 2} ${x2 - 12},${y2 - 2}`;
+              const pathData = `M${x1 + 12},${y1} C${(x1 + x2) / 2},${y1} ${
+                (x1 + x2) / 2
+              },${y2} ${x2 - 12},${y2}`;
 
               return (
                 <g key={`connection-${i}`}>
@@ -323,7 +330,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
                   <text
                     key={`rank-${i}`}
                     x={5}
-                    y={yScale(i) - 2}
+                    y={yScale(i)}
                     textAnchor="end"
                     dy="0.35em"
                     fontSize={"0.8em"}

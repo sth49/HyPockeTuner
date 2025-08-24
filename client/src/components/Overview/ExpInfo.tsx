@@ -8,6 +8,7 @@ import ProgressButton from "../common/ProgressButton";
 
 const ExpInfo = () => {
   const expId = useExperimentStore((state) => state.expId);
+  const bohb = useExperimentStore((state) => state.bohb);
   const startTime = useExperimentStore((state) => state.startTime);
   const endTime = useExperimentStore((state) => state.endTime);
 
@@ -21,10 +22,11 @@ const ExpInfo = () => {
       <div className="w-full h-full p-2 bg-red-50">Experiment not found</div>
     );
   }
+  // const bohb
   console.log("expData", expData);
   const data = {
     hparamLength: expData.hparamList.length,
-    budget: expData.budget,
+    budget: bohb.minBudget + " ~ " + bohb.maxBudget,
     bestMetric: bestTrial ? formatting(bestTrial.metric ?? 0, "float") : null,
     doneTrials: `${expData.doneTrials} / ${expData.allTrials}`,
   };
@@ -59,18 +61,23 @@ const ExpInfo = () => {
   return (
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
       {/* Overview Header */}
-      <div className="w-full flex gap-1 uppercase items-center text-lg mb-2">
+      <div className="w-full flex gap-1 uppercase items-center text-lg mb-2 gap-2">
         <div className={`badge ${progressBadgeColor[expData.status]} badge-sm`}>
           {expData.status}
         </div>
-        <p className="text-lg font-semibold ">
-          {expData.name} ({expData.id.slice(0, 3)})
-        </p>
-        <p>|</p>
-        <p> {expData.dataset}</p>
-        <p>|</p>
-        <p> {expData.model === "simple_kernel" ? "CNN" : expData.model}</p>
+        <div>
+          <p className="text-lg font-semibold ">
+            [{expData.id.slice(0, 3)}] {expData.name}
+          </p>
+          <div className="w-full flex gap-1 uppercase text-primary items-center text-sm">
+            {/* <p>|</p> */}
+            <p> {expData.dataset}</p>
+            <p>|</p>
+            <p> {expData.model === "simple_kernel" ? "CNN" : expData.model}</p>
+          </div>
+        </div>
       </div>
+
       {/* Overview Data except Time */}
       <div className="w-full flex gap-1 items-between">
         <div className="flex flex-col gap-1.5 items-between w-[65%]">
@@ -87,7 +94,18 @@ const ExpInfo = () => {
             );
           })}
         </div>
-        <div className="w-[35%] h-full flex justify-center text-center items-center">
+        <div className="w-[35%] h-full flex justify-center text-center items-center relative">
+          <div
+            className={`radial-progress absolute text-gray-100`}
+            style={
+              {
+                "--value": 100,
+                "--size": "100px",
+              } as React.CSSProperties
+            }
+            aria-valuenow={100}
+            role="progressbar"
+          ></div>
           <div
             className={`radial-progress ${progressColor[expData.status]}`}
             style={

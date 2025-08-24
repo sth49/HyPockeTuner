@@ -70,9 +70,7 @@ const Brackets = () => {
               className={`w-[8px] h-[8px] flex items-center justify-center bg-gray-300 text-center border border-white border-[0.5px] `}
               style={{
                 borderRadius: "30%",
-                backgroundColor: trial.metric
-                  ? getMetricColor(trial.metric)
-                  : "",
+                backgroundColor: getMetricColor(trial.metric),
               }}
             />
           )
@@ -155,7 +153,7 @@ const Brackets = () => {
                   >
                     <BumpChart
                       bracket={bracket.bracket}
-                      height={numOfTrials * 8 + 80}
+                      height={numOfTrials * 12 + 80}
                     />
                   </div>
                 </div>

@@ -3,11 +3,11 @@ import os
 import random
 import warnings
 from typing import List, Sequence, Union
+from itertools import accumulate
 
 import numpy as np
 import torch
 from torch import default_generator, randperm
-from torch._utils import _accumulate
 from torch.utils.data.dataset import Subset
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -71,7 +71,7 @@ def random_split(dataset, lengths: Sequence[Union[int, float]],
         raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
 
     indices = randperm(sum(lengths), generator=generator).tolist()  # type: ignore[call-overload]
-    return [Subset(dataset, indices[offset - length : offset]) for offset, length in zip(_accumulate(lengths), lengths)]
+    return [Subset(dataset, indices[offset - length : offset]) for offset, length in zip(accumulate(lengths), lengths)]
 
 
 def is_directory_empty(directory):

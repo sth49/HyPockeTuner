@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import BottomButton from "../common/BottomButton";
 import HeaderText from "../common/HeaderText";
 import { flexRender, RowPinningState } from "@tanstack/react-table";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa6";
 import { useExperimentStore } from "../../stores/experimentStore";
 import { hpTypeIcons } from "../../utils/icon";
@@ -33,35 +33,48 @@ const NewUserTrial = () => {
     top: [],
   });
 
+  // 고정된 trial ID를 저장
+  const [pinnedTrialId, setPinnedTrialId] = useState<string | null>(null);
+
   const [userHparamValues, setUserHparamValues] = useState<
     Record<string, string | number>
   >({});
 
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const pendingRowRef = useRef<any>(null);
+
   // 값 검증 로직
   const isValidConfiguration = useMemo(() => {
     if (!hyperparams) return false;
-    
+
     // 1. 모든 하이퍼파라미터가 유효한 값을 가져야 함
     for (const hparam of hyperparams) {
       const value = userHparamValues[hparam.name];
-      
+
       // 값이 없거나 빈 문자열인 경우
       if (value === undefined || value === null || value === "") {
         return false;
       }
-      
+
       // UniformHyperparam 타입 검증
       if (hparam instanceof UniformHyperparam) {
         const numValue = Number(value);
-        if (isNaN(numValue) || numValue < hparam.range[0] || numValue > hparam.range[1]) {
+        if (
+          isNaN(numValue) ||
+          numValue < hparam.range[0] ||
+          numValue > hparam.range[1]
+        ) {
           return false;
         }
       }
-      
+
       // OrderedHyperparam과 UnorderedHyperparam 타입 검증
-      if (hparam instanceof OrderedHyperparam || hparam instanceof UnorderedHyperparam) {
+      if (
+        hparam instanceof OrderedHyperparam ||
+        hparam instanceof UnorderedHyperparam
+      ) {
         const stringValue = String(value);
-        const validValues = hparam.values.map(v => 
+        const validValues = hparam.values.map((v) =>
           v === true ? "True" : v === false ? "False" : String(v)
         );
         if (!validValues.includes(stringValue)) {
@@ -69,13 +82,13 @@ const NewUserTrial = () => {
         }
       }
     }
-    
+
     // 2. Budget 값 검증
     const budgetValue = Number(userHparamValues["budget"]);
     if (isNaN(budgetValue) || budgetValue <= 0) {
       return false;
     }
-    
+
     return true;
   }, [hyperparams, userHparamValues]);
 
@@ -89,37 +102,53 @@ const NewUserTrial = () => {
       return;
     }
 
-    const pinnedRow = rows.find((row) => row.original.id === id);
-    console.log("Found pinned row:", pinnedRow?.id);
-
-    if (pinnedRow) {
-      const newPinning = {
-        top: [pinnedRow.id],
-        bottom: [],
-      };
-      const newParamValues: Record<string, string | number> = {};
-      hyperparams?.forEach((h) => {
-        if (
-          h instanceof OrderedHyperparam ||
-          h instanceof UnorderedHyperparam
-        ) {
-          newParamValues[h.name] = pinnedRow.original[h.name];
-        } else if (h instanceof UniformHyperparam) {
-          newParamValues[h.name] = Number(
-            pinnedRow.original[h.name] || h.range[0]
-          );
-        }
-      });
-      newParamValues["budget"] = pinnedRow.original.budget || 1;
-      console.log("Setting user hyperparameter values:", newParamValues);
-      setUserHparamValues(newParamValues);
-
-      console.log("Setting pinning:", newPinning);
-      setRowPinning(newPinning);
-      table.setRowPinning(newPinning);
+    // 처음에만 pinnedTrialId 설정
+    if (!pinnedTrialId) {
+      const pinnedRow = rows.find((row) => row.original.id === id);
+      console.log("Setting initial pinned trial ID:", pinnedRow?.original.id);
+      
+      if (pinnedRow) {
+        setPinnedTrialId(pinnedRow.original.id);
+        
+        const newParamValues: Record<string, string | number> = {};
+        hyperparams?.forEach((h) => {
+          if (
+            h instanceof OrderedHyperparam ||
+            h instanceof UnorderedHyperparam
+          ) {
+            newParamValues[h.name] = pinnedRow.original[h.name];
+          } else if (h instanceof UniformHyperparam) {
+            newParamValues[h.name] = Number(
+              pinnedRow.original[h.name] || h.range[0]
+            );
+          }
+        });
+        newParamValues["budget"] = pinnedRow.original.budget || 1;
+        console.log("Setting user hyperparameter values:", newParamValues);
+        setUserHparamValues(newParamValues);
+      }
     }
-  }, [hyperparams, id, table]);
 
+    // 고정된 trial ID로 pinning 적용
+    if (pinnedTrialId) {
+      const targetRow = rows.find((row) => row.original.id === pinnedTrialId);
+      if (targetRow) {
+        const newPinning = {
+          top: [targetRow.id],
+          bottom: [],
+        };
+        console.log("Applying pinning for fixed trial ID:", pinnedTrialId, "table row ID:", targetRow.id);
+        setRowPinning(newPinning);
+        table.setRowPinning(newPinning);
+      } else {
+        console.log("Target trial not found in current rows:", pinnedTrialId);
+      }
+    }
+  }, [hyperparams, id, table, pinnedTrialId, setPinnedTrialId]);
+
+  // userTrials 변경시에도 pinning 재적용
+  const userTrials = useExperimentStore((state) => state.userTrials);
+  
   useEffect(() => {
     if (table && id) {
       const checkAndApplyPinning = () => {
@@ -133,7 +162,7 @@ const NewUserTrial = () => {
 
       checkAndApplyPinning();
     }
-  }, [id, table, applyRowPinning]);
+  }, [id, table, applyRowPinning, userTrials]);
 
   const topPinnedRows = table.getTopRows();
   const regularRows = table.getRowModel().rows;
@@ -189,32 +218,9 @@ const NewUserTrial = () => {
           setRowPinning(newPinning); // React local state
           table.setRowPinning(newPinning); // Table state
         } else {
-          console.log("Pinning row:", row.id);
-          const newPinning = {
-            top: newTop,
-          };
-          const newUserHparamValues: Record<string, string | number> = {};
-          hyperparams?.forEach((h) => {
-            if (
-              h instanceof OrderedHyperparam ||
-              h instanceof UnorderedHyperparam
-            ) {
-              newUserHparamValues[h.name] = row.original[h.name];
-            } else if (h instanceof UniformHyperparam) {
-              newUserHparamValues[h.name] = Number(
-                row.original[h.name] || h.range[0]
-              );
-            }
-          });
-          console.log(
-            "Setting user hyperparameter values:",
-            newUserHparamValues
-          );
-          newUserHparamValues["budget"] = row.original.budget || 1; // Set budget
-          setUserHparamValues(newUserHparamValues); // Update local state
-          console.log("New pinning state:", newPinning);
-          setRowPinning(newPinning); // React local state
-          table.setRowPinning(newPinning); // Table state
+          // Store the pending row and show confirmation dialog
+          pendingRowRef.current = row;
+          setShowConfirmDialog(true);
         }
       }}
     >
@@ -229,6 +235,37 @@ const NewUserTrial = () => {
       ))}
     </tr>
   );
+
+  const handleConfirmSelection = () => {
+    const row = pendingRowRef.current;
+    if (!row) return;
+
+    console.log("Pinning row:", row.id);
+    const newTop = [row.id];
+    const newPinning = {
+      top: newTop,
+    };
+    const newUserHparamValues: Record<string, string | number> = {};
+    hyperparams?.forEach((h) => {
+      if (h instanceof OrderedHyperparam || h instanceof UnorderedHyperparam) {
+        newUserHparamValues[h.name] = row.original[h.name];
+      } else if (h instanceof UniformHyperparam) {
+        newUserHparamValues[h.name] = Number(
+          row.original[h.name] || h.range[0]
+        );
+      }
+    });
+    console.log("Setting user hyperparameter values:", newUserHparamValues);
+    newUserHparamValues["budget"] = row.original.budget || 1; // Set budget
+    setUserHparamValues(newUserHparamValues); // Update local state
+    console.log("New pinning state:", newPinning);
+    setRowPinning(newPinning); // React local state
+    table.setRowPinning(newPinning); // Table state
+
+    // Close dialog and clear pending row
+    setShowConfirmDialog(false);
+    pendingRowRef.current = null;
+  };
 
   const handleCreateNewTrial = () => {
     console.log("Creating new trial with hyperparameters:", userHparamValues);
@@ -399,8 +436,17 @@ const NewUserTrial = () => {
               ) : (
                 <input
                   type="number"
-                  placeholder={h instanceof UniformHyperparam ? `${h.range[0]} - ${h.range[1]}` : "Type here"}
-                  value={userHparamValues[h.name] !== undefined && userHparamValues[h.name] !== "" ? userHparamValues[h.name] : ""}
+                  placeholder={
+                    h instanceof UniformHyperparam
+                      ? `${h.range[0]} - ${h.range[1]}`
+                      : "Type here"
+                  }
+                  value={
+                    userHparamValues[h.name] !== undefined &&
+                    userHparamValues[h.name] !== ""
+                      ? userHparamValues[h.name]
+                      : ""
+                  }
                   onChange={(e) => {
                     const value = e.target.value;
                     setUserHparamValues((prev) => ({
@@ -408,21 +454,23 @@ const NewUserTrial = () => {
                       [h.name]: value ? Number(value) : "",
                     }));
                   }}
-                  className={`input focus:ring-0 focus:outline-none w-[50%] bg-white ${
-                    (() => {
-                      const value = userHparamValues[h.name];
-                      if (value === "" || value === undefined || value === null) {
+                  className={`input focus:ring-0 focus:outline-none w-[50%] bg-white ${(() => {
+                    const value = userHparamValues[h.name];
+                    if (value === "" || value === undefined || value === null) {
+                      return "border-error focus:border-error";
+                    }
+                    if (h instanceof UniformHyperparam) {
+                      const numValue = Number(value);
+                      if (
+                        isNaN(numValue) ||
+                        numValue < h.range[0] ||
+                        numValue > h.range[1]
+                      ) {
                         return "border-error focus:border-error";
                       }
-                      if (h instanceof UniformHyperparam) {
-                        const numValue = Number(value);
-                        if (isNaN(numValue) || numValue < h.range[0] || numValue > h.range[1]) {
-                          return "border-error focus:border-error";
-                        }
-                      }
-                      return "focus:border-primary border-gray-300";
-                    })()
-                  }`}
+                    }
+                    return "focus:border-primary border-gray-300";
+                  })()}`}
                 />
               )}
             </div>
@@ -446,25 +494,74 @@ const NewUserTrial = () => {
                 budget: value ? Number(value) : "",
               }));
             }}
-            className={`input focus:ring-0 focus:outline-none w-[50%] bg-white ${
-              (() => {
-                const value = userHparamValues["budget"];
-                const numValue = Number(value);
-                if (value === "" || value === undefined || value === null || isNaN(numValue) || numValue <= 0) {
-                  return "border-error focus:border-error";
-                }
-                return "focus:border-primary border-gray-300";
-              })()
-            }`}
+            className={`input focus:ring-0 focus:outline-none w-[50%] bg-white ${(() => {
+              const value = userHparamValues["budget"];
+              const numValue = Number(value);
+              if (
+                value === "" ||
+                value === undefined ||
+                value === null ||
+                isNaN(numValue) ||
+                numValue <= 0
+              ) {
+                return "border-error focus:border-error";
+              }
+              return "focus:border-primary border-gray-300";
+            })()}`}
           />
         </div>
       </div>
 
-      <BottomButton 
-        onClick={handleCreateNewTrial} 
-        text="Create New Trial" 
+      <BottomButton
+        onClick={handleCreateNewTrial}
+        text="Create New Trial"
         disabled={!isValidConfiguration}
       />
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <>
+          {/* Background overlay with opacity */}
+          <div
+            className="fixed inset-0 bg-black opacity-30 z-40 "
+            onClick={() => {
+              setShowConfirmDialog(false);
+              pendingRowRef.current = null;
+            }}
+          />
+
+          {/* Dialog container */}
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">
+                Change the configuration?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Do you want to use this Trial{" "}
+                {pendingRowRef.current?.original.event || "N/A"}'s configuration
+                as a starting point?
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowConfirmDialog(false);
+                    pendingRowRef.current = null;
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleConfirmSelection}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 };

@@ -9,8 +9,12 @@ import {
 export const formatting = (
   value: number,
   valueType: string,
-  digit: number = 1
+  digit: number = 3
 ) => {
+  if (value === 999) {
+    return "999";
+  }
+
   const formatter = new Intl.NumberFormat("ko-KR", {
     minimumFractionDigits: valueType === "int" ? 0 : digit,
     maximumFractionDigits: digit,

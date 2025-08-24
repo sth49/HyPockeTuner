@@ -4,6 +4,7 @@ import { SOCKET_URL } from "./const";
 import { useAppStore } from "../stores/appStore";
 import { useExperimentStore } from "../stores/experimentStore";
 import { useMetadataStore } from "../stores/metadataStore";
+import { useAuthStore } from "../stores/authStore";
 import { createExpSummary, SummaryData } from "../types";
 import { createExpOption } from "../types/option";
 
@@ -145,8 +146,9 @@ export class Backend {
         setIsSocketConnected(true);
         log("Connected");
 
-        // 연결 후 상태 요청
-        setTimeout(() => {
+        // 연결 후 자동 로그인 시도 후 상태 요청
+        setTimeout(async () => {
+          await this.attemptAutoLogin();
           console.log("🔄 Requesting current state...");
           this.requestCurrentState();
         }, 1000);
@@ -178,7 +180,8 @@ export class Backend {
       setIsSocketConnected(true);
       log("Reconnected");
 
-      setTimeout(() => {
+      setTimeout(async () => {
+        await this.attemptAutoLogin();
         this.requestCurrentState();
       }, 1000);
     });
@@ -437,5 +440,34 @@ export class Backend {
       "curNumTrials",
     ];
     return metadataEvents.includes(key);
+  }
+
+  private async attemptAutoLogin(): Promise<void> {
+    try {
+      const { currentUser, token, isAuthenticated, checkAuth } = useAuthStore.getState();
+      
+      // 이미 인증된 상태면 스킵
+      if (isAuthenticated && currentUser) {
+        console.log(`✅ Already authenticated as: ${currentUser}`);
+        return;
+      }
+      
+      // 토큰이 있으면 검증 시도
+      if (token) {
+        console.log(`🔐 Attempting auto-login with stored token: ${token}`);
+        const isValid = await checkAuth();
+        
+        if (isValid) {
+          console.log(`✅ Auto-login successful for user: ${token}`);
+          return;
+        } else {
+          console.log(`❌ Stored token is invalid`);
+        }
+      } else {
+        console.log(`ℹ️ No stored token found`);
+      }
+    } catch (error) {
+      console.error(`❌ Error during auto-login attempt:`, error);
+    }
   }
 }

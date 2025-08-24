@@ -109,14 +109,14 @@ const MetricValue: React.FC<{
     visibleIsBest && !isBest
       ? ""
       : metric != null
-      ? formatting(Number(metric), "float", 2)
+      ? formatting(Number(metric), "float", 3)
       : "";
 
   return (
     <p
       className="text-xs"
       style={{
-        color: metric != null ? getFontColor(metric) : "",
+        color: getFontColor(metric ?? 0),
       }}
     >
       {displayValue}

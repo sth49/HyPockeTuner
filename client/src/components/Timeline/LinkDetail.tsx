@@ -237,7 +237,7 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
               newLinkData.push({
                 time: narrow.time,
                 // name: "Narrow configspace",
-                name: EventTitle.narrow,
+                name: EventTitle.narrow + ` (${narrowData.length} changed)`,
                 type: "narrow",
                 data: narrowData,
                 icon: icons[event.type],
@@ -448,7 +448,7 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
                           >
                             {Icon && <Icon size={24} />}
                           </div>
-                          <div className="flex flex-col justify-center items-start flex-1">
+                          <div className="flex flex-col justify-center items-start  w-[90%]">
                             <p className="font-semibold">
                               {pair.eventCond?.toString()}
                             </p>

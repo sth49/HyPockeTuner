@@ -16,7 +16,10 @@ const ExpandedRow: React.FC<Props> = ({ row }) => {
   const isExpanded = row.getIsExpanded();
   const rowData = row.original;
 
-  const hyperparams = useExperimentStore((state) => state.hyperparams);
+  const hyperparams = useExperimentStore((state) => state.hyperparams) ?? [];
+  const hparamList = hyperparams
+    .filter((hp) => !hp.getIsConstant())
+    .map((hp) => hp.name);
   const { handleNavigate } = useNavigation();
   return (
     <tr key={`${row.id}-expanded`}>
@@ -86,6 +89,7 @@ const ExpandedRow: React.FC<Props> = ({ row }) => {
                     </p>
                     <div className="flex text-xs gap-1 flex-col">
                       {hyperparams?.map((h) => {
+                        if (hparamList.includes(h.name) === false) return null;
                         const Icon =
                           hpTypeIcons[HyperparamTypes[h.type].toLowerCase()] ||
                           (() => <span>?</span>);

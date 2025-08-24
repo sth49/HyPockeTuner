@@ -124,7 +124,25 @@ def analyze_value_impacts_simple(X_processed, shap_values, feature_names, origin
         
         for i, (orig_val, shap_val, metric_val) in enumerate(zip(original_values, param_shap_values, metric_values)):
             # NaN 값 처리
-            if pd.isna(orig_val) or pd.isna(shap_val) or pd.isna(metric_val):
+            value_key = str(orig_val)
+
+            if pd.isna(shap_val):
+                # SHAP 값이 NaN인 경우, 기본 구조만 만들고 metric 값은 추가
+                if value_key not in param_value_impacts:
+                    param_value_impacts[value_key] = {
+                        'shapValues': [],
+                        'metricValues': [],
+                        'count': 0,
+                        'totalImpact': 0.0,
+                        'meanImpact': 0.0
+                    }
+                # metric 값이 유효한 경우에만 추가
+                if not pd.isna(metric_val):
+                    param_value_impacts[value_key]['metricValues'].append(float(metric_val))
+                continue
+            
+            # metric 값이 NaN인 경우 건너뛰기
+            if pd.isna(metric_val):
                 continue
                 
             # 값이 numpy 타입인 경우 Python 타입으로 변환
@@ -141,7 +159,6 @@ def analyze_value_impacts_simple(X_processed, shap_values, feature_names, origin
             elif hasattr(orig_val, 'item'):  # numpy scalar
                 orig_val = orig_val.item()
                 
-            value_key = str(orig_val)
             
             if value_key not in param_value_impacts:
                 param_value_impacts[value_key] = {

@@ -182,6 +182,10 @@ const Settings: React.FC = () => {
                           />
                         ))}
                       </div>
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Low</span>
+                        <span>High</span>
+                      </div>
                     </div>
                   </div>
                 </div>

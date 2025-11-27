@@ -187,31 +187,31 @@ const colorSchemes: Record<ColorMode, ColorScheme> = {
     diverging: d3.scaleDiverging(d3.interpolateRdYlGn),
     sequential: d3.scaleSequential(accessibleSequentialInterpolator),
     name: "Default",
-    description: "Standard red-yellow-green scale for general use",
+    description: "For general users.",
   },
   "colorblind-safe": {
     diverging: d3.scaleDiverging(accessibleDivergingInterpolator),
     sequential: d3.scaleSequential(accessibleSequentialInterpolator),
     name: "Pink-Green",
-    description: "Pink-white-green scale optimized for accessibility",
+    description: "Recommended for deuteranopia & protanopia.",
   },
   "colorblind-v1": {
     diverging: d3.scaleDiverging(v1DivergingInterpolator),
     sequential: d3.scaleSequential(v1SequentialInterpolator),
     name: "Orange-Purple",
-    description: "Warm orange to cool purple diverging scale",
+    description: "Safe for red-green colorblindness.",
   },
   "colorblind-v2": {
     diverging: d3.scaleDiverging(v2DivergingInterpolator),
     sequential: d3.scaleSequential(v2SequentialInterpolator),
-    name: "Purple-Green Alt",
-    description: "Alternative purple-green with softer tones",
+    name: "Purple-Green",
+    description: "Softer tones, good for deuteranopia.",
   },
   "colorblind-v3": {
     diverging: d3.scaleDiverging(v3DivergingInterpolator),
     sequential: d3.scaleSequential(v3SequentialInterpolator),
     name: "Brown-Teal",
-    description: "Earth-tone brown to ocean teal scale",
+    description: "Safe for all colorblind types.",
   },
 };
 
@@ -234,7 +234,7 @@ interface ColorSettingsState {
 export const useColorSettingsStore = create<ColorSettingsState>()(
   persist(
     (set, get) => ({
-      colorMode: "colorblind-safe",
+      colorMode: "default",
       customColors: undefined,
 
       setColorMode: (mode: ColorMode) => {

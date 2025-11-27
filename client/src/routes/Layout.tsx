@@ -271,7 +271,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
         style={{
           marginTop: `${mainMarginTop}px`,
           // marginBottom: isNav ? `${headerHeight}px` : 0,
-          marginBottom: headerHeight,
+          marginBottom: viewType === "setting" ? 0 : headerHeight,
         }}
       >
         {children}

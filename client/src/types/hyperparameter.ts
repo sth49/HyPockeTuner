@@ -267,7 +267,6 @@ export class Hyperparam {
     } else if (this.type === HyperparamTypes.Ordinal) {
       return value.toString();
     } else if (this.type === HyperparamTypes.Uniform) {
-      console.log("number", value, typeof value);
       const numValue = Number(value);
 
       if (numValue === 0) {

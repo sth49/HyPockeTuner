@@ -11,7 +11,7 @@ const CondView = () => {
   const setNotiCondPairs = useExperimentStore(
     (state) => state.setNotiCondPairs
   );
-  
+
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const pendingToggleIndex = useRef<number | null>(null);
 
@@ -23,19 +23,19 @@ const CondView = () => {
 
   const handleConfirmToggle = () => {
     if (pendingToggleIndex.current === null) return;
-    
+
     const index = pendingToggleIndex.current;
     // 원본 객체의 active 속성 토글
     const targetPair = notiCondPairs[index];
     targetPair.active = !targetPair.active;
-    
+
     // 새로운 배열 생성하여 React 상태 업데이트 트리거
     const updatedPairs = [...notiCondPairs];
     setNotiCondPairs(updatedPairs);
-    
+
     // 원본 객체는 toJSON 메서드를 가지고 있으므로 API 호출 가능
     ApiClient.editCondition(targetPair);
-    
+
     // Close dialog and clear pending index
     setShowConfirmDialog(false);
     pendingToggleIndex.current = null;
@@ -69,7 +69,7 @@ const CondView = () => {
               <div key={index}>
                 {noti && noti.timeoutCond ? (
                   <li
-                    className="h-[100px] bg-white flex items-center"
+                    className="h-[100px] bg-white flex items-center "
                     style={{
                       borderBottom: "1px solid #e5e7eb",
                     }}
@@ -142,7 +142,7 @@ const CondView = () => {
                   </li>
                 ) : noti ? (
                   <li
-                    className="h-[50px] bg-white flex items-center"
+                    className="h-[60px] bg-white flex items-center"
                     style={{
                       borderBottom: "1px solid #e5e7eb",
                     }}
@@ -226,7 +226,7 @@ const CondView = () => {
           <p className="text-center">Performance</p>
         </button>
       </div>
-      
+
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
         <>
@@ -238,7 +238,7 @@ const CondView = () => {
               pendingToggleIndex.current = null;
             }}
           />
-          
+
           {/* Dialog container */}
           <div className="fixed inset-0 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
@@ -246,12 +246,17 @@ const CondView = () => {
                 Change notification status?
               </h3>
               <p className="text-gray-600 mb-6">
-                {pendingToggleIndex.current !== null && notiCondPairs[pendingToggleIndex.current] ? (
+                {pendingToggleIndex.current !== null &&
+                notiCondPairs[pendingToggleIndex.current] ? (
                   <>
-                    Do you want to {notiCondPairs[pendingToggleIndex.current].active ? 'deactivate' : 'activate'} this notification condition?
+                    Do you want to{" "}
+                    {notiCondPairs[pendingToggleIndex.current].active
+                      ? "deactivate"
+                      : "activate"}{" "}
+                    this notification condition?
                   </>
                 ) : (
-                  'Do you want to change this notification condition?'
+                  "Do you want to change this notification condition?"
                 )}
               </p>
               <div className="flex gap-2 justify-end">

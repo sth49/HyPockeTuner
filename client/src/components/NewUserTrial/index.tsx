@@ -1,7 +1,7 @@
 import { useParams } from "react-router";
 import BottomButton from "../common/BottomButton";
 import HeaderText from "../common/HeaderText";
-import { flexRender, RowPinningState } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa6";
 import { useExperimentStore } from "../../stores/experimentStore";
@@ -28,13 +28,16 @@ const NewUserTrial = () => {
   const expId = useExperimentStore((state) => state.expId);
 
   const hyperparams = useExperimentStore((state) => state.hyperparams);
+  const hparamList = hyperparams
+    ? hyperparams.filter((hp) => !hp.getIsConstant()).map((hp) => hp.name)
+    : [];
 
-  const [rowPinning, setRowPinning] = useState<RowPinningState>({
-    top: [],
-  });
+  // const hparamList = hyperparams
 
-  // 고정된 trial ID를 저장
+  // 고정된 trial ID를 저장 (테이블 row id가 아닌 실제 trial id)
   const [pinnedTrialId, setPinnedTrialId] = useState<string | null>(null);
+
+  // rowPinning state는 제거하고 pinnedTrialId만 사용
 
   const [userHparamValues, setUserHparamValues] = useState<
     Record<string, string | number>
@@ -92,13 +95,13 @@ const NewUserTrial = () => {
     return true;
   }, [hyperparams, userHparamValues]);
 
-  const applyRowPinning = useCallback(() => {
+  const initializePinnedTrial = useCallback(() => {
     if (!id || !table) return;
 
     const rows = table.getRowModel().rows;
 
     if (rows.length === 0) {
-      console.log("No rows available yet, skipping pinning");
+      console.log("No rows available yet, skipping initialization");
       return;
     }
 
@@ -106,10 +109,10 @@ const NewUserTrial = () => {
     if (!pinnedTrialId) {
       const pinnedRow = rows.find((row) => row.original.id === id);
       console.log("Setting initial pinned trial ID:", pinnedRow?.original.id);
-      
+
       if (pinnedRow) {
         setPinnedTrialId(pinnedRow.original.id);
-        
+
         const newParamValues: Record<string, string | number> = {};
         hyperparams?.forEach((h) => {
           if (
@@ -128,44 +131,34 @@ const NewUserTrial = () => {
         setUserHparamValues(newParamValues);
       }
     }
-
-    // 고정된 trial ID로 pinning 적용
-    if (pinnedTrialId) {
-      const targetRow = rows.find((row) => row.original.id === pinnedTrialId);
-      if (targetRow) {
-        const newPinning = {
-          top: [targetRow.id],
-          bottom: [],
-        };
-        console.log("Applying pinning for fixed trial ID:", pinnedTrialId, "table row ID:", targetRow.id);
-        setRowPinning(newPinning);
-        table.setRowPinning(newPinning);
-      } else {
-        console.log("Target trial not found in current rows:", pinnedTrialId);
-      }
-    }
-  }, [hyperparams, id, table, pinnedTrialId, setPinnedTrialId]);
+  }, [hyperparams, id, table, pinnedTrialId]);
 
   // userTrials 변경시에도 pinning 재적용
-  const userTrials = useExperimentStore((state) => state.userTrials);
-  
+
+  // 초기 설정용 - 한 번만 실행
   useEffect(() => {
-    if (table && id) {
-      const checkAndApplyPinning = () => {
+    if (table && id && !pinnedTrialId) {
+      const checkAndInitialize = () => {
         const rows = table.getRowModel().rows;
         if (rows.length > 0) {
-          applyRowPinning();
+          initializePinnedTrial();
         } else {
-          setTimeout(checkAndApplyPinning, 100);
+          setTimeout(checkAndInitialize, 100);
         }
       };
 
-      checkAndApplyPinning();
+      checkAndInitialize();
     }
-  }, [id, table, applyRowPinning, userTrials]);
+  }, [id, table, initializePinnedTrial, pinnedTrialId]);
 
-  const topPinnedRows = table.getTopRows();
-  const regularRows = table.getRowModel().rows;
+  // pinnedTrialId를 사용하여 고정된 row와 일반 rows를 분리
+  const allRows = table.getRowModel().rows;
+  const pinnedRow = pinnedTrialId
+    ? allRows.find((row) => row.original.id === pinnedTrialId)
+    : null;
+  const regularRows = allRows.filter(
+    (row) => row.original.id !== pinnedTrialId
+  );
 
   useEffect(() => {
     if (hyperparams) {
@@ -208,15 +201,11 @@ const NewUserTrial = () => {
           : {}
       }
       onClick={() => {
-        console.log("Row clicked:", row.id);
-        const newTop = rowPinning.top?.[0] === row.id ? [] : [row.id];
+        console.log("Row clicked:", row.original.id);
         if (isPinned) {
-          console.log("Unpinning row:", row.id, isPinned, newTop);
-          const newPinning = {
-            top: [],
-          };
-          setRowPinning(newPinning); // React local state
-          table.setRowPinning(newPinning); // Table state
+          // Unpin the current row
+          console.log("Unpinning row:", row.original.id);
+          setPinnedTrialId(null);
         } else {
           // Store the pending row and show confirmation dialog
           pendingRowRef.current = row;
@@ -240,11 +229,11 @@ const NewUserTrial = () => {
     const row = pendingRowRef.current;
     if (!row) return;
 
-    console.log("Pinning row:", row.id);
-    const newTop = [row.id];
-    const newPinning = {
-      top: newTop,
-    };
+    console.log("Pinning trial:", row.original.id);
+
+    // Set pinnedTrialId instead of using rowPinning
+    setPinnedTrialId(row.original.id);
+
     const newUserHparamValues: Record<string, string | number> = {};
     hyperparams?.forEach((h) => {
       if (h instanceof OrderedHyperparam || h instanceof UnorderedHyperparam) {
@@ -258,9 +247,6 @@ const NewUserTrial = () => {
     console.log("Setting user hyperparameter values:", newUserHparamValues);
     newUserHparamValues["budget"] = row.original.budget || 1; // Set budget
     setUserHparamValues(newUserHparamValues); // Update local state
-    console.log("New pinning state:", newPinning);
-    setRowPinning(newPinning); // React local state
-    table.setRowPinning(newPinning); // Table state
 
     // Close dialog and clear pending row
     setShowConfirmDialog(false);
@@ -307,9 +293,7 @@ const NewUserTrial = () => {
         <div className="flex justify-between items-center p-4 ">
           <HeaderText text="From History" />
           <span className="badge badge-outline badge-primary text-sm">
-            {regularRows
-              .find((row) => row.id === (rowPinning.top?.[0] ?? ""))
-              ?.original.id.slice(0, 3) || "None"}
+            {pinnedTrialId ? pinnedTrialId.slice(0, 3) : "None"}
           </span>
         </div>
 
@@ -362,7 +346,7 @@ const NewUserTrial = () => {
               ))}
             </thead>
             <tbody>
-              {topPinnedRows.map((row) => renderRow(row, true))}
+              {pinnedRow && renderRow(pinnedRow, true)}
               {regularRows.map((row) => renderRow(row, false))}
             </tbody>
           </table>
@@ -370,9 +354,14 @@ const NewUserTrial = () => {
       </div>
       <div className="flex flex-col bg-white m-2 flex-1 p-4">
         {hyperparams?.map((h) => {
+          // const Icon =
+          //   hpTypeIcons[HyperparamTypes[h.type].toLowerCase()] ||
+          //   (() => <span>?</span>);
           const Icon =
-            hpTypeIcons[HyperparamTypes[h.type].toLowerCase()] ||
-            (() => <span>?</span>);
+            h && hparamList.includes(h.name)
+              ? hpTypeIcons[HyperparamTypes[h.type].toLowerCase()] || null
+              : hpTypeIcons.constant;
+
           return (
             <div
               key={h.name}

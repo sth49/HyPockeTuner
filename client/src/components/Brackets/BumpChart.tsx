@@ -36,6 +36,8 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
   const handleTrialClick = (
     trial: TrialState & { roundId: number; position: number }
   ) => {
+    console.log("Clicked trial: ", trial);
+    if (trial == null || trial.startTime === -1 || trial.endTime === -1) return;
     const nodeData: BandProps = {
       type: "node",
       bracket: bracket.id,

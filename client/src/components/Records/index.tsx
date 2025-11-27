@@ -9,18 +9,18 @@ const Records = () => {
   const { setExpanded, table } = useTrialData(true, false);
   const { handleNavigate } = useNavigation();
 
-  const handleRowClick = (rowId: string) => {
+  const handleRowClick = (trialId: string) => {
     setExpanded((prev) => {
       const newExpanded: Record<string, boolean> = {
         ...(typeof prev === "object" && prev !== null ? prev : {}),
       };
-      if (newExpanded[rowId]) {
-        delete newExpanded[rowId];
+      if (newExpanded[trialId]) {
+        delete newExpanded[trialId];
       } else {
         Object.keys(newExpanded).forEach((key) => {
           delete newExpanded[key];
         });
-        newExpanded[rowId] = true;
+        newExpanded[trialId] = true;
       }
       return newExpanded;
     });

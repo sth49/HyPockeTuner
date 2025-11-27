@@ -25,6 +25,7 @@ interface LinkDetailProps {
 type LinkDetailEvent = {
   time: number;
   name: string;
+  subtitle?: string;
   type: string;
   data: any | any[];
   icon?: any;
@@ -237,7 +238,8 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
               newLinkData.push({
                 time: narrow.time,
                 // name: "Narrow configspace",
-                name: EventTitle.narrow + ` (${narrowData.length} changed)`,
+                name: EventTitle.narrow,
+                subtitle: `(${narrowData.length} hyperparameters changed)`,
                 type: "narrow",
                 data: narrowData,
                 icon: icons[event.type],
@@ -583,7 +585,10 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
                             />
                           )}
                         </div>
-                        <p className="text-sm">{event.name}</p>
+                        <div>
+                          <p className="text-sm">{event.name}</p>
+                          <p className="text-sm">{event.subtitle}</p>
+                        </div>
                       </div>
                       <span className="text-xs text-gray-400">
                         {formatDate(

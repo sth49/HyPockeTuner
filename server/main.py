@@ -1570,5 +1570,8 @@ async def error_report(data:dict):
 # https: uvicorn main:socket_app --host 0.0.0.0 --port 8999 --ssl-keyfile ../client-files/private.key --ssl-certfile ../client-files/certificate.pem
 if __name__=="__main__":
     args = get_params()
-    # uvicorn.run("main:socket_app", host=args.host, port=args.port, ssl_keyfile="../client-files/localhost+2-key.pem", ssl_certfile="../client-files/localhost+2.pem")
-    uvicorn.run("main:socket_app", host="0.0.0.0", port=args.port, ssl_keyfile="./private.pem", ssl_certfile="./certificate.pem")
+    # Production with SSL
+    # uvicorn.run("main:socket_app", host="0.0.0.0", port=args.port, ssl_keyfile="./private.pem", ssl_certfile="./certificate.pem")
+
+    # Development without SSL
+    uvicorn.run("main:socket_app", host="0.0.0.0", port=args.port)

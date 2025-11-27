@@ -102,7 +102,7 @@ const getNodeDirection = (
     case "ltr-end":
       borderRadius =
         data.type === "pseudo"
-          ? "10px 0px 10px 10px"
+          ? "0px 0px 10px 10px"
           : isLastBracketTrial
           ? "0px 10px 10px 0px"
           : "0px 0px 10px 0px";
@@ -512,9 +512,12 @@ const Band: React.FC<
       : bracket === -1
       ? "oklch(92% 0.004 286.32)" // pseudo
       : CONFIG.COLORS.BAND[(bracket ?? 0) % 2];
-  
+
   // Special handling for collapsed user trials
-  const isCollapsedUserTrial = isCollapse && data.type === "user" && data.trials?.some(trial => trial.type === "user");
+  const isCollapsedUserTrial =
+    isCollapse &&
+    data.type === "user" &&
+    data.trials?.some((trial) => trial.type === "user");
   const finalBgColor = isCollapsedUserTrial ? CONFIG.COLORS.BAND[0] : bgColor;
   if (type === "link") {
     return (

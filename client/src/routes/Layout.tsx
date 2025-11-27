@@ -84,9 +84,11 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
               onClick={() => {
                 handleNavigate("/workspace");
                 if (currentUser) {
-                  ApiClient.postVisibility(currentUser, false).catch((error) => {
-                    console.error("Failed to send visibility data:", error);
-                  });
+                  ApiClient.postVisibility(currentUser, false).catch(
+                    (error) => {
+                      console.error("Failed to send visibility data:", error);
+                    }
+                  );
                 }
                 console.log("Navigating to workspace");
               }}
@@ -118,16 +120,34 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
                 <ExperimentActionModal
                   modalId="conflict_action_modal"
                   title="Another Experiment Running"
-                  message={`Experiment "${runningExp?.slice(0, 8)}..." is currently running. ${status === "paused" || status === "auto_paused" ? 'Resuming' : 'Starting'} this experiment will automatically pause the running one. Do you want to continue?`}
-                  confirmText={status === "paused" || status === "auto_paused" ? "Resume This Experiment" : "Start This Experiment"}
+                  message={`Experiment "${runningExp?.slice(
+                    0,
+                    8
+                  )}..." is currently running. ${
+                    status === "paused" || status === "auto_paused"
+                      ? "Resuming"
+                      : "Starting"
+                  } this experiment will automatically pause the running one. Do you want to continue?`}
+                  confirmText={
+                    status === "paused" || status === "auto_paused"
+                      ? "Resume This Experiment"
+                      : "Start This Experiment"
+                  }
                   onConfirm={() => {
                     if (status === "pending" || status === "reserved") {
                       ApiClient.call(["exp/start/" + currExpId]);
-                    } else if (status === "paused" || status === "auto_paused") {
+                    } else if (
+                      status === "paused" ||
+                      status === "auto_paused"
+                    ) {
                       ApiClient.call(["exp/resume/" + currExpId]);
                     }
                   }}
-                  actionType={status === "paused" || status === "auto_paused" ? "resume" : "start"}
+                  actionType={
+                    status === "paused" || status === "auto_paused"
+                      ? "resume"
+                      : "start"
+                  }
                 />
               </div>
             )}
@@ -211,9 +231,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
         {/* 헤더 버튼들 */}
         {viewType === "workspace" && (
           <div className="absolute right-0 flex items-center gap-3 mr-4">
-            <div className="text-xs text-gray-600">
-              {currentUser}
-            </div>
+            {/* <div className="text-xs text-gray-600">{currentUser}</div> */}
             <button onClick={() => handleNavigate("/setting")}>
               <FaUser />
             </button>

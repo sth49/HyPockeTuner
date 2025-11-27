@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -27,12 +27,21 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
   const [isLoading, setIsLoading] = useState(true);
   const { getMetricColor, getFontColor, getLossColor } = useColorScale();
 
-  useEffect(() => {
-    console.log("=== useTrialData Debug ===");
-    console.log("Brackets:", brackets);
-    console.log("Hyperparams:", hyperparams);
-    console.log("UserTrials:", userTrials);
+  // Use ref to persist expanded state across renders
+  const expandedRef = useRef<Record<string, boolean>>({});
+  const rowSelectionRef = useRef<Record<string, boolean>>({});
 
+  // Update ref whenever expanded state changes
+  useEffect(() => {
+    expandedRef.current = expanded;
+  }, [expanded]);
+
+  // Update ref whenever selection state changes
+  useEffect(() => {
+    rowSelectionRef.current = rowSelection;
+  }, [rowSelection]);
+
+  useEffect(() => {
     // 데이터가 없으면 로딩 상태 유지
     if (brackets.length === 0 && (!userTrials || userTrials.length === 0)) {
       console.log("No data available, keeping loading state");
@@ -113,8 +122,39 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
       return (b.start ?? 0) - (a.start ?? 0);
     });
 
-    console.log("Processed rows:", rows.length);
     setData(rows);
+
+    // Preserve expanded state for existing trials using ref
+    const expandedTrialIds = Object.keys(expandedRef.current);
+    if (expandedTrialIds.length > 0) {
+      const newExpanded: Record<string, boolean> = {};
+      expandedTrialIds.forEach((trialId) => {
+        // Check if the trial still exists in the new data (with safety check)
+        if (rows.some((row) => row.original && row.original.id === trialId)) {
+          newExpanded[trialId] = true;
+        }
+      });
+      // Only update if there are expanded trials to preserve
+      if (Object.keys(newExpanded).length > 0) {
+        setExpanded(newExpanded);
+      }
+    }
+
+    // Preserve selection state for existing trials using ref (trial ID based)
+    const selectedTrialIds = Object.keys(rowSelectionRef.current);
+    if (selectedTrialIds.length > 0) {
+      const newSelection: Record<string, boolean> = {};
+      selectedTrialIds.forEach((trialId) => {
+        // Check if the trial still exists in the new data (with safety check)
+        if (rows.some(row => row.original && row.original.id === trialId)) {
+          newSelection[trialId] = true;
+        }
+      });
+      // Only update if there are selected trials to preserve
+      if (Object.keys(newSelection).length > 0) {
+        setRowSelection(newSelection);
+      }
+    }
   }, [brackets, hyperparams, userTrials]); // table 제거
   const metric = useExperimentStore((state) => state.metric);
   const column = useMemo(
@@ -139,17 +179,75 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
     ]
   );
 
+  // Convert trial ID based expanded state to row ID based state for TanStack Table
+  const tableExpandedState = useMemo(() => {
+    if (!isExpand) return {};
+    const rowBasedExpanded: Record<string, boolean> = {};
+    
+    Object.keys(expanded).forEach((trialId) => {
+      // Find the row index for this trial ID
+      const rowIndex = data.findIndex(row => row && row.id === trialId);
+      if (rowIndex !== -1 && (expanded as Record<string, boolean>)[trialId]) {
+        rowBasedExpanded[rowIndex.toString()] = true;
+      }
+    });
+    
+    return rowBasedExpanded;
+  }, [expanded, data, isExpand]);
+
+  // Convert trial ID based selection state to row ID based state for TanStack Table
+  const tableSelectionState = useMemo(() => {
+    if (!isCheck) return {};
+    const rowBasedSelection: Record<string, boolean> = {};
+    
+    Object.keys(rowSelection).forEach((trialId) => {
+      // Find the row index for this trial ID
+      const rowIndex = data.findIndex(row => row && row.id === trialId);
+      if (rowIndex !== -1 && rowSelection[trialId]) {
+        rowBasedSelection[rowIndex.toString()] = true;
+      }
+    });
+    
+    return rowBasedSelection;
+  }, [rowSelection, data, isCheck]);
+
   const table = useReactTable<TrialRowType>({
     data: data,
     columns: column,
     state: {
-      expanded: isExpand ? expanded : {},
-      rowSelection: isCheck ? rowSelection : {},
+      expanded: tableExpandedState,
+      rowSelection: tableSelectionState,
       sorting,
     },
-    onExpandedChange: isExpand ? setExpanded : undefined,
+    onExpandedChange: isExpand ? (updater) => {
+      // Convert row-based expanded state back to trial ID based
+      const newRowBasedState = typeof updater === 'function' ? updater(tableExpandedState) : updater;
+      const newTrialBasedState: Record<string, boolean> = {};
+      
+      Object.keys(newRowBasedState || {}).forEach((rowIndex) => {
+        const trial = data[parseInt(rowIndex)];
+        if (trial && newRowBasedState && (newRowBasedState as Record<string, boolean>)[rowIndex]) {
+          newTrialBasedState[trial.id] = true;
+        }
+      });
+      
+      setExpanded(newTrialBasedState);
+    } : undefined,
     onSortingChange: setSorting,
-    onRowSelectionChange: isCheck ? setRowSelection : undefined,
+    onRowSelectionChange: isCheck ? (updater) => {
+      // Convert row-based selection state back to trial ID based
+      const newRowBasedState = typeof updater === 'function' ? updater(tableSelectionState) : updater;
+      const newTrialBasedState: Record<string, boolean> = {};
+      
+      Object.keys(newRowBasedState || {}).forEach((rowIndex) => {
+        const trial = data[parseInt(rowIndex)];
+        if (trial && newRowBasedState && (newRowBasedState as Record<string, boolean>)[rowIndex]) {
+          newTrialBasedState[trial.id] = true;
+        }
+      });
+      
+      setRowSelection(newTrialBasedState);
+    } : undefined,
 
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),

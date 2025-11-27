@@ -27,7 +27,7 @@ const RangeInput = ({ param, onChange }: RangeInputProps) => {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 pt-5">
       <input
         type="number"
         placeholder="Minimum"

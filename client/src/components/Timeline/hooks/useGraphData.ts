@@ -457,17 +457,19 @@ const isValidPush = (push: any) => {
     "high-temperature",
     "high-usage",
     "metric-reach",
+    "metric-reached",
     "round-done",
     "bracket-done",
     "timeout",
     "experiment-pause",
     "metric-improve",
-    "metric-improve-by",
-    "metric-improved-by",
     "metric-improved",
     "low-utilization",
     "exception-raised",
   ];
+
+  // "metric-improve-by",
+  // "metric-improved-by",
   return validPushTypes.includes(push.type);
 };
 
@@ -483,14 +485,22 @@ const isValidInteraction = (interaction: any) => {
     "launchImmediatelyExp",
     "redefineExperiment",
   ];
+
   // const validInteractionTypes = [
   //   "addUserTrial",
   //   "addCondition",
   //   "experimentPause",
   //   "experimentResume",
   // ];
-  if (interaction.type === "addCondition") {
-    return interaction.data.eventCond.type !== "trial-done";
+  if (
+    interaction.type === "addCondition" ||
+    interaction.type === "editCondition"
+  ) {
+    return (
+      interaction.data.eventCond.type !== "trial-done" &&
+      interaction.data.eventCond.type !== "metric-improved-by" &&
+      interaction.data.eventCond.type !== "metric-improve-by"
+    );
   }
   return validInteractionTypes.includes(interaction.type);
 };

@@ -15,6 +15,7 @@ interface MiniMapProps {
     linkIndex: number,
     isVertical: boolean
   ) => boolean;
+  isCollapse?: boolean; // Optional prop to indicate if the timeline is collapsed
 }
 
 const MiniMapContent = ({
@@ -27,6 +28,7 @@ const MiniMapContent = ({
   onScrollChange,
   searchType,
   isCurrentFocusedLink, // Function to check if the link is currently focused
+  isCollapse,
 }: MiniMapProps & { width: number; height: number }) => {
   const rafRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -325,6 +327,7 @@ const MiniMapContent = ({
                         isVertical={undefined}
                         dir={row.direction}
                         sizes={size}
+                        isCollapse={isCollapse} // Pass the isCollapse prop
                       />
                     </div>
                     <div>
@@ -341,6 +344,7 @@ const MiniMapContent = ({
                               index,
                               false
                             )} // Check if this link is currently focused
+                            isCollapse={isCollapse} // Pass the isCollapse prop
                           />
                         </div>
                       )}
@@ -390,6 +394,7 @@ const MiniMap = ({
   onScrollChange,
   searchType,
   isCurrentFocusedLink,
+  isCollapse,
 }: MiniMapProps) => {
   return (
     <div className="w-full h-full">
@@ -405,6 +410,7 @@ const MiniMap = ({
             onScrollChange={onScrollChange}
             searchType={searchType} // Pass the searchType prop
             isCurrentFocusedLink={isCurrentFocusedLink} // Pass the isCurrentFocusedLink prop
+            isCollapse={isCollapse} // Pass the isCollapse prop
           />
         )}
       </ParentSize>

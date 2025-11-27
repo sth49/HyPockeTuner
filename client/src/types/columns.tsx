@@ -62,7 +62,6 @@ export const columns = (
       accessorKey: "loss",
       header: "Loss",
       cell: (info) => {
-        console.log(info.getValue());
         return (
           <div
             className="h-full flex items-center justify-center font-light"

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { scaleLinear } from "@visx/scale";
 import * as d3 from "d3";
 import { useExperimentStore } from "../stores/experimentStore";
+import { useColorSettingsStore } from "../stores/colorSettingsStore";
 
 interface MetricRange {
   max: number;
@@ -16,6 +17,7 @@ interface Trial {
 export const useColorScale = () => {
   const brackets = useExperimentStore((state) => state.brackets);
   const userTrials = useExperimentStore((state) => state.userTrials);
+  const colorScheme = useColorSettingsStore((state) => state.getColorScheme());
 
   // 모든 trials 수집
   const allTrials = useMemo(() => {
@@ -31,14 +33,21 @@ export const useColorScale = () => {
     // userTrials 추가
     trials.push(...userTrials);
 
-    return trials.filter(
-      (trial) =>
-        trial.metric !== undefined ||
-        trial.loss !== 999 ||
-        trial.loss !== undefined ||
-        trial.metric !== null ||
-        trial.loss !== null
-    );
+    return trials
+      .map((trial) => ({
+        ...trial,
+        metric: Number(trial.metric),
+        loss: Number(trial.loss),
+      }))
+      .filter(
+        (trial) =>
+          trial.metric !== undefined &&
+          trial.metric !== null &&
+          trial.loss !== undefined &&
+          trial.loss !== null &&
+          trial.loss !== 999 &&
+          !isNaN(trial.loss)
+      );
   }, [brackets, userTrials]);
 
   // metric과 loss의 범위 계산
@@ -55,7 +64,8 @@ export const useColorScale = () => {
       if (
         trial.loss !== undefined &&
         trial.loss !== null &&
-        trial.loss !== 999
+        trial.loss !== 999 &&
+        trial.loss !== null
       ) {
         lossRange.max = Math.max(lossRange.max, trial.loss);
         lossRange.min = Math.min(lossRange.min, trial.loss);
@@ -92,20 +102,23 @@ export const useColorScale = () => {
 
   // Color scales
   const colorScales = useMemo(() => {
-    const metricColorScale = d3
-      .scaleDiverging(d3.interpolateRdYlGn)
-      .domain([0, 0.5, 1]); // 0: 빨간색, 0.5: 노란색, 1: 초록색
+    // Metric: Use diverging (중간값이 의미있을 수 있음)
+    const metricColorScale = colorScheme.diverging
+      .copy()
+      .domain([0, 0.5, 1]); // 0: low, 0.5: mid, 1: high
 
-    const lossColorScale = d3
-      .scaleDiverging(d3.interpolateRdYlGn)
-      .domain([1, 0.5, 0]); // 1: 빨간색, 0.5: 노란색, 0: 초록색
+    // Loss: Use diverging (중간값 기준으로 양방향)
+    const lossColorScale = colorScheme.diverging
+      .copy()
+      .domain([1, 0.5, 0]); // 1: high (bad), 0.5: mid, 0: low (good)
 
-    const budgetColorScale = d3
-      .scaleSequential(d3.interpolateBlues)
-      .domain([0, 1]); // 예시로 0에서 1 사이의 값에 대해 파란색 그라데이션
+    // Budget: Use sequential (0부터 1까지 증가)
+    const budgetColorScale = colorScheme.sequential
+      .copy()
+      .domain([0, 1]); // 0 to 1 for budget visualization
 
     return { metricColorScale, lossColorScale, budgetColorScale };
-  }, []);
+  }, [colorScheme]);
 
   // 색상 밝기 계산 헬퍼 함수
   const calculateBrightness = (color: string): number => {

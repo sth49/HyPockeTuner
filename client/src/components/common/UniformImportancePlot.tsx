@@ -314,18 +314,20 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
           ) : (
             /* SHAP values mode - show scatter plot */
             <>
-              {scatterData.map((d, i) => (
-                <circle
-                  key={`shap-${i}`}
-                  cx={xScale(d.shapValue)}
-                  cy={yScale(d.hyperparam)}
-                  r={3}
-                  fill={d.shapValue > 0 ? "#28a745" : "#dc3545"}
-                  stroke={d.shapValue > 0 ? "#1e7e34" : "#c82333"}
-                  strokeWidth={1}
-                  opacity={0.7}
-                />
-              ))}
+              {scatterData.map((d, i) => {
+                return (
+                  <circle
+                    key={`shap-${i}`}
+                    cx={xScale(d.shapValue)}
+                    cy={yScale(d.hyperparam)}
+                    r={3}
+                    fill={d.shapValue > 0 ? "#28a745" : "#dc3545"}
+                    stroke={d.shapValue > 0 ? "#1e7e34" : "#c82333"}
+                    strokeWidth={1}
+                    opacity={0.7}
+                  />
+                );
+              })}
 
               <AxisBottom
                 scale={xScale}

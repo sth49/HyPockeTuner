@@ -15,24 +15,24 @@ import LinkDetail from "./LinkDetail";
 import NodeDetail from "./NodeDetail";
 import { timelineIcons } from "../../utils/icon";
 import { FaChevronUp, FaChevronDown } from "react-icons/fa";
+import { MdHelpOutline } from "react-icons/md";
 
 const EventTitle = {
   addCondition: "Condition Addition",
   editCondition: "Condition Edit",
   visibility: "System Access",
-  nonVisibility: "System Exit",
   push: "Push Notification",
   redefineExperiment: "Experiment Redefinition",
   narrowConfigspace: "Space Narrowing",
   addUserTrial: "User Trial Addition",
   experimentPause: "Experiment Pause",
   experimentResume: "Experiment Resume",
-  launchImmediatelyExp: "Launch of Redefined Exp",
 };
 
 const Timeline: React.FC = () => {
   const [graphData, pendingData] = useGraphData();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const accordionRef = useRef<HTMLDivElement | null>(null);
   const [isCollapse, setIsCollapse] = useState(true);
 
   const [scrollTop, setScrollTop] = useState(0);
@@ -46,6 +46,10 @@ const Timeline: React.FC = () => {
 
   const [searchType, setSearchType] = useState("");
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+
+  // Help modal state
+  const [showHelp, setShowHelp] = useState(false);
+  const [accordionHeight, setAccordionHeight] = useState(0);
 
   const zigzagRows = useMemo(() => {
     return createZigzagLayout(
@@ -315,6 +319,19 @@ const Timeline: React.FC = () => {
     };
   }, [containerRef, sizes]);
 
+  // 아코디언 높이 측정
+  useEffect(() => {
+    if (showHelp && accordionRef.current) {
+      // 실제 컨텐츠 높이를 즉시 측정하되, max-h-[400px]로 제한
+      const contentHeight = accordionRef.current.scrollHeight;
+      const maxHeight = 400;
+      const height = Math.min(contentHeight, maxHeight);
+      setAccordionHeight(height);
+    } else {
+      setAccordionHeight(0);
+    }
+  }, [showHelp]);
+
   // 스크롤 이벤트 핸들러 추가
   useEffect(() => {
     const handleScroll = () => {
@@ -391,48 +408,91 @@ const Timeline: React.FC = () => {
   return (
     <div className="flex flex-end flex-col bg-white h-full overflow-y-hidden relative">
       <div
-        className="bg-base-100 w-full h-[45px] z-999 flex items-center 
-         p-2 justify-center gap-1
+        className="bg-base-100 w-full h-[45px] z-999 flex items-center
+         p-2 justify-center gap-1 relative
       "
       >
-        {Object.entries(allEvents).map(([key, value]) => {
-          if (value.length === 0) return null;
-          if (!timelineIcons[key as keyof typeof timelineIcons]) return null;
-          const Icon = timelineIcons[key as keyof typeof timelineIcons];
-          return (
-            <button
-              key={key}
-              className={`btn btn-sm p-1 ${
-                searchType === key ? "btn-accent" : ""
-              }`}
-              style={{
-                color:
-                  searchType === key ? "#fff" : "oklch(70.7% 0.022 261.325)",
-              }}
-              onClick={() => {
-                if (searchType === key) {
-                  setSearchType("");
-                } else {
-                  setSearchType(key);
-                }
-              }}
-            >
-              <Icon size={12} />
-              <p className="text-xs">
-                {/* {allEvents[key as keyof typeof allEvents].length || 0} */}
-                {allEvents[key as keyof typeof allEvents].reduce(
-                  (total, event) => {
-                    return (
-                      total + (event.data ? Object.keys(event.data).length : 1)
-                    );
-                  },
-                  0
-                )}
-              </p>
-            </button>
-          );
-        })}
+        <div className="flex items-center gap-1">
+          {Object.entries(allEvents).map(([key, value]) => {
+            if (value.length === 0) return null;
+            if (!timelineIcons[key as keyof typeof timelineIcons]) return null;
+            const Icon = timelineIcons[key as keyof typeof timelineIcons];
+            return (
+              <button
+                key={key}
+                className={`btn btn-sm p-1 ${
+                  searchType === key ? "btn-accent" : ""
+                }`}
+                style={{
+                  color:
+                    searchType === key ? "#fff" : "oklch(70.7% 0.022 261.325)",
+                }}
+                onClick={() => {
+                  if (searchType === key) {
+                    setSearchType("");
+                  } else {
+                    setSearchType(key);
+                  }
+                }}
+              >
+                <Icon size={12} />
+                <p className="text-xs">
+                  {/* {allEvents[key as keyof typeof allEvents].length || 0} */}
+                  {allEvents[key as keyof typeof allEvents].reduce(
+                    (total, event) => {
+                      return (
+                        total +
+                        (event.data ? Object.keys(event.data).length : 1)
+                      );
+                    },
+                    0
+                  )}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        {/* Help Icon - Always positioned at the right end */}
+        <button
+          className="btn btn-sm p-1 btn-ghost absolute right-2"
+          onClick={() => setShowHelp(!showHelp)}
+          title="Event Types Help"
+        >
+          <MdHelpOutline size={18} className="text-gray-600" />
+        </button>
       </div>
+
+      {/* Help Accordion */}
+      <div
+        ref={accordionRef}
+        className={`bg-base-100 w-full z-[1000] overflow-hidden transition-all duration-300 ease-in-out ${
+          showHelp ? "max-h-[400px]" : "max-h-0"
+        }`}
+      >
+        <div className="p-2 border-t border-gray-200">
+          {/* <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Event Types Guide</h3>
+          </div> */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            {Object.entries(EventTitle).map(([key, title]) => {
+              const Icon = timelineIcons[key as keyof typeof timelineIcons];
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <div>
+                    {Icon && (
+                      <div className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center bg-white">
+                        <Icon size={14} />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs">{title}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white w-full h-[30px] z-999 flex items-center justify-between pl-2 pr-2">
         {searchType ? (
           <div className="w-full flex items-center justify-between">
@@ -488,115 +548,126 @@ const Timeline: React.FC = () => {
                 checked={isCollapse}
                 onChange={(e) => setIsCollapse(e.target.checked)}
               />
-              <p className="text-xs text-gray-500 ">
-                Collapse by Non-Improvers{" "}
-              </p>
+              <p className="text-xs text-gray-500 ">Collapse Non-Improvers </p>
             </label>
-
             <Legend width={50} />
           </>
         )}
       </div>
-      <div className="absolute top-[75px] left-0 w-[60px] z-999 h-full">
-        <MiniMap
-          data={reversedRows}
-          scrollTop={scrollTop}
-          scrollHeight={scrollHeight}
-          clientHeight={clientHeight}
-          onScrollChange={handleMiniMapScroll}
-          searchType={searchType}
-          isCurrentFocusedLink={isCurrentFocusedLink}
-        />
-      </div>
       <div
-        className="overflow-y-auto p-[10px] relative absolute left-[60px] w-full h-full"
+        className="transition-all duration-300 absolute justify-between flex w-full overflow-hidden"
         style={{
-          height: `calc(100% - 75px)`,
-          width: `calc(100% - 60px)`,
+          top: `${accordionHeight}px`,
+          height: `calc(100% - ${accordionHeight}px)`,
         }}
-        ref={containerRef}
       >
-        {reversedRows.map((row, reversedIndex) => (
-          <React.Fragment key={row.rowIndex}>
-            <div data-row-index={reversedIndex}>
-              {row.verticalLink && (
+        <div
+          className="left-0 transition-all duration-300 relative"
+          style={{
+            top: `75px`,
+            width: `60px`,
+          }}
+        >
+          <MiniMap
+            data={reversedRows}
+            scrollTop={scrollTop}
+            scrollHeight={scrollHeight}
+            clientHeight={clientHeight}
+            onScrollChange={handleMiniMapScroll}
+            searchType={searchType}
+            isCurrentFocusedLink={isCurrentFocusedLink}
+            isCollapse={isCollapse}
+          />
+        </div>
+        <div
+          className="overflow-y-auto p-[10px] relative absolute w-full transition-all duration-300"
+          style={{
+            top: `75px`,
+            width: `calc(100% - 60px)`,
+          }}
+          ref={containerRef}
+        >
+          {reversedRows.map((row, reversedIndex) => (
+            <React.Fragment key={row.rowIndex}>
+              <div data-row-index={reversedIndex}>
+                {row.verticalLink && (
+                  <div
+                    className="flex w-full mb-0"
+                    style={{
+                      justifyContent:
+                        row.direction === "ltr" ? "flex-end" : "flex-start",
+                    }}
+                    onClick={() => {
+                      if (row.verticalLink) {
+                        handleLinkClick(row.verticalLink);
+                      }
+                    }}
+                  >
+                    <Band
+                      {...row.verticalLink}
+                      sizes={sizes}
+                      isVertical={true}
+                      dir={row.direction}
+                      isCollapse={isCollapse}
+                      highlightEventType={
+                        isCurrentFocusedLink(row.rowIndex, -1, true)
+                          ? searchType
+                          : ""
+                      }
+                    />
+                  </div>
+                )}
+
                 <div
-                  className="flex w-full mb-0"
+                  className="flex flex-row items-center w-full"
                   style={{
                     justifyContent:
-                      row.direction === "ltr" ? "flex-end" : "flex-start",
-                  }}
-                  onClick={() => {
-                    if (row.verticalLink) {
-                      handleLinkClick(row.verticalLink);
-                    }
+                      row.direction === "ltr" ? "flex-start" : "flex-end",
                   }}
                 >
-                  <Band
-                    {...row.verticalLink}
-                    sizes={sizes}
-                    isVertical={true}
-                    dir={row.direction}
-                    isCollapse={isCollapse}
-                    highlightEventType={
-                      isCurrentFocusedLink(row.rowIndex, -1, true)
-                        ? searchType
-                        : ""
-                    }
-                  />
-                </div>
-              )}
-
-              <div
-                className="flex flex-row items-center w-full"
-                style={{
-                  justifyContent:
-                    row.direction === "ltr" ? "flex-start" : "flex-end",
-                }}
-              >
-                {row.nodes.map((node: any, index: number) => (
-                  <React.Fragment key={index}>
-                    <div onClick={() => handleNodeClick(node)}>
-                      <Band
-                        {...node}
-                        sizes={sizes}
-                        isVertical={undefined}
-                        dir={row.direction}
-                        isCollapse={isCollapse}
-                        highlightEventType=""
-                      />
-                    </div>
-                    <div>
-                      {index < row.horizontalLinks.length && (
-                        <div
-                          onClick={() =>
-                            handleLinkClick(row.horizontalLinks[index])
-                          }
-                        >
-                          <Band
-                            {...row.horizontalLinks[index]}
-                            isVertical={false}
-                            sizes={sizes}
-                            dir={row.direction}
-                            isCollapse={isCollapse}
-                            highlightEventType={
-                              isCurrentFocusedLink(row.rowIndex, index, false)
-                                ? searchType
-                                : ""
+                  {row.nodes.map((node: any, index: number) => (
+                    <React.Fragment key={index}>
+                      <div onClick={() => handleNodeClick(node)}>
+                        <Band
+                          {...node}
+                          sizes={sizes}
+                          isVertical={undefined}
+                          dir={row.direction}
+                          isCollapse={isCollapse}
+                          highlightEventType=""
+                        />
+                      </div>
+                      <div>
+                        {index < row.horizontalLinks.length && (
+                          <div
+                            onClick={() =>
+                              handleLinkClick(row.horizontalLinks[index])
                             }
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </React.Fragment>
-                ))}
+                          >
+                            <Band
+                              {...row.horizontalLinks[index]}
+                              isVertical={false}
+                              sizes={sizes}
+                              dir={row.direction}
+                              isCollapse={isCollapse}
+                              highlightEventType={
+                                isCurrentFocusedLink(row.rowIndex, index, false)
+                                  ? searchType
+                                  : ""
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
-            </div>
-          </React.Fragment>
-        ))}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
-      {/* Mobile Drawer */}
       <MobileDrawer isOpen={drawerOpen} onClose={handleCloseDrawer}>
         {selectedNode && selectedNode.type === "node" ? (
           <NodeDetail data={selectedNode} />

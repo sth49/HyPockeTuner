@@ -20,15 +20,15 @@ const SelectTrials = () => {
     (state) => state.setSelectedTrials
   );
 
-  const handleRowClick = (rowId: string) => {
+  const handleRowClick = (trialId: string) => {
     setRowSelection((prev) => {
       const newSelection: Record<string, boolean> = {
         ...(typeof prev === "object" && prev !== null ? prev : {}),
       };
-      if (newSelection[rowId]) {
-        delete newSelection[rowId];
+      if (newSelection[trialId]) {
+        delete newSelection[trialId];
       } else {
-        newSelection[rowId] = true;
+        newSelection[trialId] = true;
       }
       return newSelection;
     });
@@ -50,12 +50,9 @@ const SelectTrials = () => {
     const newSelection: Record<string, boolean> = {};
     const selectedTrialIds = selectedTrials.map((trial) => trial.id);
 
-    tableRows.forEach((row) => {
-      const rowId = row.id;
-      const trialId = row.original.id;
-      if (selectedTrialIds.includes(trialId)) {
-        newSelection[rowId] = true;
-      }
+    // 이제 trial ID 기반으로 selection 설정
+    selectedTrialIds.forEach((trialId) => {
+      newSelection[trialId] = true;
     });
 
     setRowSelection(newSelection);
@@ -97,13 +94,18 @@ const SelectTrials = () => {
             return;
           }
           const selectedRows: TrialRowType[] = [];
-          table.getSelectedRowModel().rows.forEach((row) => {
-            const rowId = row.id;
-            if (rowSelection[rowId]) {
-              const trial = table.getRow(rowId).original;
-              selectedRows.push(trial);
+          const allRows = table.getRowModel().rows;
+          
+          // trial ID 기반으로 선택된 trials 추출
+          Object.keys(rowSelection).forEach((trialId) => {
+            if (rowSelection[trialId]) {
+              const trial = allRows.find(row => row.original && row.original.id === trialId)?.original;
+              if (trial) {
+                selectedRows.push(trial);
+              }
             }
           });
+          
           console.log("Selected Trials:", selectedRows);
           setSelectedTrials(selectedRows);
 

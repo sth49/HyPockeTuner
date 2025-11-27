@@ -1,0 +1,196 @@
+{
+  "dataset": ["mnist", "K-MHaS"],
+  "mnist": ["cnn"],
+  "K-MHaS": ["bert"],
+  "all_hyperparameters": {
+    "mnist": [
+      {
+        "name": "learning_rate",
+        "displayName": "lr",
+        "type": "ordinal",
+        "values": [1e-4, 1e-3, 1e-2, 1e-1],
+        "range": [1e-4, 1e-1],
+        "log": true
+      },
+      {
+        "name": "optimizer",
+        "displayName": "optim",
+        "type": "unordered",
+        "values": ["adam", "sgd", "rms"]
+      },
+      {
+        "name": "scheduler_p",
+        "displayName": "sche_p",
+        "type": "unordered",
+        "values": [false, true]
+      },
+      {
+        "name": "batch_size",
+        "displayName": "bs",
+        "type": "ordinal",
+        "values": [8, 16, 32],
+        "range": [16, 64]
+      },
+      {
+        "name": "weight_decay",
+        "displayName": "wd",
+        "type": "uniform",
+        "values": [1e-4, 1e-3, 1e-2, 1e-1],
+        "range": [0, 1e-3]
+      },
+      {
+        "name": "momentum",
+        "displayName": "mmt",
+        "type": "uniform",
+        "values": [0.9, 0.95, 0.99],
+        "range": [0, 1]
+      },
+      {
+        "name": "activation",
+        "displayName": "acti",
+        "type": "unordered",
+        "values": ["relu", "lrelu", "tanh"]
+      },
+      {
+        "name": "hidden_size",
+        "displayName": "hs",
+        "type": "ordinal",
+        "values": [16, 32, 64],
+        "range": [16, 64]
+      }
+    ],
+
+    "K-MHaS": [
+      {
+        "name": "learning_rate",
+        "displayName": "lr",
+        "type": "ordinal",
+        "values": [1e-4, 1e-3, 1e-2, 1e-1],
+        "range": [1e-4, 1e-1],
+        "log": true
+      },
+      {
+        "name": "optimizer",
+        "displayName": "optim",
+        "type": "unordered",
+        "values": [
+          "adam",
+          "adamw",
+          "adafactor",
+          "adamax",
+          "asgd",
+          "rprop",
+          "nadam",
+          "radam",
+          "sgd",
+          "rms"
+        ]
+      },
+      {
+        "name": "scheduler",
+        "displayName": "sche",
+        "type": "unordered",
+        "values": [
+          "const",
+          "const_warmup",
+          "cos_warmup",
+          "cos_hard",
+          "linear_warmup",
+          "poly_decay",
+          "none"
+        ]
+      },
+      {
+        "name": "batch_size",
+        "displayName": "bs",
+        "type": "ordinal",
+        "values": [32, 64, 128, 256],
+        "range": [32, 256],
+        "max": 128
+      },
+      {
+        "name": "weight_decay",
+        "displayName": "wd",
+        "type": "uniform",
+        "values": [1e-4, 1e-3, 1e-2, 1e-1],
+        "range": [0, 1e-3]
+      },
+      {
+        "name": "momentum",
+        "displayName": "mmt",
+        "type": "uniform",
+        "values": [0.9, 0.95, 0.99],
+        "range": [0, 1]
+      },
+      {
+        "name": "activation",
+        "displayName": "acti",
+        "type": "unordered",
+        "values": ["gelu", "relu", "silu", "gelu_new"]
+      },
+      {
+        "name": "positional_embedding",
+        "displayName": "pos_emb",
+        "type": "unordered",
+        "values": ["absolute", "relative_key", "relative_key_query"]
+      },
+      {
+        "name": "dropout_probability",
+        "displayName": "drop_p",
+        "type": "ordinal",
+        "values": [0.1, 0.3, 0.5],
+        "range": [0, 0.5]
+      },
+      {
+        "name": "classifier_dropout",
+        "displayName": "cls_drop",
+        "type": "uniform",
+        "values": [0.1, 0.3, 0.5],
+        "range": [0, 0.5]
+      }
+    ]
+  },
+
+  "dataset_model": {
+    "mnist": ["cnn"],
+
+    "K-MHaS": ["bert"]
+  },
+  "model_config": {
+    "cnn": {
+      "metric": {
+        "name": "Accuracy",
+        "range": [0, 1]
+      },
+      "hyperparameters": [
+        "hidden_size",
+        "learning_rate",
+        "optimizer",
+        "activation",
+        "scheduler_p",
+        "batch_size",
+        "weight_decay",
+        "momentum"
+      ]
+    },
+
+    "bert": {
+      "metric": {
+        "name": "Accuracy",
+        "range": [0, 1]
+      },
+      "hyperparameters": [
+        "learning_rate",
+        "optimizer",
+        "scheduler",
+        "batch_size",
+        "weight_decay",
+        "momentum",
+        "activation",
+        "positional_embedding",
+        "dropout_probability",
+        "classifier_dropout"
+      ]
+    }
+  }
+}

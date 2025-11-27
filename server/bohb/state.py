@@ -406,17 +406,12 @@ class STATE:
         self.ith_losses.append(loss)
 
     def handle_error(self, loss):
-        """Handle error without incrementing j, treating it as a very poor result"""
-        # Add error to ith_losses to track it for round completion
+        """Handle error by incrementing j counter and treating it as a very poor result"""
+        # Increment j counter for errors to maintain proper BOHB progression
+        self.j += 1
+        self.loss = loss
         self.ith_losses.append(loss)
-        self.ith_samples.append(self.sample if hasattr(self, 'sample') else None)
-        
-        # Don't increment j for errors - this allows next trial to continue properly
-        # Check if we have collected enough trials (including errors) to complete the round
-        if len(self.ith_losses) >= self.n:
-            # We have enough trials, force round completion
-            self.j = self.n - 1
-            self.after_j()
+        # Note: sample is already added to ith_samples in update_sample(), no need to add again
     
     def after_j(self):
         if (self.j == self.n -1):

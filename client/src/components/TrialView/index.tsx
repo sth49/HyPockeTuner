@@ -8,7 +8,7 @@ const TrialView = () => {
     "timeline"
   );
   const viewName = {
-    timeline: "Timeline",
+    timeline: "EventCrumb",
     brackets: "Brackets & Rounds",
     records: "Records",
   };
@@ -32,6 +32,7 @@ const TrialView = () => {
             {viewName[type as "timeline" | "brackets" | "records"]}
           </button>
         ))}
+        {/* 👈 위치 3: 여기에 도움말 아이콘 추가 - 탭 버튼 바로 옆 (우측 상단) */}
       </div>
       {viewType === "timeline" ? (
         <div className="w-full h-full">

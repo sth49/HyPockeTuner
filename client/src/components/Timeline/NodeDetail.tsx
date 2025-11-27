@@ -53,7 +53,7 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
             : "N/A";
         case "loss":
           return trial?.loss !== undefined
-            ? formatting(trial.loss as number, "float")
+            ? formatting(trial.loss as number, "float", 2)
             : "N/A";
         default:
           return "N/A";
@@ -160,9 +160,9 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
 
   // Render hyperparameters
   const renderHyperparameters = () => (
-    <div className="w-full">
+    <>
       <p className="text-sm mt-2">Hyperparameters</p>
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-2 gap-x-4">
         {hyperparams?.map((param, i) => {
           // const Icon = hpTypeIcons[HyperparamTypes[param.type].toLowerCase()];
           if (hparamList.includes(param.name) === false) return null;
@@ -174,12 +174,12 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
           return (
             <div
               key={param.displayName}
-              className="flex justify-between items-center"
-              style={{
-                padding: "5px 15px",
-                paddingRight: i % 2 === 1 ? "0px" : "15px",
-                paddingLeft: i % 2 === 0 ? "0px" : "15px",
-              }}
+              className="flex justify-between items-center py-1.5"
+              // style={{
+              //   padding: "5px 15px",
+              //   paddingRight: i % 2 === 1 ? "15px" : "0px",
+              //   paddingLeft: i % 2 === 0 ? "15px" : "0px",
+              // }}
             >
               <span
                 className={`tooltip ${
@@ -210,7 +210,7 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
           );
         })}
       </div>
-    </div>
+    </>
   );
 
   // Render action buttons for completed trials
@@ -277,7 +277,7 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
         )}
       </div>
       <div
-        className="w-full h-full overflow-y-auto pt-[10px] pb-[30px]"
+        className="w-full h-full overflow-y-auto pt-[10px] pb-[30px] overflow-x-hidden"
         style={{ height: `calc(100% - 50px)` }}
       >
         {renderContent()}

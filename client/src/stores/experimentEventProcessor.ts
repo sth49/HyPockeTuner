@@ -358,8 +358,12 @@ export function processExperimentEvent(
                         //   value.startTime !== "" ? value.startTime * 1000 : -1,
                         endTime:
                           value.endTime !== "" ? value.endTime * 1000 : -1,
-                        metric: value.metric,
-                        loss: value.loss,
+                        metric: isNaN(Number(value.metric))
+                          ? 0
+                          : Number(value.metric),
+                        loss: isNaN(Number(value.loss))
+                          ? 999
+                          : Number(value.loss),
                         params: value.config,
                         status: "done",
                       };
@@ -391,8 +395,8 @@ export function processExperimentEvent(
         trialId: value.trialId,
         budget: value.budget,
         params: value.config,
-        metric: value.metric,
-        loss: value.loss,
+        metric: isNaN(Number(value.metric)) ? 0 : Number(value.metric),
+        loss: isNaN(Number(value.loss)) ? 999 : Number(value.loss),
         startTime: value.startTime !== "" ? value.startTime * 1000 : -1,
         endTime: value.endTime !== "" ? value.endTime * 1000 : -1,
         type: "best",
@@ -636,8 +640,8 @@ export function processExperimentEvent(
           params: value.config,
           dataset: value.dataset,
           endTime: value.endTime !== "" ? value.endTime * 1000 : -1,
-          loss: value.loss,
-          metric: value.metric,
+          metric: isNaN(Number(value.metric)) ? 0 : Number(value.metric),
+          loss: isNaN(Number(value.loss)) ? 999 : Number(value.loss),
           model: value.model,
           name: value.name,
           status: "done", // ✅ "user"가 아닌 "done"으로 변경

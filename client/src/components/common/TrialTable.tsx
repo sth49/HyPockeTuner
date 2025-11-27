@@ -6,10 +6,9 @@ import ExpandedRow from "./ExpandedRow";
 import { TrialRowType } from "../../types/table";
 interface Props {
   table: Table<TrialRowType>;
-  handleRowClick: (rowId: string) => void;
+  handleRowClick: (trialId: string) => void;
 }
 const TrialTable: React.FC<Props> = ({ table, handleRowClick }) => {
-  console.log(table.getRowModel().rows);
   return (
     <table className="w-full border-collapse border-gray-200">
       <thead
@@ -64,7 +63,7 @@ const TrialTable: React.FC<Props> = ({ table, handleRowClick }) => {
             <>
               <tr
                 key={row.id}
-                onClick={() => handleRowClick(row.id)}
+                onClick={() => handleRowClick(row.original.id)}
                 className="cursor-pointer hover:bg-gray-50"
               >
                 {row.getVisibleCells().map((cell) => {

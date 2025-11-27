@@ -7,8 +7,8 @@ const Overview = () => {
     <div className="w-full h-full p-2 gap-2 flex flex-col overflow-y-auto">
       <ExpInfo />
       <PerformancePlot />
-      <GPUPlot />
       <HparamEffect />
+      <GPUPlot />
     </div>
   );
 };

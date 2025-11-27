@@ -60,8 +60,9 @@ class BOHB:
         return state
     
     def error(self, state, loss):
-        """Handle error cases without incrementing j counter"""
+        """Handle error cases by incrementing j counter and checking for round completion"""
         state.handle_error(loss)
+        state.after_j()
         return state
     
     def add_trial(self, state, trial): # trial은 영향을 안줌

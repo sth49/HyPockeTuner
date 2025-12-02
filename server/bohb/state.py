@@ -1,4 +1,4 @@
-# state.py: bohb 실험 상태 관리
+
 from notification import ConditionPair, ExperimentFinishCondition, TrialFinishCondition, MetricReachCondition, RoundFinishCondition, MetricImproveByCondition, BracketFinishCondition
 import numpy as np
 # from bohb.kde import KDEMultivariate
@@ -46,25 +46,25 @@ class STATE:
         self.logs =Log(self.s_max+1)
         self.is_first = 1
 
-        # step의 index
+        
         self.s = self.s_max+1
         self.i = -1
         self.j = -1
         
-        # s가 바뀔 때 갱신되는 값들
+        
         self.n = None
         self.r = None
         self.kde_good = None
         self.kde_bad = None
         self.samples = np.array([])
         
-        # i가 바뀔 때 갱신되는 값들
+        
         self.n_i = None
         self.r_i = None
         self.ith_samples = []
         self.ith_losses = []
         
-        # j가 바뀔 때 갱신되는 값들
+        
         self.sample = None
         self.loss = None
         
@@ -200,7 +200,7 @@ class STATE:
 
     def update_bracket(self):
         # update s
-        if self.is_first or (self.i == -1): # i의 범위는 0~s까지
+        if self.is_first or (self.i == -1):
             self.s -= 1
             if self.s == -1:
                 print("Experiment is finished in state.py")

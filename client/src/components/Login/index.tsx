@@ -20,10 +20,8 @@ const Login: React.FC = () => {
 
     try {
       if (isSignUp) {
-        // 회원가입
         const result = await ApiClient.addUser(userId, password);
         if (result.success) {
-          // 회원가입 성공 후 바로 로그인
           const loginResult = await ApiClient.login(userId);
           if (loginResult.success) {
             login(userId);
@@ -35,7 +33,6 @@ const Login: React.FC = () => {
           setError(result.message || "Sign up failed.");
         }
       } else {
-        // 로그인
         const result = await ApiClient.login(userId);
         if (result.success) {
           login(userId);

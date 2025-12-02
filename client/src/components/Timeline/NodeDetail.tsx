@@ -22,7 +22,7 @@ const NodeDetail = ({ data }: NodeDetailProps) => {
     .map((hp) => hp.name);
   const { handleNavigate } = useNavigation();
 
-  // 텍스트를 중간에서 자르고 말줄임표를 추가하는 함수
+  
   const truncateMiddle = (text: string, maxLength: number = 10) => {
     if (text.length <= maxLength) return text;
 

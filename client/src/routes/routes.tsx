@@ -4,7 +4,6 @@ import { type RouteObject } from "react-router";
 import LoadingSpinner from "../components/LoadingSpinner";
 import Layout from "./Layout";
 
-// 지연 로딩으로 코드 분할 -> 컴포넌트가 필요할때만 로드함
 const Setting = lazy(() => import("../components/Setting"));
 
 const Workspace = lazy(() => import("../components/workspace/Workspace"));
@@ -26,7 +25,7 @@ const HpSpace = lazy(() => import("../components/HpSpace"));
 const SelectTrials = lazy(() => import("../components/SelectTrials"));
 
 const NewNotiCond = lazy(() => import("../components/NewNotiCond"));
-// 컴포넌트를 Suspense로 감싸는 Helper (개선 버전)
+
 const withSuspense = (
   Component: React.ComponentType,
   viewType: string,
@@ -39,7 +38,6 @@ const withSuspense = (
   </Suspense>
 );
 
-// 앱 라우트 정의 (레이아웃이 모든 라우트에 적용됨)
 export const routes: RouteObject[] = [
   {
     path: "/",

@@ -25,15 +25,15 @@ const CondView = () => {
     if (pendingToggleIndex.current === null) return;
 
     const index = pendingToggleIndex.current;
-    // 원본 객체의 active 속성 토글
+    
     const targetPair = notiCondPairs[index];
     targetPair.active = !targetPair.active;
 
-    // 새로운 배열 생성하여 React 상태 업데이트 트리거
+    
     const updatedPairs = [...notiCondPairs];
     setNotiCondPairs(updatedPairs);
 
-    // 원본 객체는 toJSON 메서드를 가지고 있으므로 API 호출 가능
+    
     ApiClient.editCondition(targetPair);
 
     // Close dialog and clear pending index

@@ -25,10 +25,10 @@ const MiniMapContent = ({
   const rafRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // 🔧 개선된 드래그 상태 관리
-  const dragStartMouseY = useRef(0); // 절대 마우스 좌표
-  const dragStartViewportTop = useRef(0); // 드래그 시작 시 뷰포트 위치
-  const currentMouseY = useRef(0); // 현재 마우스 좌표 (디버깅용)
+  
+  const dragStartMouseY = useRef(0);
+  const dragStartViewportTop = useRef(0);
+  const currentMouseY = useRef(0);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const margin = { top: 5, right: 0, bottom: 10, left: 0 };
@@ -67,13 +67,13 @@ const MiniMapContent = ({
     const currentTouchY = e.touches[0].clientY;
     currentMouseY.current = currentTouchY;
 
-    // 🔧 핵심 개선: 절대 좌표 기반 드래그 거리 계산
+    
     const dragDistance = currentTouchY - dragStartMouseY.current;
 
-    // 🔧 새로운 뷰포트 위치 = 시작 뷰포트 위치 + 드래그 거리
+    
     const newViewportTop = dragStartViewportTop.current + dragDistance;
 
-    // 🔧 경계 체크 및 스크롤 비율 계산
+    
     const clampedViewportTop = Math.max(
       0,
       Math.min(innerHeight - viewportHeight, newViewportTop)
@@ -92,7 +92,7 @@ const MiniMapContent = ({
 
     const mouseY = e.clientY;
 
-    // 🔧 절대 좌표 저장 (화면 기준)
+    
     dragStartMouseY.current = mouseY;
     dragStartViewportTop.current = viewportTop;
     currentMouseY.current = mouseY;

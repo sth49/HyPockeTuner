@@ -16,7 +16,7 @@ const PushView = () => {
       // Simulate fetching data from an API or store
       const startIndex = (page - 1) * 5;
       const endIndex = startIndex + 5;
-      // push를 최신순으로
+      
       const newData = push.slice().reverse().slice(startIndex, endIndex);
       // .map((item) => ({
       //   ...item,

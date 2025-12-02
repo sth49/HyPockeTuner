@@ -334,7 +334,7 @@ export function processExperimentEvent(
       };
     }
     case "trialDone": {
-      // ... 기존 trial 찾기 코드 ...
+      
       const bracketId = value.bracketId;
       const roundId = value.roundId;
       const trialId = value.trialId;
@@ -424,13 +424,13 @@ export function processExperimentEvent(
       const trialId = value.trialId;
 
       if (value.isUserTrial) {
-        // 🔥 중복 방지: 먼저 기존에 같은 ID를 가진 trial이 있는지 확인
+        
         const existingTrialIndex = state.userTrials.findIndex(
           (trial) => trial.id === value.id
         );
 
         if (existingTrialIndex !== -1) {
-          // 기존 trial 업데이트
+          
           const updatedUserTrials = [...state.userTrials];
           updatedUserTrials[existingTrialIndex] = {
             ...updatedUserTrials[existingTrialIndex],
@@ -439,7 +439,7 @@ export function processExperimentEvent(
                 ? "paused"
                 : "running",
             progress: value.current,
-            // bracketId, roundId, trialId도 업데이트 (처음에 -1로 설정된 경우)
+            
             bracketId:
               bracketId !== undefined
                 ? bracketId
@@ -564,13 +564,13 @@ export function processExperimentEvent(
         const data = value.data;
         const trialId = data.id;
 
-        // 🔥 중복 방지: 이미 같은 ID의 userTrial이 있는지 확인
+        
         const existingTrialIndex = state.userTrials.findIndex(
           (trial) => trial.id === trialId
         );
 
         if (existingTrialIndex !== -1) {
-          // 기존 trial이 있으면 새로 추가하지 않고 기존 것을 업데이트
+          
           const updatedUserTrials = [...state.userTrials];
           updatedUserTrials[existingTrialIndex] = {
             ...updatedUserTrials[existingTrialIndex],
@@ -644,7 +644,7 @@ export function processExperimentEvent(
           loss: isNaN(Number(value.loss)) ? 999 : Number(value.loss),
           model: value.model,
           name: value.name,
-          status: "done", // ✅ "user"가 아닌 "done"으로 변경
+          status: "done",
           id: value.id || updatedUserTrials[userTrialIndex].id,
         };
 

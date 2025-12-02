@@ -7,7 +7,7 @@ export class HyperparamSet {
   public id: string;
   public params: Record<string, any>;
   public trials: TrialState[] = [];
-  public color: string = "#000000"; // 기본 색상
+  public color: string = "#000000";
   public isSelected: boolean = false;
 
   constructor(id: string, params: Record<string, any>) {

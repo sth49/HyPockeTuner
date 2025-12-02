@@ -653,9 +653,6 @@ const Records = () => {
       <BottomButton
         icon={<GrContract size={16} />}
         disabled={(() => {
-          // console.log("변경사항이 없을때:", !hasChanges);
-          // console.log("유효한 값이 없을때:", !hasValidNarrowValues);
-          // console.log("검증 오류가 있을때:", hasValidationErrors);
           return !hasChanges || !hasValidNarrowValues || hasValidationErrors;
         })()}
         onClick={() => {

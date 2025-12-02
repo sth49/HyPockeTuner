@@ -68,7 +68,7 @@ def test_nlp_kernel_direct():
         # Test tokenizer
         print("\nTesting tokenizer...")
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased', do_lower_case=False)
-        sample_text = "[CLS] 테스트 텍스트입니다 [SEP]"
+        sample_text = "[CLS] This is a test text [SEP]"
         tokens = tokenizer.tokenize(sample_text)
         input_ids = tokenizer.convert_tokens_to_ids(tokens)
         print(f"✓ Tokenizer working - Sample tokens: {len(tokens)}")

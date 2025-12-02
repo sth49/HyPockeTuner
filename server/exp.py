@@ -629,7 +629,7 @@ class Exp():
 
 
     def trials_for_shap(self):
-        """SHAP 분석을 위한 trial 데이터 반환"""
+        """"""
         trials = self.state.get_trials()
         if not trials:
             return []
@@ -637,7 +637,7 @@ class Exp():
         shap_data = []
         for trial in trials:
             config = trial['config'].copy()
-            # del config['id']  # id는 SHAP 분석에 필요하지 않으므로 제거
+            
             if ('id' in config):
                 del config['id']
             if ('bracket' in config):

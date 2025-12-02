@@ -102,7 +102,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
         value,
         isRange: range.includes(value),
         isBeforeChange: beforeChange.includes(value),
-        displayIndex: index, // 표시 순서
+        displayIndex: index,
       }))
       .sort((a, b) => a.value - b.value);
   }, [range, beforeChange]);
@@ -147,13 +147,13 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
     });
   }, [beforeChange, scatterData, yMax]);
 
-  // 라벨 위치 계산 (겹치지 않게) - 값 순서대로 정렬
+  
   // const labelPositions = useMemo(() => {
   //   const labelHeight = 30;
   //   const spacing = 5;
   //   const totalHeight = yMax;
 
-  //   // 값 순서대로 정렬 (큰 값이 위쪽)
+  
   //   const sortedTickData = [...yTickData].sort((a, b) => b.value - a.value);
 
   //   console.log("sortedTickData", sortedTickData);
@@ -177,14 +177,14 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
   //   });
   // }, [yTickData, yScale, yMax]);
 
-  // 라벨 위치 계산 (겹치지 않게) - 값 순서대로 정렬
+  
   const labelPositions = useMemo(() => {
     const labelHeight = 30;
 
-    // 값 순서대로 정렬 (큰 값이 위쪽)
+    
     const sortedTickData = [...yTickData].sort((a, b) => b.value - a.value);
 
-    // 최대값과 최소값 찾기
+    
     const maxValue = Math.max(...sortedTickData.map((d) => d.value));
     const minValue = Math.min(...sortedTickData.map((d) => d.value));
 
@@ -193,11 +193,11 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
 
       let labelY;
 
-      // 최대값과 최소값은 실제 틱 위치에 배치
+      
       if (tickData.value === maxValue || tickData.value === minValue) {
-        labelY = actualTickY - 12; // 라벨 중앙을 틱 위치에 맞춤
+        labelY = actualTickY - 12;
       } else {
-        // 중간값들은 겹치지 않게 균등 배치
+        
         const middleItems = sortedTickData.filter(
           (d) => d.value !== maxValue && d.value !== minValue
         );
@@ -206,21 +206,21 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
         );
 
         if (middleIndex !== -1) {
-          // 최대값과 최소값 사이의 공간에서 균등 배치
+          
           const maxY = yScale(maxValue) + labelHeight / 2;
           const minY = yScale(minValue) - labelHeight / 2;
           const availableHeight = minY - maxY - labelHeight;
 
           if (middleItems.length === 1) {
-            // 중간값이 하나면 중앙에 배치
+            
             labelY = maxY + availableHeight / 2;
           } else {
-            // 여러 개면 균등 배치
+            
             const step = availableHeight / (middleItems.length + 1);
             labelY = maxY + step * (middleIndex + 1);
           }
         } else {
-          // 기본값 (이 경우는 발생하지 않아야 함)
+          
           labelY = actualTickY - labelHeight / 2;
         }
       }
@@ -233,7 +233,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
       };
     });
   }, [yTickData, yScale, yMax]);
-  // 스플라인 경로 생성 함수
+  
   const createSplinePath = (x1: number, y1: number, x2: number, y2: number) => {
     const midX = (x1 + x2) / 2;
     return `M ${x1} ${y1} Q ${midX} ${y1} ${midX} ${
@@ -241,7 +241,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
     } Q ${midX} ${y2} ${x2} ${y2}`;
   };
 
-  // Custom tick component for Y-axis (빈 컴포넌트로 실제 틱 숨김)
+  
   const CustomYTick = () => null;
 
   if (scatterData.length === 0) {
@@ -358,33 +358,33 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
               textAnchor: "middle",
             }}
             tickValues={yTickData.map((d) => d.value)}
-            tickFormat={() => ""} // 빈 문자열로 숨김
+            tickFormat={() => ""}
             tickComponent={CustomYTick}
             tickLength={6}
           />
 
-          {/* 커스텀 라벨과 스플라인 연결선 */}
+          
           {labelPositions.map((pos, index) => {
-            const labelCenterX = pos.labelX + 72; // 라벨 중앙 X 좌표
-            const labelCenterY = pos.labelY + 10; // 라벨 중앙 Y 좌표
-            const tickX = 0; // Y축 근처 위치
-            const tickY = pos.actualTickY; // 실제 틱 위치
+            const labelCenterX = pos.labelX + 72;
+            const labelCenterY = pos.labelY + 10;
+            const tickX = 0;
+            const tickY = pos.actualTickY;
 
             return (
               <g key={`custom-label-${index}`}>
-                {/* 스플라인 연결선 */}
+                
                 {index !== 0 && index !== labelPositions.length - 1 && (
                   <>
                     <path
                       d={createSplinePath(
-                        labelCenterX, // 라벨 오른쪽 끝에서 시작
+                        labelCenterX,
                         labelCenterY,
                         tickX,
                         tickY
                       )}
                       stroke={
                         pos.isRange
-                          ? "oklch(59.435% 0.077 254.027)" // 파란색
+                          ? "oklch(59.435% 0.077 254.027)"
                           : "oklch(55.1% 0.027 264.364)"
                       }
                       strokeWidth={2}
@@ -398,7 +398,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                       r={3}
                       fill={
                         pos.isRange
-                          ? "oklch(59.435% 0.077 254.027)" // 파란색
+                          ? "oklch(59.435% 0.077 254.027)"
                           : "oklch(55.1% 0.027 264.364)"
                         // pos.isRange
                         //   ? "#3b82f6"
@@ -414,7 +414,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                       r={3}
                       fill={
                         pos.isRange
-                          ? "oklch(59.435% 0.077 254.027)" // 파란색
+                          ? "oklch(59.435% 0.077 254.027)"
                           : "oklch(55.1% 0.027 264.364)"
                         // pos.isRange
                         //   ? "#3b82f6"
@@ -427,7 +427,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                   </>
                 )}
 
-                {/* 커스텀 라벨 */}
+                
                 <foreignObject
                   // x={pos.labelX}
                   x={-margin.left}
@@ -457,7 +457,7 @@ const UniformImportancePlot: React.FC<ImportancePlotProps> = (props) => {
                   )}
                 </foreignObject>
 
-                {/* 실제 틱 위치에 작은 점 표시 */}
+                
               </g>
             );
           })}

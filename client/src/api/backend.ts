@@ -12,7 +12,7 @@ function log(...args: any[]) {
   console.info("Socket", ...args);
 }
 
-// 🔥 전역 소켓 인스턴스 추적을 위한 전역 변수
+
 let globalSocketInstance: any = null;
 let instanceCreationTime: number = 0;
 
@@ -28,20 +28,20 @@ export class Backend {
   instanceId: string;
 
   constructor() {
-    // 🔥 각 Backend 인스턴스에 고유 ID 부여
+    
     this.instanceId = `backend_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
     console.log(`🏗️ Backend instance created: ${this.instanceId}`);
 
-    // 페이지 언로드 시 소켓 정리
+    
     window.addEventListener("beforeunload", () => {
       this.cleanup();
     });
 
-    // 🔥 React 개발 모드에서 컴포넌트 언마운트 감지
+    
     if (typeof window !== "undefined") {
-      // 개발 모드에서 HMR(Hot Module Replacement) 감지
+      
       if ((window as any).webpackHotUpdate || (import.meta as any)?.hot) {
         console.log("🔥 Development mode detected - setting up HMR cleanup");
 
@@ -64,20 +64,20 @@ export class Backend {
       globalSocketExists: !!globalSocketInstance,
     });
 
-    // 🔥 전역 소켓 인스턴스 체크 및 재사용
+    
     if (globalSocketInstance && globalSocketInstance.connected) {
       const timeSinceCreation = Date.now() - instanceCreationTime;
 
-      // 5초 이내에 생성된 소켓이면 재사용
+      
       if (timeSinceCreation < 5000) {
         console.log("♻️ Reusing existing global socket instance");
         this.socket = globalSocketInstance;
 
-        // 상태만 업데이트
+        
         const { setIsSocketConnected } = useAppStore.getState();
         setIsSocketConnected(true);
 
-        // 기존 이벤트 리스너 제거 후 새로 설정
+        
         this.socket.removeAllListeners();
         this.setupSocketEvents();
 
@@ -88,7 +88,7 @@ export class Backend {
       }
     }
 
-    // 🔥 기존 소켓 완전 정리
+    
     if (this.socket && this.socket !== globalSocketInstance) {
       console.log("🧹 Cleaning up instance socket");
       this.cleanup();
@@ -97,39 +97,39 @@ export class Backend {
     this.isConnecting = true;
     this.reconnectAttempts = 0;
 
-    // 🔥 새 소켓 생성
+    
     this.socket = io(SOCKET_URL, {
       transports: ["polling"],
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: 1000,
-      forceNew: true, // 새 연결 강제
+      forceNew: true,
       upgrade: false,
       rememberUpgrade: false,
       timeout: 10000,
       query: {
         clientVersion: "1.0",
         timestamp: Date.now(),
-        instanceId: this.instanceId, // 디버깅용 인스턴스 ID
+        instanceId: this.instanceId,
       },
     });
 
-    // 🔥 전역 소켓으로 설정
+    
     globalSocketInstance = this.socket;
     instanceCreationTime = Date.now();
 
     this.setupSocketEvents();
   }
 
-  // isDevelopmentMode 함수는 사용되지 않으므로 제거됨
+  
 
   private setupSocketEvents() {
     if (!this.socket) return;
 
     console.log(`🔧 Setting up socket events for instance: ${this.instanceId}`);
 
-    // 연결 성공
+    
     this.socket.on("connect", () => {
       console.log(
         `✅ Socket connected on instance: ${this.instanceId}, Socket ID:`,
@@ -146,7 +146,7 @@ export class Backend {
         setIsSocketConnected(true);
         log("Connected");
 
-        // 연결 후 자동 로그인 시도 후 상태 요청
+        
         setTimeout(async () => {
           await this.attemptAutoLogin();
           console.log("🔄 Requesting current state...");
@@ -155,7 +155,7 @@ export class Backend {
       }
     });
 
-    // 연결 해제
+    
     this.socket.on("disconnect", (reason: string) => {
       console.log(
         `❌ Socket disconnected on instance: ${this.instanceId}, reason:`,
@@ -167,7 +167,7 @@ export class Backend {
       log("Disconnected", reason);
     });
 
-    // 재연결 성공
+    
     this.socket.on("reconnect", (attemptNumber: number) => {
       console.log(
         `🔄 Socket reconnected on instance: ${this.instanceId} after`,
@@ -186,7 +186,7 @@ export class Backend {
       }, 1000);
     });
 
-    // 연결 오류
+    
     this.socket.on("connect_error", (error: any) => {
       console.error(
         `❌ Socket connection error on instance: ${this.instanceId}:`,
@@ -204,10 +204,10 @@ export class Backend {
       log("Connection Error", error);
     });
 
-    // 🔥 이벤트 핸들러에 중복 방지 로직 추가
+    
     const eventProcessingLock = false;
 
-    // 초기 상태 수신
+    
     this.socket.on("initial_state", (data: any) => {
       if (eventProcessingLock) {
         console.log("🔒 Event processing locked, skipping initial_state");
@@ -219,14 +219,14 @@ export class Backend {
       this.processInitialState(data);
     });
 
-    // 이벤트 수신
+    
     this.socket.on("event", (data: any) => {
       if (eventProcessingLock) {
         console.log("🔒 Event processing locked, skipping event:", data.key);
         return;
       }
 
-      // 🔥 이벤트 중복 방지: 짧은 시간 내 같은 이벤트 필터링
+      
       const now = Date.now();
       const eventKey = `${data.key}_${data.expId}_${JSON.stringify(
         data.value
@@ -238,18 +238,18 @@ export class Backend {
 
       const lastTime = this.lastEventTimes.get(eventKey);
       if (lastTime && now - lastTime < 100) {
-        // 100ms 내 중복 이벤트 무시
+        
         console.log("🚫 Duplicate event filtered:", data.key);
         return;
       }
 
       this.lastEventTimes.set(eventKey, now);
 
-      // 오래된 이벤트 기록 정리 (메모리 누수 방지)
+      
       if (this.lastEventTimes.size > 100) {
         const entries = Array.from(this.lastEventTimes.entries());
-        entries.sort((a, b) => b[1] - a[1]); // 시간순 정렬
-        this.lastEventTimes = new Map(entries.slice(0, 50)); // 최신 50개만 유지
+        entries.sort((a, b) => b[1] - a[1]);
+        this.lastEventTimes = new Map(entries.slice(0, 50));
       }
 
       console.log(
@@ -267,12 +267,12 @@ export class Backend {
       }
     });
 
-    // 에러 처리
+    
     this.socket.on("error", (error: any) => {
       console.error(`❌ Socket error on instance: ${this.instanceId}:`, error);
     });
 
-    // 🔥 디버깅용 이벤트 로깅 (visibility 제외)
+    
     this.socket.on("event", (data: any) => {
       if (data.key !== "visibility") {
         console.log(
@@ -282,7 +282,7 @@ export class Backend {
       }
     });
 
-    // 재연결 관련 이벤트들
+    
     this.socket.on("reconnect_attempt", (attemptNumber: number) => {
       console.log(
         `🔄 Reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts} on instance: ${this.instanceId}`
@@ -297,7 +297,7 @@ export class Backend {
     });
   }
 
-  // 🔥 이벤트 중복 방지를 위한 타임스탬프 맵
+  
   private lastEventTimes: Map<string, number> = new Map();
 
   processInitialState(data: any) {
@@ -354,7 +354,7 @@ export class Backend {
     }
   }
 
-  // 🔥 전역 소켓 정리 메서드 추가
+  
   private cleanupGlobalSocket() {
     if (globalSocketInstance) {
       console.log("🧹 Cleaning up global socket instance");
@@ -365,7 +365,7 @@ export class Backend {
     }
   }
 
-  // 소켓 완전 정리
+  
   public cleanup() {
     console.log(`🧹 Cleaning up socket on instance: ${this.instanceId}`);
 
@@ -373,7 +373,7 @@ export class Backend {
       this.socket.removeAllListeners();
       this.socket.disconnect();
 
-      // 전역 소켓과 같은 인스턴스면 전역 소켓도 정리
+      
       if (this.socket === globalSocketInstance) {
         globalSocketInstance = null;
         instanceCreationTime = 0;
@@ -446,13 +446,13 @@ export class Backend {
     try {
       const { currentUser, token, isAuthenticated, checkAuth } = useAuthStore.getState();
       
-      // 이미 인증된 상태면 스킵
+      
       if (isAuthenticated && currentUser) {
         console.log(`✅ Already authenticated as: ${currentUser}`);
         return;
       }
       
-      // 토큰이 있으면 검증 시도
+      
       if (token) {
         console.log(`🔐 Attempting auto-login with stored token: ${token}`);
         const isValid = await checkAuth();

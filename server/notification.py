@@ -129,11 +129,11 @@ class ConditionPair:
             # self.active = True if (isinstance(self.event_cond,  MetricImproveByCondition) and self.event_cond.recurring) else False
             self.event_cond.mark_as_notified()
             # value = self.event_cond.emit(self.id, status)
-            # data = dict(key=self.event_cond.key, value=value, CALLBACK="https://vis.skku.edu/read")
+            # data = dict(key=self.event_cond.key, value=value, CALLBACK="https://example.com/read")
             # try:
             #     for sub_string in subs:
             #         sub  = json.loads(sub_string)
-            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=PRIVATE_KEY, vapid_claims={"sub": "mailto:hdh12345@g.skku.edu"})
+            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=PRIVATE_KEY, vapid_claims={"sub": "mailto:admin@example.com"})
             #         print("sent a push", res)
             # except Exception as e:
             #     print(e)
@@ -144,11 +144,11 @@ class ConditionPair:
             self.active = False
             self.timeout_cond.mark_as_notified()
             # value = self.timeout_cond.emit()
-            # data = dict(key=self.event_cond.key, value=value, CALLBACK="https://vis.skku.edu/read")
-            # try: 
+            # data = dict(key=self.event_cond.key, value=value, CALLBACK="https://example.com/read")
+            # try:
             #     for sub_string in subs:
             #         sub  = json.loads(sub_string)
-            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=PRIVATE_KEY, vapid_claims={"sub": "mailto:hdh12345@g.skku.edu"})
+            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=PRIVATE_KEY, vapid_claims={"sub": "mailto:admin@example.com"})
             #         print("sent a push", res)
             # except Exception as e:
             #     print(e)
@@ -173,7 +173,7 @@ class NotificationCondition:
     def to_json(self):
         return dict(id=self.id, notifiedAt=self.notified_at)
     
-# 실험 관련 조건
+
 # Argument: is_user, trial, round, bracket, finish
 class ExperimentStartCondition(NotificationCondition):
     def __init__(self, id, exp_id):
@@ -244,7 +244,7 @@ class ExperimentFinishCondition(NotificationCondition):
 
 
 
-class MetricReachCondition(NotificationCondition): # target에 도달한 경우
+class MetricReachCondition(NotificationCondition):
     def __init__(self, id, target, recurring=False, exp_id = None):
         self.target = target 
         self.key = f'Target Performance({self.target:.3f}) Reached'
@@ -274,8 +274,8 @@ class MetricReachCondition(NotificationCondition): # target에 도달한 경우
     def to_json(self):
         return dict(type=METRIC_REACH, id=self.id, target=self.target, recurring=self.recurring)
     
-class MetricImproveByCondition(NotificationCondition): # 성능 개선이 일어날 
-    def __init__(self, id, base, by, recurring, exp_id): # 다시보기
+class MetricImproveByCondition(NotificationCondition):
+    def __init__(self, id, base, by, recurring, exp_id):
         self.base = base
         self.by = by
         self.key = f'Performance Improved by {self.by} from {self.base:.3f}'
@@ -306,8 +306,8 @@ class MetricImproveByCondition(NotificationCondition): # 성능 개선이 일어
         return dict(type=METRIC_IMPROVE_BY, id=self.id, base=self.base, by=self.by, recurring=self.recurring)
     
     
-class MetricImproveCondition(NotificationCondition): # 성능 개선이 일어날 
-    def __init__(self, id, base, recurring, exp_id): # 다시보기
+class MetricImproveCondition(NotificationCondition):
+    def __init__(self, id, base, recurring, exp_id):
         self.base = base
         self.key = f'Performance Improved from {self.base:.3f}'
         self.content = None
@@ -404,7 +404,7 @@ class RoundFinishCondition(NotificationCondition):
         return dict(type=ROUND_FINISH, id=self.id, bracketId=self.bracket_id,  roundId=self.round_id)
 
 
-# Timeout 관련 조건
+
 # Argument: time
 
 class TimeoutCondition(NotificationCondition):
@@ -426,7 +426,7 @@ class TimeoutCondition(NotificationCondition):
     def to_json(self):
         return dict(type=TIMEOUT, id=self.id ,time=self.time.timestamp())
 
-# GPU Utilization 관련 조건
+
 # Argument: utilization, temperature
 
 class LowUtilizationCondition(NotificationCondition):
@@ -476,7 +476,7 @@ class HighTemperatureCondition(NotificationCondition):
         return dict(type=HIGH_TEMPERATURE, id=self.id)
     
     
-# Exception 관련 조건
+
 
 class ExceptionHappenCondition(NotificationCondition):
     def __init__(self, id, exp_id):

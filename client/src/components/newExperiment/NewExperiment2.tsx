@@ -31,14 +31,14 @@ const NewExperiment2 = () => {
   const runningExp = useExperimentStore((state) => state.runningExp);
   const { handleNavigate } = useNavigation();
 
-  // 현재 경로
+  
   const currentPath = window.location.pathname;
   const hasRunningExperiment = runningExp !== null && runningExp !== "";
 
-  // 하이퍼파라미터 유효성 검사
+  
   const isValidHyperparams = useMemo(() => {
     return newExpOptions.hyperparams.every((param) => {
-      // OrderedHyperparamOption의 range 타입 (uniform) 검사
+      
       if (param instanceof OrderedHyperparamOption && param.tp === "range") {
         return (
           param.range0 !== undefined && 
@@ -49,7 +49,7 @@ const NewExperiment2 = () => {
         );
       }
       
-      // OrderedHyperparamOption의 value 타입 (ordinal/constant) 검사
+      
       if (param instanceof OrderedHyperparamOption && param.tp === "value") {
         if (param.selectedType === "constant") {
           return param.constant !== undefined && param.constant !== "" && !isNaN(Number(param.constant));
@@ -58,7 +58,7 @@ const NewExperiment2 = () => {
         }
       }
       
-      // UnorderedHyperparamOption 검사
+      
       if (param instanceof UnorderedHyperparamOption) {
         return param.choices && param.choices.length > 0;
       }
@@ -96,7 +96,7 @@ const NewExperiment2 = () => {
     });
   };
 
-  // redefine 등으로 narrowing된 하이퍼파라미터들의 selectedType을 자동 조정
+  
   useEffect(() => {
     let hasChanges = false;
     
@@ -181,11 +181,11 @@ const NewExperiment2 = () => {
 
   const handleLaunchImmediately = () => {
     if (hasRunningExperiment) {
-      // 실행 중인 실험이 있으면 확인 모달 표시
+      
       const modal = document.getElementById("launch_immediately_modal") as HTMLDialogElement;
       modal?.showModal();
     } else {
-      // 실행 중인 실험이 없으면 바로 실행
+      
       handleNewExp("immediate");
     }
   };
@@ -265,7 +265,7 @@ const NewExperiment2 = () => {
         onDelete={handleDeleteConfirm}
       />
 
-      {/* Launch Immediately 확인 모달 */}
+      
       <ExperimentActionModal
         modalId="launch_immediately_modal"
         title="Launch Experiment Immediately"
@@ -277,7 +277,7 @@ const NewExperiment2 = () => {
 
       <div className="absolute bottom-0 left-0 w-full h-[70px] flex items-center justify-end p-4 z-10 bg-base-100 gap-3">
         {hasRunningExperiment ? (
-          // 실행 중인 실험이 있을 때: 두 개 버튼
+          
           <>
             <button
               className="btn btn-outline btn-primary flex-1 uppercase"
@@ -295,7 +295,7 @@ const NewExperiment2 = () => {
             </button>
           </>
         ) : (
-          // 실행 중인 실험이 없을 때: 하나 버튼
+          
           <button
             className="btn btn-primary w-full text-white uppercase"
             onClick={() => handleNewExp("immediate")}

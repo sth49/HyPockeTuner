@@ -42,7 +42,6 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
   }, [rowSelection]);
 
   useEffect(() => {
-    // 데이터가 없으면 로딩 상태 유지
     if (brackets.length === 0 && (!userTrials || userTrials.length === 0)) {
       console.log("No data available, keeping loading state");
       setIsLoading(true);
@@ -50,7 +49,6 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
       return;
     }
 
-    // 데이터 처리 시작
     setIsLoading(false);
 
     const rows: TrialRowType[] = [];
@@ -155,7 +153,7 @@ export const useTrialData = (isExpand: boolean, isCheck: boolean) => {
         setRowSelection(newSelection);
       }
     }
-  }, [brackets, hyperparams, userTrials]); // table 제거
+  }, [brackets, hyperparams, userTrials]);
   const metric = useExperimentStore((state) => state.metric);
   const column = useMemo(
     () =>

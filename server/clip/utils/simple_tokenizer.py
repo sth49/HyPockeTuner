@@ -7,7 +7,7 @@ import ftfy
 import regex as re
 
 
-# 텍스트 입력을 숫자 토큰으로 바꾸기 위한 간단한 BPE 토크나이저 
+
 
 @lru_cache()
 def default_bpe():

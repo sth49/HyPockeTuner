@@ -11,31 +11,28 @@ export interface HyperparameterConfig {
   name: string;
   value: string | number | boolean;
   type: "string" | "number" | "boolean";
-  range?: [number, number]; // 숫자 타입인 경우 범위
-  options?: string[]; // 선택지가 있는 경우
+  range?: [number, number];
+  options?: string[];
 }
 
-/**
- * 데이터셋별 모델 매핑
- */
 interface DatasetModelMapping {
-  [dataset: string]: string[]; // 데이터셋 이름 -> 모델 목록
+  [dataset: string]: string[];
 }
 
 interface DatasetHyperparameters {
-  [dataset: string]: HyperparameterConfig[]; // 데이터셋 이름 -> 하이퍼파라미터 목록
+  [dataset: string]: HyperparameterConfig[];
 }
 interface ModelMetric {
   name: string;
-  range: [number, number]; // [min, max]
+  range: [number, number];
 }
 
 interface ModelConfig {
   metric: ModelMetric;
-  hyperparameters: string[]; // 하이퍼파라미터 이름 목록
+  hyperparameters: string[];
 }
 interface ModelConfigMapping {
-  [model: string]: ModelConfig; // 모델 이름 -> 모델 설정
+  [model: string]: ModelConfig;
 }
 
 export interface ExpOption {
@@ -44,7 +41,7 @@ export interface ExpOption {
   dataset: string;
   metric: {
     name: string;
-    range: [number, number]; // [min, max]
+    range: [number, number];
   };
   hyperparams: HyperparamOption[];
   bohb: BOHBOption;
@@ -69,7 +66,6 @@ export const toJSON = (option: ExpOption): any => {
 };
 
 export interface AllExpOption {
-  // allHyperparams: { [dataset: string]: HyperparamOption[] };
   allHyperparams: DatasetHyperparameters;
   dataset: string[];
   datasetModel: DatasetModelMapping;
@@ -88,7 +84,7 @@ export const createExpOption = (json: any): ExpOption => {
     dataset: json.dataset,
     metric: {
       name: json.metric.name,
-      range: json.metric.range || [0, 1], // 기본값 설정
+      range: json.metric.range || [0, 1],
     },
     hyperparams: hyperparams,
     bohb: {

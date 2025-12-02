@@ -5,16 +5,16 @@ import { BOHBOption, ExpOption } from "../types/option";
 import { SocketEvent } from "../types/experiment";
 
 interface MetadataState {
-  // 전체 실험 목록
+  
   expList: ExpSummary[];
-  // 실험 옵션 데이터
+  
   expOptions: any;
-  // 커널 정보
+  
   kernelInfo: any;
 
-  defaultExpOptions: ExpOption; // 기본 실험 옵션 데이터
-  newExpOptions: ExpOption; // 새 실험 옵션 데이터
-  // 액션들
+  defaultExpOptions: ExpOption;
+  newExpOptions: ExpOption;
+  
   setExpList: (expList: any[]) => void;
   setExpOptions: (expOptions: any) => void;
   setKernelInfo: (kernelInfo: any) => void;

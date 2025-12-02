@@ -367,7 +367,7 @@ class Trainer:
 
                     for i in range(len(batch['image'])):
                         mask_rle = rle_encode(masks[i])
-                        if len(mask_rle.split()) < 10: # 예측된 건물 픽셀이 아예 없는 경우 -1
+                        if len(mask_rle.split()) < 10:
                             result.append(-1)
                         else:
                             result.append(mask_rle)

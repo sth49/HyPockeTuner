@@ -45,7 +45,7 @@ const getNodeStyles = (
         : "70%",
     borderRadius:
       viewType === "circle"
-        ? `0px 0px ${nodeWidth / 2}px ${nodeWidth / 2}px` // 완전한 반원을 위해 nodeWidth/2 사용
+        ? `0px 0px ${nodeWidth / 2}px ${nodeWidth / 2}px`
         : viewType === "horizontal"
         ? "0px 4px 4px 0px"
         : "0px 0px 4px 4px",
@@ -57,9 +57,9 @@ const getContainerClassName = (viewType: string) => {
     "flex items-center justify-center border-[1px] border-gray-300 relative z-10 text-gray-500";
 
   if (viewType === "circle") {
-    return baseClasses; // borderRadius는 인라인 스타일로 처리
+    return baseClasses;
   }
-  return `${baseClasses} rounded-[5px]`; // 기본은 Tailwind 클래스 사용
+  return `${baseClasses} rounded-[5px]`;
 };
 
 const IDIndicator: React.FC<{
@@ -98,7 +98,7 @@ const NumOfTrials: React.FC<{
   );
 };
 
-// 메트릭 값 컴포넌트
+
 const MetricValue: React.FC<{
   metric?: number;
   visibleIsBest?: boolean;
@@ -124,7 +124,7 @@ const MetricValue: React.FC<{
   );
 };
 
-// First/Last 라운드가 보이는 Trial 노드 컴포넌트
+
 const FirstLastTrialNode: React.FC<{
   data: TrialState;
   type: NodeType;
@@ -340,15 +340,15 @@ const CurrentTrialNode: React.FC<{
   getMetricColor: (value: number) => string;
   getFontColor: (value: number) => string;
 }> = ({ data, styles, viewType }) => {
-  // progress 비율 계산 (0-100%)
+  
   const progressPercentage = data.budget
     ? Math.min(((data.progress ?? 0) / data.budget) * 100, 100)
     : 0;
 
-  // 배경색 결정
+  
   const baseColor = "oklch(87.2% 0.01 258.338)";
 
-  // linear gradient로 progress 표현
+  
   const progressBackground = `linear-gradient(to right, ${baseColor} ${progressPercentage}%, transparent ${progressPercentage}%)`;
 
   return (
@@ -390,7 +390,7 @@ const CurrentTrialNode: React.FC<{
         </path>
       </svg>
 
-      {/* 실제 콘텐츠 */}
+      
       <div className="relative z-10 w-full h-full flex flex-col border border-gray-300 rounded-[5px] bg-white">
         <div
           className="flex items-center justify-center w-full border-b-[0.5px] border-gray-300 gap-1 relative"
@@ -438,15 +438,15 @@ const CurrentTrialNode: React.FC<{
 //   getMetricColor: (value: number) => string;
 //   getFontColor: (value: number) => string;
 // }> = ({ data, styles, viewType }) => {
-//   // progress 비율 계산 (0-100%)
+
 //   const progressPercentage = data.budget
 //     ? Math.min(((data.progress ?? 0) / data.budget) * 100, 100)
 //     : 0;
 
-//   // 배경색 결정
+
 //   const baseColor = "oklch(87.2% 0.01 258.338)";
 
-//   // linear gradient로 progress 표현
+
 //   const progressBackground = `linear-gradient(to right, ${baseColor} ${progressPercentage}%, transparent ${progressPercentage}%)`;
 
 //   return (
@@ -502,18 +502,18 @@ const PausedTrialNode: React.FC<{
   getMetricColor: (value: number) => string;
   getFontColor: (value: number) => string;
 }> = ({ data, styles, viewType }) => {
-  // progress 비율 계산 (0-100%)
+  
   // const progressPercentage = data.budget
   //   ? Math.min(((data.progress ?? 0) / data.budget) * 100, 100)
   //   : 0;
 
-  // // 배경색 결정
+  
   // const baseColor =
   //   data.metric != null
   //     ? getMetricColor(data.metric)
   //     : "oklch(87.2% 0.01 258.338)";
 
-  // linear gradient로 progress 표현
+  
   // const progressBackground = `linear-gradient(to right, ${baseColor} ${progressPercentage}%, transparent ${progressPercentage}%)`;
   console.log("PausedTrialNode", data);
   return (
@@ -606,7 +606,7 @@ const PausedTrialNode: React.FC<{
 //   </div>
 // );
 
-// 기본 Trial 노드 컴포넌트
+
 const DefaultTrialNode: React.FC<{
   data: TrialState;
   styles: any;
@@ -660,7 +660,7 @@ const DefaultTrialNode: React.FC<{
   </div>
 );
 
-// pseudo 노드 컴포넌트
+
 const PseudoNode: React.FC<{
   data: TrialState;
   styles: any;
@@ -711,7 +711,7 @@ const StartNode: React.FC<{
   </div>
 );
 
-// 메인 Node 컴포넌트
+
 export const Node: React.FC<
   NodeProps & {
     bandBracketId?: number;
@@ -739,7 +739,7 @@ export const Node: React.FC<
   const { nodeWidth, nodeHeight } = sizes;
   const styles = getNodeStyles(viewType, nodeWidth, nodeHeight);
 
-  // 노드 타입에 따른 렌더링
+  
   if (type === "pseudo") {
     return (
       <PseudoNode

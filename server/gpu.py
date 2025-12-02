@@ -9,9 +9,9 @@ def get_gpu_usage(device_id=0):
     :return: Used memory, total memory in MB, volatile GPU utilization in %, and temperature in Celsius.
     """
     result = subprocess.check_output(['nvidia-smi', '--query-gpu=memory.used,memory.total,utilization.gpu,temperature.gpu', '--format=csv,nounits,noheader']).decode('utf-8')
-    print(f"nvidia-smi output: {result}")  # 로깅을 추가합니다.
+    print(f"nvidia-smi output: {result}")
     
-    # 공백으로 문자열을 분할하고 결과를 저장합니다.
+    
     results = [x.strip() for x in result.split('\n') if x]
     used_memory, total_memory, gpu_utilization, temperature = map(int, results[device_id].split(','))
     return used_memory, total_memory, gpu_utilization, temperature

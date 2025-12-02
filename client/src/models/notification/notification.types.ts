@@ -1,4 +1,4 @@
-// Moment 제거, Date 타입 사용
+
 export enum NotiType {
   // Experiment lifecycle
   EXPERIMENT_START = "experiment-started",
@@ -42,7 +42,7 @@ export const getBorderColor = (type: NotiType) => {
     case NotiType.HIGH_USAGE:
       return "border-rose-700/50 text-rose-700";
     default:
-      return "border-gray-700/50"; // 기본 색상
+      return "border-gray-700/50";
   }
 };
 
@@ -76,7 +76,7 @@ export interface INotiCond {
   id: string;
   name?: string;
   type?: NotiType;
-  notifiedAt: Date | null; // Date 객체로 변경
+  notifiedAt: Date | null;
 
   toJSON(): NotiCondJSON;
   toString(): string;
@@ -99,7 +99,7 @@ export interface INotiCondPair {
   id: string;
   active: boolean;
   status: NotiStatus;
-  createdAt: Date; // Date 객체로 변경
+  createdAt: Date;
   confirmed: boolean;
   eventCond: INotiCond;
   timeoutCond: INotiCond | null;

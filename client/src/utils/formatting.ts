@@ -80,11 +80,11 @@ export const formatDistance = (
   });
 };
 
-// 시간대별 아이콘 반환 함수
+
 export const getTimeIcon = (date: string | number | Date): string => {
   const hour = new Date(date).getHours();
-  // 오전 6시 - 오후 5시 59분: 태양
-  // 오후 6시 - 오전 5시 59분: 달
+  
+  
   return hour >= 6 && hour < 18 ? "☀️" : "🌙";
 };
 
@@ -92,7 +92,7 @@ export const formatDate = (
   date: string | number | Date,
   type?: string,
   relatedDate?: string | number | Date,
-  showIcon: boolean = false // 아이콘 표시 여부
+  showIcon: boolean = false
 ) => {
   const icon = showIcon ? getTimeIcon(date) + " " : "";
 

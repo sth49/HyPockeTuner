@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
   const { handleNavigate } = useNavigation();
   const { currentUser } = useAuthStore();
 
-  const headerHeight = 65; // 헤더 높이 (픽셀 단위)
+  const headerHeight = 65;
   const mainMarginTop = headerHeight;
   const names = {
     constant: "Fixed",
@@ -228,7 +228,6 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
           </>
         )}
 
-        {/* 헤더 버튼들 */}
         {viewType === "workspace" && (
           <div className="absolute right-0 flex items-center gap-3 mr-4">
             {/* <div className="text-xs text-gray-600">{currentUser}</div> */}
@@ -265,7 +264,6 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
         )}
       </header>
 
-      {/* 메인 콘텐츠 - 인라인 스타일로 마진 적용 */}
       <main
         className="w-full flex-grow overflow-auto bg-base-100"
         style={{
@@ -277,7 +275,6 @@ const Layout: React.FC<LayoutProps> = ({ children, viewType, isNav }) => {
         {children}
       </main>
 
-      {/* 하단 네비게이션 */}
       {isNav && (
         <div
           className="fixed left-0 bottom-0 flex flex-col items-start w-full bg-white border-t-[0.5px] border-t-[#e0e0e0]"

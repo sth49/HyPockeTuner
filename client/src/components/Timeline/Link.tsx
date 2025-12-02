@@ -15,7 +15,7 @@ export const Link: React.FC<
     isVertical: boolean;
     sizes: Sizes;
     dir?: Direction;
-    highlightEventType?: string; // 추가된 prop
+    highlightEventType?: string;
   }
 > = (props) => {
   const { isVertical, sizes, type, events, dir, trials } = props;
@@ -76,7 +76,7 @@ export const Link: React.FC<
               events={events.filter((_item, i) => i % 2 === 0)}
               position="top"
               numOfEvents={events.length}
-              highlightEventType={props.highlightEventType} // 추가된 prop 전달
+              highlightEventType={props.highlightEventType}
             />
             <LinkEvents
               isVertical={isVertical}
@@ -85,7 +85,7 @@ export const Link: React.FC<
               events={events.filter((_item, i) => i % 2 === 1)}
               position="bottom"
               numOfEvents={events.length}
-              highlightEventType={props.highlightEventType} // 추가된 prop 전달
+              highlightEventType={props.highlightEventType}
             />
           </div>
         </div>
@@ -101,7 +101,7 @@ export const LinkEvents: React.FC<{
   events: any[];
   position: "top" | "bottom";
   numOfEvents: number;
-  highlightEventType?: string; // 추가된 prop
+  highlightEventType?: string;
 }> = ({
   isVertical,
   sizes,
@@ -164,7 +164,7 @@ export const LinkEvents: React.FC<{
             data={event}
             dir={dir}
             position={position}
-            highlightEventType={highlightEventType} // 추가된 prop 전달
+            highlightEventType={highlightEventType}
           />
           {index !== sortedEvents.length - 1 && (
             <div
@@ -180,20 +180,20 @@ export const LinkEvents: React.FC<{
   );
 };
 
-// 이벤트 렌더링을 위한 컴포넌트 분리
+
 const EventBox: React.FC<{
   isVertical: boolean;
   eventWidth: number;
   data: any;
   dir?: Direction;
   position: "top" | "bottom";
-  highlightEventType?: string; // 추가된 prop
+  highlightEventType?: string;
 }> = ({
   isVertical,
   data,
   position,
   dir,
-  highlightEventType = "", // 추가된 prop
+  highlightEventType = "",
 }) => {
   const IconComponent = icons[data.type as keyof typeof icons];
   const borderRadius = isVertical

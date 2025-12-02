@@ -152,7 +152,7 @@ if __name__ == '__main__':
     # state = STATE(configspace, evaluate, max_budget=81, min_budget=1)
     # df_log = pd.DataFrame(columns={'s', 'i', 'j', 'n', 'r', 'n_i', 'r_i', 'sample', 'loss', 'sample_type'})
     # df_log2 = pd.DataFrame(columns={'n', 'n_good'})
-    # 원래 코드
+    
     opt = BOHB(configspace, evaluate, max_budget=81, min_budget=1)
     
     logs= opt.optimize()

@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/HyPockeTuner_new/', // GitHub 리포지토리 이름에 맞춰 수정
+  base: '/HyPockeTuner_new/',
   plugins: [
     react(),
     tailwindcss(),
@@ -12,16 +12,15 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
-      registerType: undefined, // 자동 등록 완전 비활성화
-      injectRegister: false, // 자동 주입 비활성화
+      registerType: undefined,
+      injectRegister: false,
       scope: "/HyPockeTuner_new/",
       workbox: {
-        // GitHub Pages를 위한 설정
         navigateFallback: null,
       },
 
       pwaAssets: {
-        disabled: true, // PWA assets 생성 비활성화
+        disabled: true,
         config: false,
       },
 
@@ -63,8 +62,7 @@ export default defineConfig({
 
       injectManifest: {
         globPatterns: ["**/*.{js,css,html}"],
-        swDest: "dist/sw.js", // 서비스워커 출력 파일 경로
-        // 특정 파일 제외
+        swDest: "dist/sw.js",
         globIgnores: [
           "**/node_modules/**/*",
           "service-worker.js",
@@ -73,7 +71,6 @@ export default defineConfig({
           "**/logo512.png",
           "**/*.svg"
         ],
-        // GitHub Pages base path 고려
         manifestTransforms: [
           (manifestEntries) => {
             const manifest = manifestEntries.map((entry) => {
@@ -88,7 +85,7 @@ export default defineConfig({
       },
 
       devOptions: {
-        enabled: true, // 개발환경에서도 서비스워커 활성화
+        enabled: true,
         navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",
@@ -96,10 +93,8 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 8999, // 또는 원하는 포트
-    host: "0.0.0.0", // 모든 IP에서 접근 허용
-
-    // 방법 1: 특정 호스트만 허용
-    allowedHosts: ["vis.skku.edu", "localhost", "127.0.0.1"],
+    port: 8999,
+    host: "0.0.0.0",
+    allowedHosts: ["localhost", "127.0.0.1"],
   },
 });

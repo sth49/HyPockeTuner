@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-# U-Net의 기본 구성 요소인 Double Convolution Block을 정의합니다.
+
 def double_conv(in_channels, out_channels):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
@@ -11,7 +11,7 @@ def double_conv(in_channels, out_channels):
         nn.ReLU(inplace=True)
     )
 
-# 간단한 U-Net 모델 정의
+
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()

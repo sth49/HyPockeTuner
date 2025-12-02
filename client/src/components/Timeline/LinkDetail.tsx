@@ -57,7 +57,7 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
   const linkData = useMemo(() => {
     const newLinkData = [] as LinkDetailEvent[];
 
-    // 기존 linkData 생성 로직
+    
 
     if (data && data.prev) {
       // console.log("LinkDetail data.prev:", data.prev);
@@ -365,10 +365,10 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
       <div
         className="w-full h-full overflow-y-auto"
         style={{
-          height: `calc(100% - 50px)`, // 50px는 상단 헤더 높이
+          height: `calc(100% - 50px)`,
         }}
       >
-        {/* 디버깅 정보 */}
+        
         {/* <div>
           {data && (
             <div className="whitespace-pre-wrap text-xs text-gray-500">
@@ -610,7 +610,7 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
                         const Icon =
                           hpTypeIcons[HyperparamTypes[hp.type].toLowerCase()] ||
                           icons.hyperparameter;
-                        const height = beforeChange.length > 5 ? 120 : 80; // 높이를 동적으로 조정
+                        const height = beforeChange.length > 5 ? 120 : 80;
                         console.log(beforeChange, afterChange, height);
                         return (
                           <div
@@ -645,7 +645,7 @@ const LinkDetail = ({ data }: LinkDetailProps) => {
                                 {Icon && <Icon size={20} />}
                                 {hp && <div>{hp.name}</div>}
                               </div>
-                              {/* 두줄로 표현 */}
+                              
                               <div
                                 className={
                                   `flex items-center gap-2 w-full overflow-hidden ` +

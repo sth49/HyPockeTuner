@@ -19,18 +19,18 @@ export const useColorScale = () => {
   const userTrials = useExperimentStore((state) => state.userTrials);
   const colorScheme = useColorSettingsStore((state) => state.getColorScheme());
 
-  // 모든 trials 수집
+  
   const allTrials = useMemo(() => {
     const trials: Trial[] = [];
 
-    // brackets에서 trials 수집
+    
     brackets.forEach((bracket) => {
       bracket.rounds.forEach((round) => {
         trials.push(...round.trials);
       });
     });
 
-    // userTrials 추가
+    
     trials.push(...userTrials);
 
     return trials
@@ -50,7 +50,7 @@ export const useColorScale = () => {
       );
   }, [brackets, userTrials]);
 
-  // metric과 loss의 범위 계산
+  
   const metric = useExperimentStore((state) => state.metric);
   const { metricRange, lossRange } = useMemo(() => {
     const metricRange: MetricRange = { max: 100, min: 0 };
@@ -75,7 +75,7 @@ export const useColorScale = () => {
     return { metricRange, lossRange };
   }, [allTrials, metric.range]);
 
-  // Scale 생성
+  
   const metricScale = useMemo(() => {
     return scaleLinear<number>({
       range: [0, 1],
@@ -95,24 +95,24 @@ export const useColorScale = () => {
   // const budgetScale = useMemo(() => {
   //   return scaleLinear<number>({
   //     range: [0, 1],
-  //     domain: [0, 1], // 예시로 0에서 1 사이의 값에 대해 파란색 그라데이션
+  
   //     clamp: true,
   //   });
   // }, []);
 
   // Color scales
   const colorScales = useMemo(() => {
-    // Metric: Use diverging (중간값이 의미있을 수 있음)
+    
     const metricColorScale = colorScheme.diverging
       .copy()
       .domain([0, 0.5, 1]); // 0: low, 0.5: mid, 1: high
 
-    // Loss: Use diverging (중간값 기준으로 양방향)
+    
     const lossColorScale = colorScheme.diverging
       .copy()
       .domain([1, 0.5, 0]); // 1: high (bad), 0.5: mid, 0: low (good)
 
-    // Budget: Use sequential (0부터 1까지 증가)
+    
     const budgetColorScale = colorScheme.sequential
       .copy()
       .domain([0, 1]); // 0 to 1 for budget visualization
@@ -120,17 +120,17 @@ export const useColorScale = () => {
     return { metricColorScale, lossColorScale, budgetColorScale };
   }, [colorScheme]);
 
-  // 색상 밝기 계산 헬퍼 함수
+  
   const calculateBrightness = (color: string): number => {
     const rgb = d3.rgb(color);
     return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 255000;
   };
 
-  // 색상 관련 함수들
+  
   const getMetricColor = useMemo(() => {
     return (value: number | undefined | null = undefined) => {
       if (value === undefined || value === null) {
-        return "ffffff"; // 기본 색상 (흰색)
+        return "ffffff";
       }
       return colorScales.metricColorScale(metricScale(value));
     };
@@ -145,7 +145,7 @@ export const useColorScale = () => {
   const getFontColor = useMemo(() => {
     return (value: number, type: "metric" | "loss" = "metric") => {
       if (!value && value !== 0) {
-        return "oklch(55.1% 0.027 264.364)"; // 기본 폰트 색상
+        return "oklch(55.1% 0.027 264.364)";
       }
       const color =
         type === "metric" ? getMetricColor(value) : getLossColor(value);
@@ -163,7 +163,7 @@ export const useColorScale = () => {
     getMetricColor,
     getLossColor,
     getFontColor,
-    // 추가로 범위 정보도 제공
+    
     metricRange,
     lossRange,
   };

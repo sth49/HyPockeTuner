@@ -125,7 +125,7 @@ const Timeline: React.FC = () => {
       }
     });
 
-    // 모든 이벤트를 수집한 후 최근 이벤트 순으로 정렬
+    
     (Object.keys(events) as EventType[]).forEach((key) => {
       events[key].sort((a, b) => {
         return (b.time ?? 0) - (a.time ?? 0);
@@ -135,7 +135,7 @@ const Timeline: React.FC = () => {
     return events;
   }, [zigzagRows]);
 
-  // 검색 타입에 해당하는 링크들의 위치 정보를 구하는 함수
+  
   const searchResults = useMemo(() => {
     if (!searchType) return [];
 
@@ -149,7 +149,7 @@ const Timeline: React.FC = () => {
     }[] = [];
 
     zigzagRows.forEach((row) => {
-      // 수직 링크 확인
+      
       if (
         row.verticalLink &&
         row.verticalLink.data &&
@@ -162,7 +162,7 @@ const Timeline: React.FC = () => {
         if (hasTargetEvent) {
           results.push({
             rowIndex: row.rowIndex,
-            linkIndex: -1, // 수직 링크는 -1로 표시
+            linkIndex: -1,
             numOfData: (row.verticalLink.data as { events: any[] }).events.find(
               (event: any) => event.type === searchType
             )?.data.length,
@@ -175,7 +175,7 @@ const Timeline: React.FC = () => {
         }
       }
 
-      // 수평 링크들 확인
+      
       row.horizontalLinks.forEach((link, linkIndex) => {
         if (
           link.data &&
@@ -204,7 +204,7 @@ const Timeline: React.FC = () => {
     });
 
     results.sort((a, b) => {
-      // 시간 기준으로 정렬 (내림차순)
+      
       const timeA = a.time ?? 0;
       const timeB = b.time ?? 0;
       return timeB - timeA;
@@ -217,13 +217,13 @@ const Timeline: React.FC = () => {
     return [...zigzagRows].reverse();
   }, [zigzagRows]);
 
-  // 현재 포커스된 검색 결과의 정보를 가져오는 함수
+  
   const getCurrentFocusedResult = () => {
     if (!searchType || searchResults.length === 0) return null;
     return searchResults[currentSearchIndex];
   };
 
-  // 특정 링크가 현재 포커스된 검색 결과인지 확인하는 함수
+  
   const isCurrentFocusedLink = (
     rowIndex: number,
     linkIndex: number,
@@ -239,17 +239,17 @@ const Timeline: React.FC = () => {
     );
   };
 
-  // 검색 결과로 스크롤하는 함수
+  
   const scrollToSearchResult = (index: number) => {
     if (!containerRef.current || searchResults.length === 0) return;
 
     const result = searchResults[index];
     if (!result) return;
 
-    // 역순으로 된 행에서의 실제 인덱스 계산
+    
     const reversedRowIndex = zigzagRows.length - 1 - result.rowIndex;
 
-    // 해당 행의 요소를 찾기
+    
     const rowElements =
       containerRef.current.querySelectorAll("[data-row-index]");
     const targetRowElement = Array.from(rowElements).find(
@@ -263,7 +263,7 @@ const Timeline: React.FC = () => {
         targetRect.top -
         containerRect.top +
         containerRef.current.scrollTop -
-        100; // 100px 여백
+        100;
 
       containerRef.current.scrollTo({
         top: Math.max(0, scrollTop),
@@ -272,17 +272,17 @@ const Timeline: React.FC = () => {
     }
   };
 
-  // 검색 타입 변경 시 첫 번째 결과로 이동
+  
   useEffect(() => {
     if (searchType && searchResults.length > 0) {
       setCurrentSearchIndex(0);
-      setTimeout(() => scrollToSearchResult(0), 100); // DOM 업데이트 후 스크롤
+      setTimeout(() => scrollToSearchResult(0), 100);
     } else {
       setCurrentSearchIndex(0);
     }
   }, [searchType, searchResults.length]);
 
-  // 이전/다음 검색 결과로 이동
+  
   const navigateSearchResults = (direction: "prev" | "next") => {
     if (searchResults.length === 0) return;
 
@@ -319,10 +319,10 @@ const Timeline: React.FC = () => {
     };
   }, [containerRef, sizes]);
 
-  // 아코디언 높이 측정
+  
   useEffect(() => {
     if (showHelp && accordionRef.current) {
-      // 실제 컨텐츠 높이를 즉시 측정하되, max-h-[400px]로 제한
+      
       const contentHeight = accordionRef.current.scrollHeight;
       const maxHeight = 400;
       const height = Math.min(contentHeight, maxHeight);
@@ -332,7 +332,7 @@ const Timeline: React.FC = () => {
     }
   }, [showHelp]);
 
-  // 스크롤 이벤트 핸들러 추가
+  
   useEffect(() => {
     const handleScroll = () => {
       if (containerRef.current) {
@@ -354,7 +354,7 @@ const Timeline: React.FC = () => {
     }
   }, [reversedRows]);
 
-  // 미니맵에서 스크롤 위치 변경 핸들러
+  
   const handleMiniMapScroll = (scrollRatio: number) => {
     if (containerRef.current) {
       const maxScrollTop =
@@ -366,7 +366,7 @@ const Timeline: React.FC = () => {
     }
   };
 
-  // 노드 클릭 핸들러
+  
   const handleNodeClick = (nodeData: BandProps) => {
     const isCollapseNode =
       nodeData.type === "node" &&
@@ -399,7 +399,7 @@ const Timeline: React.FC = () => {
     setDrawerOpen(true);
   };
 
-  // 드로어 닫기 핸들러
+  
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setSelectedNode(null);
@@ -584,6 +584,7 @@ const Timeline: React.FC = () => {
           style={{
             top: `75px`,
             width: `calc(100% - 60px)`,
+            height: `calc(100% - 75px)`,
           }}
           ref={containerRef}
         >

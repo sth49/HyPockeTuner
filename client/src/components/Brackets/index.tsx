@@ -37,7 +37,7 @@ const Brackets = () => {
 
   const [open, setOpen] = useState<number[]>([]);
 
-  // 트라이얼 렌더링 함수 - 위치에 따라 다른 스타일 적용
+  
   const renderTrials = (
     trials: any[],
     isExpanded: boolean,
@@ -116,7 +116,7 @@ const Brackets = () => {
                         Bracket {numOfBrackets - bracket.id}
                       </h2>
                       <div className="w-[65%] flex flex-col gap-1 relative overflow-hidden">
-                        {/* 헤더 위치의 트라이얼들 */}
+                        
                         {bracket.rounds.length &&
                           bracket.rounds
                             .sort((a, b) => b.roundId - a.roundId)
@@ -145,7 +145,7 @@ const Brackets = () => {
                     </div>
                   </div>
 
-                  {/* 확장된 영역 */}
+                  
                   <div
                     className={`bg-white overflow-hidden  ${
                       isExpanded ? "border-t border-gray-200" : "max-h-0"

@@ -47,18 +47,18 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
   const innerWidth = chartWidth - margin.right - margin.left - legendWidth;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // 1분 단위로 데이터 집계 및 1시간 필터링
+  
   const aggregatedData = useMemo(() => {
     if (!gpuInfo.length) return [];
 
-    // 가장 최근 시간 찾기
+    
     const latestTime = Math.max(
       ...gpuInfo.map((item) => new Date(item.time).getTime())
     );
-    // 1시간 전 시간 계산 (1 * 60 * 60 * 1000 = 3600000ms)
+    
     const oneHourAgo = latestTime - 1 * 60 * 60 * 1000;
 
-    // 1시간 내 데이터만 필터링
+    
     const filteredGpuInfo = gpuInfo.filter((item) => {
       const itemTime = new Date(item.time).getTime();
       return itemTime >= oneHourAgo;
@@ -76,7 +76,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
 
     filteredGpuInfo.forEach((item) => {
       const date = new Date(item.time);
-      // 분 단위로 반올림
+      
       const minuteKey = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -101,7 +101,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
       );
     });
 
-    // 평균 계산
+    
     const processedData = Object.values(dataByMinute)
       .map((group) => ({
         time: new Date(group.time),
@@ -117,17 +117,17 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
       }))
       .sort((a, b) => a.time.getTime() - b.time.getTime());
 
-    // 모바일에서는 데이터 포인트 샘플링
+    
     return isMobile ? sampleDataForMobile(processedData, 30) : processedData;
   }, [gpuInfo, isMobile]);
 
-  // 시간 간격이 큰 경우 선을 분리하기 위한 함수
+  
   const createSegmentedData = (data: any, maxGapMinutes = 10) => {
     if (data.length < 2) return [data];
 
     const segments = [];
     let currentSegment = [data[0]];
-    const maxGapMs = maxGapMinutes * 60 * 1000; // 10분을 밀리초로 변환
+    const maxGapMs = maxGapMinutes * 60 * 1000;
 
     for (let i = 1; i < data.length; i++) {
       const prevTime = data[i - 1].time.getTime();
@@ -135,16 +135,16 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
       const gap = currentTime - prevTime;
 
       if (gap > maxGapMs) {
-        // 간격이 너무 크면 현재 세그먼트를 저장하고 새로운 세그먼트 시작
+        
         segments.push(currentSegment);
         currentSegment = [data[i]];
       } else {
-        // 간격이 적절하면 현재 세그먼트에 추가
+        
         currentSegment.push(data[i]);
       }
     }
 
-    // 마지막 세그먼트 추가
+    
     if (currentSegment.length > 0) {
       segments.push(currentSegment);
     }
@@ -152,20 +152,20 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
     return segments;
   };
 
-  // 세그먼트화된 데이터 생성
+  
   const segmentedData = useMemo(() => {
     return createSegmentedData(aggregatedData);
   }, [aggregatedData]);
 
-  // 스케일 설정
+  
   const timeScale = useMemo(() => {
     if (!aggregatedData.length) return scaleTime({ range: [0, innerWidth] });
 
     return scaleTime({
       range: [0, innerWidth],
       domain: [
-        Math.min(...aggregatedData.map((d) => d.time.getTime())) - 10000, // 1분 전
-        Math.max(...aggregatedData.map((d) => d.time.getTime())) + 10000, // 1분 후
+        Math.min(...aggregatedData.map((d) => d.time.getTime())) - 10000,
+        Math.max(...aggregatedData.map((d) => d.time.getTime())) + 10000,
       ],
     });
   }, [aggregatedData, innerWidth]);
@@ -196,7 +196,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
     });
   }, [aggregatedData, innerHeight]);
 
-  // 접근자 함수들
+  
   const getTime = (d: any) => d.time;
   const getTemperature = (d: any) => d.temperature;
   const getUtilization = (d: any) => d.utilization;
@@ -214,7 +214,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
       <HeaderText text="GPU Monitoring (Last 1 hour)" />
       <div className="w-full h-full gap-4 flex flex-col">
-        {/* 온도 차트 */}
+        
         <div className="relative ">
           <p>Temperature (°C)</p>
           <svg
@@ -261,7 +261,7 @@ const GPUPlotInner = ({ width: parentWidth }: GPUPlotInnerProps) => {
                   }
                 />
 
-                {/* 세그먼트별로 선 그리기 */}
+                
                 {segmentedData.map((segment, segmentIndex) => (
                   <LinePath
                     key={`temp-segment-${segmentIndex}`}

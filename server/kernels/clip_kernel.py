@@ -106,9 +106,9 @@ def evaluate_coco_validation(model, config):
         print("🔍 Running COCO validation evaluation...")
         device = torch.device(config.device)
         
-        # COCO validation paths
-        val_img_dir = '/home/donghee/HyPockeTuner_new/server/data/mscoco/val2017'
-        val_annotation_file = '/home/donghee/HyPockeTuner_new/server/data/mscoco/annotations/captions_val2017.json'
+        # COCO validation paths - configure based on your data location
+        val_img_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data/mscoco/val2017')
+        val_annotation_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data/mscoco/annotations/captions_val2017.json')
         
         # Check if validation data exists
         if not os.path.exists(val_img_dir) or not os.path.exists(val_annotation_file):
@@ -305,7 +305,7 @@ def evaluate_zero_shot(model, config):
         
     #     print("Loading ImageNet-A dataset...")
     #     # Use ImageNet-A dataset from data folder
-    #     imagenet_path = os.path.join('/home/donghee/HyPockeTuner_new/server/data', 'imagenet-a')
+    #     imagenet_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'imagenet-a')
         
     #     if not os.path.exists(imagenet_path):
     #         print(f"ImageNet-A dataset not found at {imagenet_path}, using fallback")
@@ -334,7 +334,7 @@ def evaluate_zero_shot(model, config):
     #     if IMAGENET_IMPORTS_AVAILABLE:
     #         # Load WordNet ID to class name mapping
     #         wordnet_mapping = {}
-    #         wordnet_file = '/home/donghee/HyPockeTuner_new/server/clip/zero_shot/WordNetId2ClassName.txt'
+    #         wordnet_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'clip/zero_shot/WordNetId2ClassName.txt')
     #         try:
     #             with open(wordnet_file, 'r') as f:
     #                 for line in f:

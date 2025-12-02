@@ -10,7 +10,7 @@ interface OrderedChoicesProps {
 const OrderedChoices = ({ param, onChange, onDelete }: OrderedChoicesProps) => {
   const handleAddChoice = () => {
     param.addChoice();
-    // 값이 추가되면 ordinal 타입으로 변경
+    
     if (param.choices.length > 1) {
       param.selectedType = "ordinal";
     }
@@ -23,7 +23,7 @@ const OrderedChoices = ({ param, onChange, onDelete }: OrderedChoicesProps) => {
     const numChoice = +param.newChoice;
     param.errorChoice = param.newChoice !== "" && (isNaN(numChoice) || numChoice < 0 || param.choices.includes(numChoice));
     
-    // choices가 1개일 때는 constant 값도 업데이트
+    
     if (param.choices.length === 1 && param.newChoice !== "" && !param.errorChoice) {
       param.newConstant = param.newChoice;
     }

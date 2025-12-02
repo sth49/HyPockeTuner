@@ -27,12 +27,12 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
 
   const getMetricColor = useColorScale().getMetricColor;
 
-  // MobileDrawer 상태 관리
+  
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<BandProps | null>(null);
   const brackets = useExperimentStore((state) => state.brackets);
 
-  // Trial 클릭 핸들러
+  
   const handleTrialClick = (
     trial: TrialState & { roundId: number; position: number }
   ) => {
@@ -51,7 +51,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
             ...trial,
             event: `Trial ${brackets.length - trial.bracketId}-${
               trial.roundId + 1
-            }-${trial.trialId + 1}`, // 더 명확한 제목 추가
+            }-${trial.trialId + 1}`,
           },
         ],
       },
@@ -63,13 +63,13 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
     setDrawerOpen(true);
   };
 
-  // 드로어 닫기 핸들러
+  
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setSelectedNode(null);
   };
 
-  // 데이터 처리
+  
   const { processedTrials, connections, rounds, budgets } = useMemo(() => {
     const allTrials: (TrialState & {
       roundId: number;
@@ -83,7 +83,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
     }[] = [];
     const roundIds: number[] = [];
 
-    // 각 라운드별로 트라이얼 처리
+    
     bracket.rounds.forEach((round) => {
       // console;
       if (!round || !round.trials || !Array.isArray(round.trials)) {
@@ -92,7 +92,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
 
       roundIds.push(round.roundId + 1);
 
-      // 성능순으로 정렬 (metric이 없는 경우 처리)
+      
       const sortedTrials = round.trials
         // .filter((trial) => trial && typeof trial.metric === "number")
         .sort((a, b) => {
@@ -113,16 +113,16 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
       });
     });
 
-    // 연결 관계 찾기 (samples 타입만)
+    
     allTrials.forEach((trial) => {
       if (trial.sample === "samples" && trial.roundId > Math.min(...roundIds)) {
-        // 이전 라운드에서 같은 파라미터를 가진 트라이얼 찾기
+        
         const prevRoundTrials = allTrials.filter(
           (t) => t.roundId === trial.roundId - 1
         );
 
         const matchingTrial = prevRoundTrials.find((prev) => {
-          // hyperparams가 없거나 빈 배열인 경우 처리
+          
           if (
             !hyperparams ||
             !Array.isArray(hyperparams) ||
@@ -131,7 +131,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
             return false;
           }
 
-          // params가 없는 경우 처리
+          
           if (!prev.params || !trial.params) {
             return false;
           }
@@ -150,17 +150,17 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
       }
     });
 
-    // 라운드 ID 정렬
+    
     const sortedRounds = [...new Set(roundIds)].sort((a, b) => a - b);
     console.log("Sorted Rounds: ", sortedRounds);
 
     const budgets = bracket.rounds.map((round) => {
-      return round.budget || 0; // 라운드별 budget 사용
+      return round.budget || 0;
     });
 
     // sortedRounds.map((roundId) => {
     //   const roundTrials = allTrials.filter((t) => t.roundId === roundId);
-    //   return roundTrials[0]?.budget || 0; // 첫 번째 트라이얼의 budget 사용
+    
     // });
 
     return {
@@ -171,7 +171,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
     };
   }, [bracket, hyperparams]);
 
-  // 데이터가 없는 경우 처리
+  
   if (!processedTrials || processedTrials.length === 0) {
     return (
       <div className="w-full p-4">
@@ -180,7 +180,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
     );
   }
 
-  // 스케일 설정
+  
   const maxPosition = Math.max(...processedTrials.map((t) => t.position));
 
   const xScale = scalePoint({
@@ -189,14 +189,14 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
     padding: 0.3,
   });
 
-  // rect 간 간격을 고정으로 설정 (높이 12 + 간격 6 = 18px per position)
+  
   const rectSpacing = 18;
   const yScale = scaleLinear({
     domain: [0, maxPosition],
     range: [0, maxPosition * rectSpacing],
   });
 
-  // 동적 높이 계산 (maxPosition * rectSpacing + margin)
+  
   const dynamicHeight = Math.max(
     height,
     maxPosition * rectSpacing + margin.top + margin.bottom + 40
@@ -207,7 +207,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
       <div className="w-full overflow-x-auto">
         <svg width={width} height={dynamicHeight}>
           <Group left={margin.left} top={margin.top}>
-            {/* 트라이얼 점들 */}
+            
             {processedTrials.map((trial, i) => {
               const cx = xScale(trial.roundId);
               const cy = yScale(trial.position);
@@ -258,14 +258,14 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
               );
             })}
 
-            {/* 연결선 */}
+            
             {connections.map((conn, i) => {
               const x1 = xScale(conn.from.roundId);
               const y1 = yScale(conn.from.position);
               const x2 = xScale(conn.to.roundId);
               const y2 = yScale(conn.to.position);
 
-              // null 체크
+              
               if (x1 == null || y1 == null || x2 == null || y2 == null) {
                 return null;
               }
@@ -277,12 +277,12 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
 
               return (
                 <g key={`connection-${i}`}>
-                  {/* 경로 정의 */}
+                  
                   <defs>
                     <path id={pathId} d={pathData} />
                   </defs>
 
-                  {/* 연결선 */}
+                  
                   <path
                     d={pathData}
                     stroke="oklch(55.1% 0.027 264.364)"
@@ -294,7 +294,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
               );
             })}
 
-            {/* 라운드 라벨 */}
+            
             {rounds.map((round) => {
               const x = xScale(round);
 
@@ -325,7 +325,7 @@ const BumpChartInner = ({ bracket, width, height }: BumpChartInnerProps) => {
               );
             })}
 
-            {/* 순위 레이블 */}
+            
             {Array.from({ length: maxPosition + 1 }, (_, i) => {
               if (i % 10 === 0)
                 return (
@@ -368,7 +368,7 @@ const BumpChart = ({ bracket, height = 400 }: BracketProps) => {
           <BumpChartInner
             bracket={bracket}
             width={parentWidth}
-            height={height} // 높이는 props로 받은 값 사용
+            height={height}
           />
         )}
       </ParentSize>

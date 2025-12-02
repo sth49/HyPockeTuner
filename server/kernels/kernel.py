@@ -131,13 +131,13 @@ def fetch(url):
 
 
 def fetch_from_local(path):
-    # 파일 경로가 유효한지 확인
+    
     if os.path.isfile(path) and os.stat(path).st_size > 0:
         with open(path, "rb") as f:
             data = f.read()
             return data
     else:
-        # 파일이 없거나 크기가 0인 경우 오류 메시지 출력
+        
         raise FileNotFoundError(f"File not found or is empty at {path}")
 
 
@@ -445,8 +445,8 @@ if __name__ == "__main__":
         ret = kernel.run()
         print("======================")
 
-    # 안되는 것 - "adagrad", lbfgs
-    # 안되는 것  - "lambda", "multi_step", "step",
+    
+    
 
     # optimizers = ["radam"]
 

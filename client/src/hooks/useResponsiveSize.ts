@@ -11,10 +11,10 @@ export const useResponsiveSize = () => {
   const nodeHeight = bandHeight - BAND_PADDING * 2;
 
   const calculateLinkWidth = (width: number): number => {
-    if (!width) return bandWidth * 2; // 기본값
+    if (!width) return bandWidth * 2;
 
     const totalNodeWidth = LAYOUT_CONFIG.NODES_PER_ROW * bandWidth;
-    const totalLinkWidth = width - 20 - totalNodeWidth; // 20px는 컨테이너 패딩
+    const totalLinkWidth = width - 20 - totalNodeWidth;
     const linkWidth = totalLinkWidth / LAYOUT_CONFIG.LINKS_PER_ROW;
 
     return linkWidth;

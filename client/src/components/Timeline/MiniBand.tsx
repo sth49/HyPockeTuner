@@ -74,7 +74,7 @@ const getNodePosition = (
 //   return dir === "ltr" ? ["ltr-middle", "yellow"] : ["rtl-middle", "yellow"];
 // };
 
-// 방향 계산을 위한 유틸리티 함수 개선
+
 const getNodeDirection = (
   props: BandProps & { dir?: Direction }
 ): [BorderRadiusString] => {
@@ -333,7 +333,7 @@ const UserBand: React.FC<{
     </div>
   );
 };
-// 메인 Node 컴포넌트
+
 const MiniBand: React.FC<
   BandProps & {
     sizes: Sizes;
@@ -402,7 +402,7 @@ const MiniBand: React.FC<
     data.trials?.some((trial) => trial.type === "user");
   const finalBgColor = isCollapsedUserTrial ? CONFIG.COLORS.BAND[0] : bgColor;
   console.log("finalBgColor:", finalBgColor);
-  // 링크 타입 렌더링
+  
   // console.log("bracket:", bracket, "type:", type, "bgColor", bgColor);
   if (type === "link") {
     // Only access events if data is LinkProps
@@ -437,7 +437,7 @@ const MiniBand: React.FC<
         }}
         className="flex justify-center items-center relative"
       >
-        {/* 안쪽 보더 */}
+        
         {isVertical && data.type !== "pseudo" && (
           <div
             className="absolute"
@@ -461,7 +461,7 @@ const MiniBand: React.FC<
             ></div>
           </div>
         )}
-        {/* 라운드 시작 밴드 끊김 */}
+        
         {!isCollapse &&
           data.trials.length > 0 &&
           data.trials[0].isFirstRound &&

@@ -9,7 +9,7 @@ export const mergeEventData = (allEvents: EventData[]): EventData[] => {
 
   const eventMap = new Map<string, EventData>();
 
-  // 시간 순으로 정렬
+  
   const sortedEvents = allEvents
     .filter((event) => event && typeof event.time === "number")
     .sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
@@ -23,7 +23,7 @@ export const mergeEventData = (allEvents: EventData[]): EventData[] => {
         time: event.time,
         type: event.type,
         data:
-          // event.data가 array이면 그대로 사용, 아니면 배열로 감싸기
+          
           Array.isArray(event.data) ? event.data : [event.data],
       });
     }
@@ -32,7 +32,7 @@ export const mergeEventData = (allEvents: EventData[]): EventData[] => {
   return Array.from(eventMap.values());
 };
 
-// 공통 그룹 생성 로직 추출
+
 const createMergedGroup = (
   groups: BandProps[],
   orderOffset: number = 1
@@ -62,13 +62,13 @@ const createMergedGroup = (
           mergedTrials.filter((trial) => trial.bracketId !== -1)[0].bracketId
       )
       ? mergedTrials.filter((trial) => trial.bracketId !== -1)[0].bracketId
-      : -1; // 모든 트라이얼이 같은 브래킷에 속하는지 확인
+      : -1;
 
   const groupLink: BandProps = {
     type: "link",
     bracket: bracketId,
-    startTime: mergedTrials[0].startTime, // 첫 번째 트라이얼의 시작 시간
-    endTime: mergedTrials[mergedTrials.length - 1].endTime, // 마지막 트라이얼의 종료 시간
+    startTime: mergedTrials[0].startTime,
+    endTime: mergedTrials[mergedTrials.length - 1].endTime,
     order: baseItem.order + orderOffset,
     data: {
       type: "merged",
@@ -83,8 +83,8 @@ const createMergedGroup = (
   const groupNode: BandProps = {
     type: "node",
     bracket: bracketId,
-    startTime: mergedTrials[0].startTime, // 첫 번째 트라이얼의 시작 시간
-    endTime: mergedTrials[mergedTrials.length - 1].endTime, // 마지막 트라이얼의 종료 시간
+    startTime: mergedTrials[0].startTime,
+    endTime: mergedTrials[mergedTrials.length - 1].endTime,
     order: baseItem.order + orderOffset + 1,
     data: {
       type: "merged",
@@ -97,7 +97,7 @@ const createMergedGroup = (
   return [groupLink, groupNode];
 };
 
-// 수정된 mergeNone 함수
+
 const mergeNone = (
   graphData: BandProps[],
   pendingData: BandProps[]
@@ -112,7 +112,7 @@ const mergeNone = (
 
   const currentNode = graphData.filter((item) => item.data?.type === "current");
 
-  // 실행된 트라이얼들과 pseudo 노드들 => 수정
+  
   const executedItems = graphData.filter((item) => {
     if (item.data?.type === "pseudo" && isNaN(item.startTime)) {
       return false;
@@ -133,16 +133,16 @@ const mergeNone = (
   //   // (item.data?.type !== "trial" && item.data?.trials?.[0]?.metric === null)
   // );
 
-  // 미실행 트라이얼이 있으면 마지막 pseudo 노드들 제거
+  
   const result = [...executedItems];
 
-  // 미실행 트라이얼들 병합
+  
   let mergedGroup: BandProps[] | null = null;
   if (pendingData.length > 0) {
     const merged = createMergedGroup(pendingData);
     if (merged) {
       merged.forEach((item) => {
-        item.bracket = -2; // 브래킷 표시
+        item.bracket = -2;
       });
       mergedGroup = merged;
     }
@@ -231,9 +231,9 @@ export const mergeNodesAndLinks = (
     item.order = index - 1;
   });
 
-  // 먼저 실행된 것과 미실행된 것을 분리
+  
   const {
-    startNodeLink, // 시작 노드 링크
+    startNodeLink,
     executed,
     current,
     pending,
@@ -265,7 +265,7 @@ export const mergeNodesAndLinks = (
     mergedData.push(...pending);
   }
 
-  // 최종 order 재설정
+  
   mergedData.forEach((item, index) => {
     item.order = index - 1;
   });

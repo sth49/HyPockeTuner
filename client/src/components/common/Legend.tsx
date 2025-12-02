@@ -22,7 +22,7 @@ const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
 
   const metric = useExperimentStore((state) => state.metric);
 
-  // Legend 설정을 메모이제이션
+  
   const legendConfig: LegendConfig = useMemo(() => {
     if (type === "metric") {
       return {
@@ -35,24 +35,24 @@ const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
       return {
         colorScale: lossColorScale,
         range: lossRange,
-        minLabel: formatting(lossRange.max, "float", 2), // loss는 높은 값이 나쁨
-        maxLabel: formatting(lossRange.min, "float", 2), // loss는 낮은 값이 좋음
+        minLabel: formatting(lossRange.max, "float", 2),
+        maxLabel: formatting(lossRange.min, "float", 2),
       };
     }
   }, [type, metricColorScale, lossColorScale, metricRange, lossRange]);
 
-  // 그라디언트 스톱 생성
+  
   const gradientStops = useMemo(() => {
     return [0, 20, 40, 60, 80, 100].map((value, index) => ({
       key: index,
       offset: `${value}%`,
       color: legendConfig.colorScale(
-        type === "metric" ? value / 100 : (100 - value) / 100 // loss는 반대로 적용
+        type === "metric" ? value / 100 : (100 - value) / 100
       ),
     }));
   }, [legendConfig]);
 
-  // 고유한 gradient ID 생성
+  
   const gradientId = `legendGradient-${type}`;
 
   return (
@@ -91,7 +91,7 @@ const Legend = ({ type = "metric", width = 70, height = 10 }: LegendProps) => {
           </svg>
         </div>
 
-        {/* 최대값 라벨 */}
+        
         <span className="text-xs w-[20px] text-center">
           {legendConfig.maxLabel}
         </span>

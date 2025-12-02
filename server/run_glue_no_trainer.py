@@ -500,17 +500,17 @@ def main(args):
 
 if __name__ == "__main__":
     args = {
-        "task_name": "jeanlee/kmhas_korean_hate_speech", # 고정
-        "max_length": 128, # 이거
-        "model_name_or_path": "facebook/bart-base", # 고정
+        "task_name": "jeanlee/kmhas_korean_hate_speech",
+        "max_length": 128,
+        "model_name_or_path": "facebook/bart-base",
         "activation": "silu", # "gelu", "relu", "silu" and "gelu_new"
         "per_device_train_batch_size": 8,
         "per_device_eval_batch_size": 8,
-        "learning_rate": 5e-5, # 이거
+        "learning_rate": 5e-5,
         "num_train_epochs": 3, # budget
-        "weight_decay": 0.0, # 이거
+        "weight_decay": 0.0,
         "gradient_accumulation_steps": 1,
-        "lr_scheduler_type": "linear", # 이거
+        "lr_scheduler_type": "linear",
         "num_warmup_steps": 0,
         "report_to": "all",
         "use_slow_tokenizer": False,
@@ -525,4 +525,4 @@ if __name__ == "__main__":
     }
     main(args)
 
-# qnli는 pretrained=False로 하면 30분걸림 | pretrained=True 10분? 근데 90%찍음
+

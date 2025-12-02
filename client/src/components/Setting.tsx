@@ -23,12 +23,12 @@ const Settings: React.FC = () => {
   const [testLoading, setTestLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
-  // 테스트 푸시 알림 전송 함수 (수정된 버전)
+  
   const handleTestPush = async () => {
     try {
       setTestLoading(true);
 
-      // 현재 구독 정보 가져오기 (수정됨)
+      
       const subscription = await NotificationService.getSubscription();
 
       if (!subscription) {
@@ -47,9 +47,9 @@ const Settings: React.FC = () => {
       console.log("Test push result:", result);
 
       // if (result?.success) {
-      //   alert("테스트 푸시 알림이 전송되었습니다!");
+      
       // } else {
-      //   alert("테스트 푸시 알림 전송에 실패했습니다.");
+      
       // }
     } catch (error) {
       console.error("Test push notification error:", error);
@@ -61,32 +61,32 @@ const Settings: React.FC = () => {
 
   // Subscription setup function
   const handleSubscribe = async () => {
-    console.log("🎯 [Settings] handleSubscribe 시작");
+    console.log("[Settings] handleSubscribe start");
     try {
       setIsLoading(true);
-      console.log("⏳ [Settings] 로딩 상태 활성화");
+      console.log("[Settings] Loading state enabled");
 
-      console.log("📞 [Settings] NotificationService.setupPush() 호출");
+      console.log("[Settings] NotificationService.setupPush() called");
       const success = await NotificationService.setupPush();
-      console.log(`🎯 [Settings] setupPush 결과: ${success}`);
+      console.log(`[Settings] setupPush result: ${success}`);
 
       if (success) {
-        console.log("✅ [Settings] 구독 성공, 상태 업데이트");
+        console.log("[Settings] Subscription success, updating state");
         setIsSubscribe(true);
-        console.log("✅ [Settings] Push notification subscription successful");
+        console.log("[Settings] Push notification subscription successful");
       } else {
-        console.error("❌ [Settings] Push notification subscription failed");
+        console.error("[Settings] Push notification subscription failed");
       }
     } catch (error) {
       console.error(
-        "💥 [Settings] Push notification subscription error:",
+        "[Settings] Push notification subscription error:",
         error
       );
       if (error instanceof Error) {
-        console.error("💥 [Settings] 에러 스택:", error.stack);
+        console.error("[Settings] Error stack:", error.stack);
       }
     } finally {
-      console.log("🏁 [Settings] 로딩 상태 비활성화");
+      console.log("[Settings] Loading state disabled");
       setIsLoading(false);
     }
   };

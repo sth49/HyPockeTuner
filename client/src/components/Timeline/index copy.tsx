@@ -18,8 +18,8 @@ const Overview: React.FC = () => {
   const [mergeType, setMergeType] = useState<"individual" | "bracket" | "round" | "all">("individual");
   const [isShowBest, setIsShowBest] = useState(true);
 
-  // 스크롤 상태 추가
-  const contentRef = useRef<HTMLDivElement | null>(null); // 스크롤 가능한 콘텐츠 참조 추가
+  
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollHeight, setScrollHeight] = useState(0);
   const [clientHeight, setClientHeight] = useState(0);
@@ -53,7 +53,7 @@ const Overview: React.FC = () => {
     };
   }, [containerRef, sizes]);
 
-  // 스크롤 이벤트 핸들러 추가
+  
   useEffect(() => {
     const handleScroll = () => {
       if (contentRef.current) {
@@ -67,7 +67,7 @@ const Overview: React.FC = () => {
     const contentElement = contentRef.current;
     if (contentElement) {
       contentElement.addEventListener("scroll", handleScroll);
-      // 초기 값 설정 (약간의 지연을 두어 DOM이 완전히 렌더링된 후 실행)
+      
       const timeoutId = setTimeout(handleScroll, 100);
       return () => {
         clearTimeout(timeoutId);
@@ -75,18 +75,18 @@ const Overview: React.FC = () => {
       };
 
     }
-  }, [reversedRows]); // reversedRows가 변경될 때도 재계산
+  }, [reversedRows]);
 
-  // 특정 링크가 현재 포커스된 검색 결과인지 확인하는 함수 (빈 구현)
+  
   const isCurrentFocusedLink = (
     _rowIndex: number,
     _linkIndex: number,
     _isVertical: boolean
   ) => {
-    return false; // 기본 구현
+    return false;
   };
 
-  // 미니맵에서 스크롤 위치 변경 핸들러
+  
   const handleMiniMapScroll = (scrollRatio: number) => {
     if (contentRef.current) {
       const maxScrollTop =

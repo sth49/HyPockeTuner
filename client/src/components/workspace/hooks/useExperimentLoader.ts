@@ -29,7 +29,6 @@ export const useExperimentLoader = () => {
         handleNavigate("/main/trials");
       } catch (error) {
         console.error("Failed to load experiment:", error);
-        // 에러 처리 로직 추가 가능
       }
     },
     [expId, handleNavigate, initializeExperiment]

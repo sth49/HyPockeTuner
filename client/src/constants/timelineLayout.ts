@@ -1,4 +1,4 @@
-// Band.tsx, Overview.tsx에서 사용하는 상수들
+
 export const LAYOUT_CONFIG = {
   NODES_PER_ROW: 3,
   LINKS_PER_ROW: 2,

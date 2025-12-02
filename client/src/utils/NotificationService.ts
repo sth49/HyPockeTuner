@@ -1,7 +1,7 @@
 // notification-service.ts
 import api from "../api/api";
 
-// Base64 URL 디코딩 유틸리티 함수
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -15,33 +15,28 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-// VAPID 공개키 상수화
+
 const VAPID_PUBLIC_KEY =
   "VAPID_PUBLIC_KEY_REMOVED";
 
 export class NotificationService {
   private static registration: ServiceWorkerRegistration | null = null;
 
-  /**
-   * 서비스워커 등록 및 초기화
-   */
   static async setup(): Promise<ServiceWorkerRegistration> {
-    console.log("🛠️ [NotificationService] setup 시작");
-    
-    // 서비스워커 지원 여부 확인
+    console.log("[NotificationService] setup start");
+
     if (!("serviceWorker" in navigator)) {
-      console.error("❌ [NotificationService] 서비스워커가 브라우저에서 지원되지 않음");
+      console.error("[NotificationService] Service worker not supported");
       throw new Error("Service worker is not supported in this browser");
     }
-    console.log("✅ [NotificationService] 서비스워커 지원 확인됨");
+    console.log("[NotificationService] Service worker supported");
 
-    // 개발환경 감지
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    console.log("🏠 [NotificationService] 환경 감지:", isDevelopment ? '개발환경' : '프로덕션환경');
+    console.log("[NotificationService] Environment:", isDevelopment ? 'development' : 'production');
 
     if (isDevelopment) {
-      console.log("🚧 [NotificationService] 개발환경에서는 서비스워커를 건너뜁니다");
-      // 개발환경에서는 가짜 registration 객체 반환
+      console.log("[NotificationService] Skipping service worker in development");
+
       const mockRegistration = {
         active: null,
         installing: null,
@@ -60,166 +55,148 @@ export class NotificationService {
           }
         }
       } as unknown as ServiceWorkerRegistration;
-      
+
       this.registration = mockRegistration;
       return mockRegistration;
     }
 
     try {
-      // 프로덕션환경에서만 실제 서비스워커 등록
       const swPath = '/HyPockeTuner_new/sw.js';
       const scope = '/HyPockeTuner_new/';
-      
-      console.log("📍 [NotificationService] SW 경로:", swPath);
-      console.log("📍 [NotificationService] SW 스코프:", scope);
 
-      // 기존 등록된 서비스워커 확인
-      console.log("🔍 [NotificationService] 기존 서비스워커 등록 확인...");
+      console.log("[NotificationService] SW path:", swPath);
+      console.log("[NotificationService] SW scope:", scope);
+
+      console.log("[NotificationService] Checking existing service worker...");
       const existingRegistration = await navigator.serviceWorker.getRegistration(scope);
       if (existingRegistration) {
-        console.log("♻️ [NotificationService] 기존 서비스워커 발견:", existingRegistration);
+        console.log("[NotificationService] Existing service worker found:", existingRegistration);
         this.registration = existingRegistration;
 
-        // 업데이트 확인
-        console.log("🔄 [NotificationService] 서비스워커 업데이트 확인...");
+        console.log("[NotificationService] Checking for updates...");
         existingRegistration.update();
         return existingRegistration;
       }
 
-      // 새로운 서비스워커 등록
-      console.log("📝 [NotificationService] 새 서비스워커 등록 시도...");
-      
+      console.log("[NotificationService] Registering new service worker...");
+
       const registration = await navigator.serviceWorker.register(swPath, {
         scope: scope,
-        updateViaCache: "none", // 캐시 무시하여 항상 최신 버전 확인
+        updateViaCache: "none",
       });
 
-      console.log("✅ [NotificationService] 서비스워커 등록 성공:", registration);
-      console.log("📋 [NotificationService] SW 상태:", registration.active?.state);
-      console.log("📋 [NotificationService] SW 스크립트 URL:", registration.active?.scriptURL);
-      
+      console.log("[NotificationService] Service worker registered:", registration);
+      console.log("[NotificationService] SW state:", registration.active?.state);
+      console.log("[NotificationService] SW script URL:", registration.active?.scriptURL);
+
       this.registration = registration;
 
-      // 서비스워커가 준비될 때까지 대기
-      console.log("⏳ [NotificationService] 서비스워커 준비 대기...");
+      console.log("[NotificationService] Waiting for service worker ready...");
       await navigator.serviceWorker.ready;
-      console.log("✅ [NotificationService] 서비스워커 준비 완료");
+      console.log("[NotificationService] Service worker ready");
 
       return registration;
     } catch (error) {
-      console.error("💥 [NotificationService] 서비스워커 등록 실패:", error);
+      console.error("[NotificationService] Service worker registration failed:", error);
       if (error instanceof Error) {
-        console.error("💥 [NotificationService] 에러 타입:", error.constructor.name);
-        console.error("💥 [NotificationService] 에러 메시지:", error.message);
+        console.error("[NotificationService] Error type:", error.constructor.name);
+        console.error("[NotificationService] Error message:", error.message);
       }
       throw error;
     }
   }
 
-  /**
-   * Push 알림 설정
-   */
   static async setupPush(): Promise<boolean> {
-    console.log("🚀 [NotificationService] setupPush 시작");
-    
-    // 개발환경 감지
+    console.log("[NotificationService] setupPush start");
+
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    console.log("🏠 [NotificationService] 환경 감지:", isDevelopment ? '개발환경' : '프로덕션환경');
+    console.log("[NotificationService] Environment:", isDevelopment ? 'development' : 'production');
 
     if (isDevelopment) {
-      console.log("🚧 [NotificationService] 개발환경에서는 푸시 알림을 시뮬레이션합니다");
-      
-      // 알림 권한만 확인/요청
-      console.log("🔐 [NotificationService] 알림 권한 확인...");
+      console.log("[NotificationService] Simulating push notifications in development");
+
+      console.log("[NotificationService] Checking notification permission...");
       const hasPermission = this.checkNotificationPermission();
-      console.log(`📋 [NotificationService] 현재 알림 권한: ${Notification.permission}`);
-      
+      console.log(`[NotificationService] Current permission: ${Notification.permission}`);
+
       if (!hasPermission) {
-        console.log("❓ [NotificationService] 알림 권한 요청...");
+        console.log("[NotificationService] Requesting permission...");
         const permission = await this.requestPermission();
-        console.log(`📋 [NotificationService] 권한 요청 결과: ${permission}`);
+        console.log(`[NotificationService] Permission result: ${permission}`);
         if (permission !== "granted") {
-          console.warn("❌ [NotificationService] 알림 권한이 거부됨");
+          console.warn("[NotificationService] Permission denied");
           return false;
         }
       }
-      
-      console.log("✅ [NotificationService] 개발환경에서 푸시 설정 완료 (시뮬레이션)");
+
+      console.log("[NotificationService] Push setup complete (simulation)");
       return true;
     }
 
     try {
-      // 서비스워커가 등록되지 않은 경우 등록
-      console.log("📝 [NotificationService] 서비스워커 등록 상태 확인...");
+      console.log("[NotificationService] Checking service worker registration...");
       if (!this.registration) {
-        console.log("⚠️ [NotificationService] 서비스워커가 등록되지 않음, 등록 시도...");
+        console.log("[NotificationService] Service worker not registered, registering...");
         await this.setup();
-        console.log("✅ [NotificationService] 서비스워커 등록 완료");
+        console.log("[NotificationService] Service worker registration complete");
       } else {
-        console.log("✅ [NotificationService] 서비스워커 이미 등록됨");
+        console.log("[NotificationService] Service worker already registered");
       }
 
-      // 알림 권한 확인
-      console.log("🔐 [NotificationService] 알림 권한 확인...");
+      console.log("[NotificationService] Checking notification permission...");
       const hasPermission = this.checkNotificationPermission();
-      console.log(`📋 [NotificationService] 현재 알림 권한: ${Notification.permission}`);
-      
+      console.log(`[NotificationService] Current permission: ${Notification.permission}`);
+
       if (!hasPermission) {
-        console.log("❓ [NotificationService] 알림 권한 요청...");
+        console.log("[NotificationService] Requesting permission...");
         const permission = await this.requestPermission();
-        console.log(`📋 [NotificationService] 권한 요청 결과: ${permission}`);
+        console.log(`[NotificationService] Permission result: ${permission}`);
         if (permission !== "granted") {
-          console.warn("❌ [NotificationService] 알림 권한이 거부됨");
+          console.warn("[NotificationService] Permission denied");
           return false;
         }
       }
 
-      // 서비스워커가 준비될 때까지 대기
-      console.log("⏳ [NotificationService] 서비스워커 준비 대기...");
+      console.log("[NotificationService] Waiting for service worker ready...");
       const registration = await navigator.serviceWorker.ready;
-      console.log("✅ [NotificationService] 서비스워커 준비 완료");
+      console.log("[NotificationService] Service worker ready");
 
-      // 기존 구독 확인
-      console.log("🔍 [NotificationService] 기존 구독 확인...");
+      console.log("[NotificationService] Checking existing subscription...");
       let subscription = await registration.pushManager.getSubscription();
-      
+
       if (subscription) {
-        console.log("✅ [NotificationService] 기존 구독 발견:", {
+        console.log("[NotificationService] Existing subscription found:", {
           endpoint: subscription.endpoint,
           keys: JSON.parse(JSON.stringify(subscription)).keys
         });
       } else {
-        console.log("📝 [NotificationService] 기존 구독 없음, 새 구독 생성...");
+        console.log("[NotificationService] No existing subscription, creating new...");
         subscription = await this.subscribeUserToPush();
         if (!subscription) {
-          console.error("❌ [NotificationService] 구독 생성 실패");
+          console.error("[NotificationService] Subscription creation failed");
           throw new Error("Failed to create push subscription");
         }
-        console.log("✅ [NotificationService] 새 구독 생성 완료");
+        console.log("[NotificationService] New subscription created");
       }
 
-      // 서버에 구독 정보 등록
-      console.log("📤 [NotificationService] 서버에 구독 정보 등록 시도...");
-      console.log("📤 [NotificationService] 전송할 구독 데이터:", subscription);
-      
+      console.log("[NotificationService] Registering subscription with server...");
+      console.log("[NotificationService] Subscription data:", subscription);
+
       const response = await api.registerSubscription(subscription);
-      console.log("📥 [NotificationService] 서버 응답:", response);
+      console.log("[NotificationService] Server response:", response);
 
       const success = response?.success || false;
-      console.log(`🎯 [NotificationService] setupPush 결과: ${success ? '성공' : '실패'}`);
+      console.log(`[NotificationService] setupPush result: ${success ? 'success' : 'failed'}`);
       return success;
     } catch (error) {
-      console.error("💥 [NotificationService] setupPush 오류:", error);
+      console.error("[NotificationService] setupPush error:", error);
       if (error instanceof Error) {
-        console.error("💥 [NotificationService] 오류 스택:", error.stack);
+        console.error("[NotificationService] Error stack:", error.stack);
       }
       return false;
     }
   }
 
-  /**
-   * 알림 권한 확인
-   */
   static checkNotificationPermission(): boolean {
     if (!("Notification" in window)) {
       console.warn("This browser does not support notifications.");
@@ -229,94 +206,81 @@ export class NotificationService {
     return Notification.permission === "granted";
   }
 
-  /**
-   * 알림 권한 요청
-   */
   static async requestPermission(): Promise<NotificationPermission> {
     if (!("Notification" in window)) {
       throw new Error("This browser does not support notifications.");
     }
 
-    // 이미 권한이 부여된 경우
     if (Notification.permission === "granted") {
       return "granted";
     }
 
-    // 권한이 거부된 경우
     if (Notification.permission === "denied") {
       throw new Error("Notification permission has been denied");
     }
 
-    // 권한 요청
     const permission = await Notification.requestPermission();
     return permission;
   }
 
-  /**
-   * Push 구독 생성
-   */
   private static async subscribeUserToPush(): Promise<PushSubscription | null> {
-    console.log("🔧 [NotificationService] subscribeUserToPush 시작");
-    
+    console.log("[NotificationService] subscribeUserToPush start");
+
     if (!this.registration) {
-      console.error("❌ [NotificationService] 서비스워커가 등록되지 않음");
+      console.error("[NotificationService] Service worker not registered");
       throw new Error("Service worker not registered");
     }
 
     try {
-      console.log("🔑 [NotificationService] VAPID 공개키:", VAPID_PUBLIC_KEY);
-      
+      console.log("[NotificationService] VAPID public key:", VAPID_PUBLIC_KEY);
+
       const subscribeOptions: PushSubscriptionOptions = {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       };
-      
-      console.log("⚙️ [NotificationService] 구독 옵션:", subscribeOptions);
-      console.log("📱 [NotificationService] PushManager 구독 시도...");
+
+      console.log("[NotificationService] Subscribe options:", subscribeOptions);
+      console.log("[NotificationService] PushManager subscribe attempt...");
 
       const subscription = await this.registration.pushManager.subscribe(
         subscribeOptions
       );
 
-      console.log("✅ [NotificationService] 새 푸시 구독 생성 완료");
-      console.log("🌐 [NotificationService] Endpoint:", subscription.endpoint);
-      console.log("🔐 [NotificationService] Keys:", JSON.parse(JSON.stringify(subscription)).keys);
+      console.log("[NotificationService] New push subscription created");
+      console.log("[NotificationService] Endpoint:", subscription.endpoint);
+      console.log("[NotificationService] Keys:", JSON.parse(JSON.stringify(subscription)).keys);
 
       return subscription;
     } catch (error) {
-      console.error("💥 [NotificationService] 푸시 구독 생성 실패:", error);
+      console.error("[NotificationService] Push subscription creation failed:", error);
       if (error instanceof Error) {
-        console.error("💥 [NotificationService] 에러 타입:", error.constructor.name);
-        console.error("💥 [NotificationService] 에러 메시지:", error.message);
-        
-        // 특정 에러 유형에 대한 추가 정보
+        console.error("[NotificationService] Error type:", error.constructor.name);
+        console.error("[NotificationService] Error message:", error.message);
+
         if (error.name === 'NotSupportedError') {
-          console.error("🚫 [NotificationService] 푸시 알림이 지원되지 않는 환경");
+          console.error("[NotificationService] Push notifications not supported");
         } else if (error.name === 'NotAllowedError') {
-          console.error("🚫 [NotificationService] 푸시 알림 권한이 거부됨");
+          console.error("[NotificationService] Push notification permission denied");
         } else if (error.name === 'AbortError') {
-          console.error("🚫 [NotificationService] 구독 프로세스가 중단됨");
+          console.error("[NotificationService] Subscription process aborted");
         }
       }
-      
+
       return null;
     }
   }
 
-  /**
-   * Push 구독 해제
-   */
   static async unsubscribeFromPush(): Promise<boolean> {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
+
     if (isDevelopment) {
-      console.log("🚧 [NotificationService] 개발환경에서는 구독 해제를 시뮬레이션합니다");
+      console.log("[NotificationService] Simulating unsubscribe in development");
       return true;
     }
 
     try {
       const scope = '/HyPockeTuner_new/';
-      
+
       const registration = await navigator.serviceWorker.getRegistration(scope);
       if (!registration) {
         console.log("No service worker registration found");
@@ -338,18 +302,16 @@ export class NotificationService {
     }
   }
 
-  /**
-   * 현재 등록된 서비스워커 가져오기
-   */
   static getRegistration(): ServiceWorkerRegistration | null {
     return this.registration;
   }
+
   static async getSubscription(): Promise<PushSubscription | null> {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
+
     if (isDevelopment) {
-      console.log("🚧 [NotificationService] 개발환경에서는 가짜 구독 정보를 반환합니다");
-      // 개발환경에서는 가짜 구독 객체 반환
+      console.log("[NotificationService] Returning mock subscription in development");
+
       return {
         endpoint: 'https://development.example.com/push',
         keys: {
@@ -379,9 +341,6 @@ export class NotificationService {
     }
   }
 
-  /**
-   * 서비스워커 상태 확인 (디버깅용)
-   */
   static async getServiceWorkerStatus(): Promise<{
     isSupported: boolean;
     registration: ServiceWorkerRegistration | null;
@@ -397,9 +356,8 @@ export class NotificationService {
     if (isSupported) {
       try {
         const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
+
         if (isDevelopment) {
-          // 개발환경에서는 시뮬레이션 데이터 반환
           registration = this.registration;
           subscription = await this.getSubscription();
         } else {

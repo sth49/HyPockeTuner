@@ -171,16 +171,16 @@ if __name__=="__main__":
     # trial = {
     #         "params":{
     #             "learning_rate": 2e-5, 
-    #             "optimizer": "adam", # 확인
-    #             "scheduler": "linear_warmup", # 확인
+    
+    
     #             "batch_size": 64, # 
     #             "weight_decay": 0,
     #             "momentum": 0.7414670522347097,
-    #             "activation": "silu", # 확인
+    
     #             "max_length": 500,
     #             "dropout_p": 0.1,
-    #             "positional_embedding": "absolute", # 확인
-    #             "use_decoder": False, # 확인
+    
+    
     #         },
     #         "budget": 3,
     #         "model": "bert",
@@ -225,16 +225,16 @@ if __name__=="__main__":
     #     print()
 
      # for opt in [
-    #       "adam", # 성공
-    #       "adamw", # 성공
-    #       "adafactor", # 성공
-    #       "adamax", # 성공
-    #       "asgd", # 성공
-    #       "rprop", # 성공
-    #       "nadam", # 성공 
-    #       "radam", # 성공
-    #       "sgd", # 성공
-    #       "rms" # 성공
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     #     ]:
     #     print("########### optimizer: ", opt)
     #     trial2 = trial.copy()
@@ -244,13 +244,13 @@ if __name__=="__main__":
     #     print()
     #     print()
     # for sch in [
-    #     "constant", # 성공
-    #       "constant_warmup", # 성공
-    #       "cosine_warmup", # 성공
-    #       "cosine_hard_restarts", # 성공
-    #       "linear_warmup", # 성공
-    #       "polynomial_decay", #  성공
-    #       "none" # 성공
+    
+    
+    
+    
+    
+    
+    
     #     ]:
     #     print("########### scheduler: ", sch)
     #     trial2 = trial.copy()

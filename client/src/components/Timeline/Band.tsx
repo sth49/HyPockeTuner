@@ -52,7 +52,7 @@ const getNodePosition = (
   return dir === "ltr" ? ["ltr-middle", "yellow"] : ["rtl-middle", "yellow"];
 };
 
-// 방향 계산을 위한 유틸리티 함수 개선
+
 const getNodeDirection = (
   props: BandProps & { dir?: Direction; isCollapse?: boolean }
 ): [BorderRadiusString] => {
@@ -132,7 +132,7 @@ const getNodeDirection = (
   }
 
   if (isCollapse && order === 0) {
-    borderRadius = "10px 0px 0px 10px"; // 첫 번째 노드
+    borderRadius = "10px 0px 0px 10px";
   }
 
   return [borderRadius];
@@ -469,7 +469,7 @@ const UserBand: React.FC<{
     </div>
   );
 };
-// 메인 Node 컴포넌트
+
 const Band: React.FC<
   BandProps & {
     sizes: Sizes;
@@ -541,7 +541,7 @@ const Band: React.FC<
         }}
         className="flex justify-center items-center relative"
       >
-        {/* 안쪽 보더 */}
+        
         {isVertical && data.type !== "pseudo" && (
           <div
             className="absolute"
@@ -565,7 +565,7 @@ const Band: React.FC<
             ></div>
           </div>
         )}
-        {/* 라운드 시작 밴드 끊김 */}
+        
         {!isCollapse &&
           data.trials.length > 0 &&
           data.trials[0].isFirstRound &&
@@ -624,7 +624,7 @@ const Band: React.FC<
           direction={direction}
         />
       )}
-      {/* 밴드 링크 */}
+      
 
       <Node
         bandBracketId={bracket}

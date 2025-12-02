@@ -12,7 +12,7 @@ from torch.utils.data.dataset import Subset
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-# RLE 디코딩 함수
+
 def rle_decode(mask_rle, shape):
     s = mask_rle.split()
     starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
@@ -24,7 +24,7 @@ def rle_decode(mask_rle, shape):
     return img.reshape(shape)
 
 
-# RLE 인코딩 함수
+
 def rle_encode(mask):
     pixels = mask.flatten()
     pixels = np.concatenate([[0], pixels, [0]])

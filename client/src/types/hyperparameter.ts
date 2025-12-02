@@ -15,7 +15,7 @@ export class Hyperparam {
   constructor(
     public name: string,
     public displayName: string,
-    public selected: boolean = false, // public values: number[] | string[] = []
+    public selected: boolean = false,
     public narrowValue: any,
     public beforeChange: any,
     public isConstant: boolean = false,
@@ -69,9 +69,7 @@ export class Hyperparam {
       });
     } else {
       this.narrowHistory.forEach((h) => {
-        // console.log("h", h, "data", data);
         if (h.value.every((value: any) => data.value.includes(value))) {
-          // console.log("====== h === data ====");
           returnData.afterChange = returnData.afterChange.filter(
             (value: any) => !h.value.includes(value)
           );
@@ -146,42 +144,39 @@ export class Hyperparam {
         data = temp;
       }
       if (+data >= this.narrowValue[0] && +data <= this.narrowValue[1]) {
-        return true; // 범위에 포함됨
+        return true;
       }
-      return false; // 범위에 포함되지 않음
+      return false;
     }
     if (this.type === HyperparamTypes.Ordinal) {
       if (this.narrowValue.includes(+data)) {
-        return true; // 값이 범위에 포함됨
+        return true;
       }
-      return false; // 값이 범위에 포함되지 않음
+      return false;
     } else if (this.type === HyperparamTypes.Unordered) {
       if (data === "True" || data === "False") {
-        data = data === "True"; // boolean 값으로 변환
+        data = data === "True";
       }
 
       if (this.narrowValue.includes(data)) {
-        return true; // 값이 범위에 포함됨
+        return true;
       }
-      return false; // 값이 범위에 포함되지 않음
+      return false;
     }
     return false;
   }
 
   checkSpaceChange(data: any) {
     if (this.type === HyperparamTypes.Uniform) {
-      // Ensure we're comparing numbers properly
       const newMin = Number(data[0]);
       const newMax = Number(data[1]);
       const originalMin = Number(this.narrowValue[0]);
       const originalMax = Number(this.narrowValue[1]);
 
-      // Check if the values are exactly the same (no change)
       if (newMin === originalMin && newMax === originalMax) {
-        return false; // No change
+        return false;
       }
 
-      // Check if the new range is invalid (outside bounds or empty)
       if (
         newMin < originalMin ||
         newMax > originalMax ||
@@ -189,17 +184,15 @@ export class Hyperparam {
         isNaN(newMin) ||
         isNaN(newMax)
       ) {
-        return false; // Invalid range
+        return false;
       }
 
-      return true; // Valid change detected
+      return true;
     } else {
-      // If only 1 value exists, no change is possible
       if (this.narrowValue.length <= 1) {
         return false;
       }
 
-      // Normalize both data and narrowValue to strings for comparison
       const normalizedData = data.map((v: any) => v?.toString());
       const normalizedNarrowValue = this.narrowValue.map((v: any) =>
         v?.toString()
@@ -208,25 +201,16 @@ export class Hyperparam {
       const dataSet = new Set(normalizedData);
       const narrowSet = new Set(normalizedNarrowValue);
 
-      // console.log(`checkSpaceChange for non-uniform ${this.name}:`);
-      // console.log('  data:', data, '→ normalized:', normalizedData);
-      // console.log('  narrowValue:', this.narrowValue, '→ normalized:', normalizedNarrowValue);
-      // console.log('  dataSet:', Array.from(dataSet), 'narrowSet:', Array.from(narrowSet));
-
-      // dataSet이랑 narrowSet이랑 똑같이 생겼으면 안바뀐 것
       if (dataSet.size !== narrowSet.size) {
-        // console.log('  → CHANGED: different sizes');
-        return true; // 개수가 다르면 바뀐 것
+        return true;
       }
       for (const value of narrowSet) {
         if (!dataSet.has(value)) {
-          // console.log('  → CHANGED: missing value in data:', value);
-          return true; // narrowSet에 있는 값이 dataSet에 없으면 바뀐 것
+          return true;
         }
       }
-      // console.log('  → NO CHANGE: sets are identical');
     }
-    return false; // 범위가 안바뀐 것
+    return false;
   }
   createOption(index: number): HyperparamOption {
     if (this.type === HyperparamTypes.Unordered) {
@@ -270,10 +254,10 @@ export class Hyperparam {
       const numValue = Number(value);
 
       if (numValue === 0) {
-        return "0"; // 0은 그대로 표시
+        return "0";
       }
       if (Math.abs(numValue) < 0.001 && numValue !== 0) {
-        return numValue.toExponential(0); // 2자리 정밀도의 과학적 표기법
+        return numValue.toExponential(0);
       }
       return formatting(numValue, "float", 3);
     }

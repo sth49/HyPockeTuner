@@ -12,7 +12,7 @@ export const createZigzagLayout = (
   const nodesWithOrder: { item: BandProps; originalIndex: number }[] = [];
   const linksWithOrder: { item: BandProps; originalIndex: number }[] = [];
 
-  // 노드와 링크 분리
+  
   sortedData.forEach((item, i) => {
     if (item.type === "link") {
       linksWithOrder.push({ item, originalIndex: i });
@@ -21,7 +21,7 @@ export const createZigzagLayout = (
     }
   });
 
-  // 지그재그 행 구성
+  
   const rows: LayoutRow[] = [];
   const rowSize = nodesPerRow;
 
@@ -38,7 +38,7 @@ export const createZigzagLayout = (
     const horizontalLinks: any[] = [];
     let verticalLink = null;
 
-    // 각 노드 뒤에 오는 링크 찾기
+    
     rowNodesWithOrder.forEach((node, i) => {
       const nodeOriginalIndex = node.originalIndex;
       const nextLink = linksWithOrder.find(
@@ -46,7 +46,7 @@ export const createZigzagLayout = (
       );
 
       if (nextLink) {
-        // 행의 마지막 노드인 경우 (수직 링크)
+        
         if (
           i === rowNodesWithOrder.length - 1 &&
           rowIndex < Math.ceil(nodesWithOrder.length / rowSize) - 1
@@ -57,7 +57,7 @@ export const createZigzagLayout = (
             isLeftToRight: !isEvenRow,
           };
         }
-        // 행 내부 노드인 경우 (수평 링크)
+        
         else if (i < rowNodesWithOrder.length - 1) {
           horizontalLinks.push({
             ...nextLink.item,
@@ -67,7 +67,7 @@ export const createZigzagLayout = (
       }
     });
 
-    // 행의 방향에 따라 노드와 링크 순서 조정
+    
     const finalNodes = isEvenRow
       ? rowNodesWithOrder.map((n) => n.item)
       : [...rowNodesWithOrder].reverse().map((n) => n.item);

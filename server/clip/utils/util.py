@@ -22,7 +22,7 @@ def mkdir(path):
         if e.errno != errno.EEXIST:
             raise
 
-# YAML 파일 읽고 DictConfig 객체로 반환 
+
 def load_config_file(file_path): 
     with open(file_path, 'r') as fp: 
         return OmegaConf.load(fp)

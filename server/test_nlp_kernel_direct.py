@@ -81,7 +81,7 @@ def test_nlp_kernel_direct():
             print("💡 Trying alternative approach...")
             # Create dummy data for testing
             dataset = {
-                'text': ['테스트 문장입니다.'] * 50,
+                'text': ['This is a test sentence.'] * 50,
                 'label': [[8]] * 50  # All "not_hate_speech" labels
             }
             print("✓ Using dummy dataset for testing")

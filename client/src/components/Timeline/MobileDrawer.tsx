@@ -16,14 +16,14 @@ const MobileDrawer: React.FC<DrawerProps> = ({
   const [drawerState, setDrawerState] = useState<"closed" | "half">("closed");
   const [translateY, setTranslateY] = useState(0);
 
-  // 스냅 포인트 정의 (vh 단위)
+  
   const snapPoints = {
-    closed: 100, // 완전히 닫힌 상태
-    peek: 79, // 살짝 보이는 상태
-    half: 0, // 반 정도 열린 상태
+    closed: 100,
+    peek: 79,
+    half: 0,
   };
 
-  // 초기 상태 설정
+  
   useEffect(() => {
     if (isOpen && drawerState === "closed") {
       setDrawerState("half");
@@ -32,13 +32,13 @@ const MobileDrawer: React.FC<DrawerProps> = ({
     }
   }, [isOpen, drawerState]);
 
-  // 상태 변경시 translateY 업데이트
+  
   useEffect(() => {
     setTranslateY(snapPoints[drawerState]);
     onStateChange?.(drawerState);
   }, [drawerState, onStateChange]);
 
-  // 드로어가 닫힐 때 onClose 호출 (별도 useEffect)
+  
   const prevDrawerStateRef = useRef(drawerState);
   useEffect(() => {
     if (
@@ -51,7 +51,7 @@ const MobileDrawer: React.FC<DrawerProps> = ({
     prevDrawerStateRef.current = drawerState;
   }, [drawerState, onClose]);
 
-  // 터치 이벤트 핸들러
+  
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
 
@@ -67,7 +67,7 @@ const MobileDrawer: React.FC<DrawerProps> = ({
     const deltaY = touchY - startY;
 
     if (deltaY > 50) {
-      // 50px 이상 아래로 드래그하면 닫기
+      
       setDrawerState("closed");
       setIsDragging(false);
     }
@@ -77,7 +77,7 @@ const MobileDrawer: React.FC<DrawerProps> = ({
     setIsDragging(false);
   };
 
-  // 드로어가 완전히 닫혀있고 열리지 않을 때만 렌더링하지 않음
+  
   if (drawerState === "closed" && !isOpen) {
     return null;
   }
@@ -97,10 +97,10 @@ const MobileDrawer: React.FC<DrawerProps> = ({
         style={{
           transform: `translateY(${translateY}vh)`,
           height: `calc(60vh)`,
-          paddingBottom: "70px", // 모바일 하단 안전 영역
+          paddingBottom: "70px",
           borderTopLeftRadius: "16px",
           borderTopRightRadius: "16px",
-          marginBottom: "env(safe-area-inset-bottom, 24px)", // 모바일 하단 안전 영역
+          marginBottom: "env(safe-area-inset-bottom, 24px)",
         }}
       >
         <div
@@ -116,7 +116,7 @@ const MobileDrawer: React.FC<DrawerProps> = ({
         <div
           className="px-6 w-fullbg-yellow-100"
           style={{
-            height: `calc(100% - 28px)`, // 50px는 상단 헤더 높이
+            height: `calc(100% - 28px)`,
           }}
         >
           {children}

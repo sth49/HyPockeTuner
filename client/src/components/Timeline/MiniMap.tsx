@@ -33,7 +33,7 @@ const MiniMapContent = ({
   const rafRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // 🔧 개선된 드래그 상태 관리
+  
   const dragStartMouseY = useRef(0);
   const dragStartViewportTop = useRef(0);
   const currentMouseY = useRef(0);
@@ -43,16 +43,16 @@ const MiniMapContent = ({
   const innerWidth = width - margin.left - margin.right;
   const availableHeight = height - margin.top - margin.bottom;
 
-  // 🔧 실제 밴드 크기 (원본 크기)
+  
   const ORIGINAL_BAND_WIDTH = 80;
   const ORIGINAL_BAND_HEIGHT = 60;
   const ORIGINAL_ASPECT_RATIO = ORIGINAL_BAND_WIDTH / ORIGINAL_BAND_HEIGHT;
 
-  // 🔧 기본 크기 계산 (고정 크기)
+  
   const baseBandWidth = innerWidth * 0.15;
   const baseBandHeight = baseBandWidth / ORIGINAL_ASPECT_RATIO;
-  const baseLinkWidth = (innerWidth - baseBandWidth * 3) / 2; // 가로 링크 너비
-  const baseLinkHeight = 8; // 🔧 세로 링크의 고정 높이
+  const baseLinkWidth = (innerWidth - baseBandWidth * 3) / 2;
+  const baseLinkHeight = 8;
 
   // console.log("Base sizes:", {
   //   bandWidth: baseBandWidth,
@@ -61,24 +61,24 @@ const MiniMapContent = ({
   //   linkHeight: baseLinkHeight,
   // });
 
-  // 🔧 전체 높이 계산 함수
+  
   const calculateTotalHeight = (bandHeight: number, linkHeight: number) => {
-    // 각 행의 밴드 높이 + 세로 링크들의 높이
+    
     const bandTotalHeight = bandHeight * data.length;
 
-    // 세로 링크가 있는 행의 개수 계산
+    
     const verticalLinkCount = data.filter((row) => row.verticalLink).length;
     const linkTotalHeight = linkHeight * verticalLinkCount;
 
     return bandTotalHeight + linkTotalHeight;
   };
 
-  // 🔧 크기 결정 로직
+  
   const calculateFinalSizes = () => {
     const naturalHeight = calculateTotalHeight(baseBandHeight, baseLinkHeight);
 
     if (naturalHeight <= availableHeight) {
-      // 🔧 높이가 충분하면 고정 크기 사용
+      
       // console.log(
       //   "Using fixed sizes - natural height:",
       //   naturalHeight,
@@ -94,7 +94,7 @@ const MiniMapContent = ({
         isScaled: false,
       };
     } else {
-      // 🔧 높이가 부족하면 비례적으로 축소
+      
       const scaleFactor = availableHeight / naturalHeight;
       // console.log(
       //   "Scaling down - scale factor:",
@@ -128,7 +128,7 @@ const MiniMapContent = ({
     bandWidth,
     bandHeight,
     linkWidth,
-    linkHeight, // 세로 링크용 높이 추가
+    linkHeight,
   };
 
   // console.log(

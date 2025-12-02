@@ -1,14 +1,94 @@
+# User data and experiments (contains identifying info)
+server/users/
+server/users2/
+users/
+users2/
+
+# Private keys and certificates
+*.pem
+private.pem
+certificate.pem
+
+# Config files that may contain sensitive info
+server/config.json
+server/config copy.json
+server/lastExp.json
+config.json
+
+# Jupyter notebooks (may contain personal data)
+*.ipynb
+
+# Log files
+log/
+logs/
+*.log
+
+# Data directories
 data/
+dataset/
+server/data/
+
+# Build outputs
+dist/
+build/
+client/dist/
+
+# Frontend development artifacts
 frontend/
 client-files/
-*.ipynb
-log*
-*.png
 
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-node_modules
+.pytest_cache/
+.mypy_cache/
+
+# Node.js
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files with identifying info
+server/test_*.py
+server/push_test.py
+
+# Icon generation scripts with local paths
+client/generate_icons.py
+client/generate_icons_pillow.py
+client/generate_ios_icons.py
+client/create_icons.py
+
+# Backup files
+*.bak
+*.backup
+*copy*
+* copy*
+
+# Prototype files
+server/prototypes/
+
+# CLIP and other model-specific data
+server/clip/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,4 +1,4 @@
-// 그래프 데이터 생성 훅
+
 import { useMemo } from "react";
 import { useExperimentStore } from "../../../stores/experimentStore";
 import { mergeEventData } from "../../../utils/mergeUtils";
@@ -15,7 +15,7 @@ export const useGraphData = () => {
 
   const startTime = useExperimentStore((state) => state.startTime);
   const endTime = useExperimentStore((state) => state.endTime);
-  // 현재 시간 - interactions이 변경될 때마다 업데이트되어야 함
+  
   const currentTime = Date.now();
 
   const graphData: BandProps[] = useMemo(() => {
@@ -57,7 +57,7 @@ export const useGraphData = () => {
       next: null,
     });
 
-    // Bracket node 생성
+    
     data.push({
       type: "node",
       bracket: numOfBrackets - brackets[0].id,
@@ -115,7 +115,7 @@ export const useGraphData = () => {
         next: null,
       });
 
-      // Bracket node 생성
+      
       data.push({
         type: "node",
         bracket: numOfBrackets - bracket.id,
@@ -142,7 +142,7 @@ export const useGraphData = () => {
         next: null,
       });
 
-      // 일반 trials 수집
+      
       const allTrials: NodeProps[] = [];
       bracket.rounds.forEach((round) => {
         round.trials.forEach((trial) => {
@@ -177,9 +177,9 @@ export const useGraphData = () => {
         });
       });
 
-      // 🔥 UserTrials 처리 개선
+      
       if (userTrials && userTrials.length > 0) {
-        // 시간 범위 필터링 로직 개선
+        
         const relevantUserTrials = userTrials.filter((userTrial) => {
           if (bracket.startTime === -1 && bracket.endTime === -1) {
             return false;
@@ -200,10 +200,10 @@ export const useGraphData = () => {
         });
 
         relevantUserTrials.forEach((userTrial) => {
-          // 🔥 문제 3: userTrial 상태에 따른 타입 결정
+          
           let trialType: NodeType = "user";
           if (userTrial.status === "running") {
-            trialType = "current"; // 실행 중인 user trial을 시각적으로 구분
+            trialType = "current";
           } else if (userTrial.status === "done") {
             trialType = "user";
           } else if (userTrial.status === "failed") {
@@ -224,23 +224,23 @@ export const useGraphData = () => {
         });
       }
 
-      // 🔥 안정적인 시간순 정렬 - 고정된 현재 시간 사용
+      
       allTrials.sort((a, b) => {
         const aTime =
           a.trials[0]?.startTime === -1 ? currentTime : a.trials[0]?.startTime;
         const bTime =
           b.trials[0]?.startTime === -1 ? currentTime : b.trials[0]?.startTime;
 
-        // 시간이 같은 경우 추가 정렬 기준 사용 (안정적인 정렬을 위해)
+        
         if (aTime === bTime) {
-          // trialId나 다른 고유한 속성으로 2차 정렬
+          
           const aTrialId = a.trials[0]?.trialId ?? 0;
           const bTrialId = b.trials[0]?.trialId ?? 0;
           if (aTrialId !== bTrialId) {
             return aTrialId - bTrialId;
           }
 
-          // 3차 정렬: ID로 정렬 (문자열이므로 localeCompare 사용)
+          
           const aId = String(a.trials[0]?.id ?? "");
           const bId = String(b.trials[0]?.id ?? "");
           return aId.localeCompare(bId);
@@ -249,7 +249,7 @@ export const useGraphData = () => {
         return aTime - bTime;
       });
 
-      // bestTrial 계산 및 데이터 추가
+      
       allTrials.forEach((trial) => {
         if (trial.trials[0].metric != null) {
           if (trial.trials[0].metric > bestTrialMetric) {
@@ -319,7 +319,7 @@ export const useGraphData = () => {
         data: item,
       }));
 
-    // visibility 세션 데이터 추가
+    
     visibilitySessions.forEach((session) => {
       // console.log(
       //   "startTime:",
@@ -418,7 +418,7 @@ export const useGraphData = () => {
               bracket: brackets.length - bracket.id,
               startTime: trial.startTime,
               endTime: trial.endTime,
-              order: -1, // Pending 노드는 특별한 순서가 없으므로 -1로 설정
+              order: -1,
               data: {
                 type: trial.type,
                 trials: [trial],
@@ -431,7 +431,7 @@ export const useGraphData = () => {
               bracket: brackets.length - bracket.id,
               startTime: trial.startTime,
               endTime: trial.endTime,
-              order: -1, // Pending 링크도 특별한 순서가 없으므로 -1로 설정
+              order: -1,
               data: {
                 type: trial.type,
                 trials: [trial],

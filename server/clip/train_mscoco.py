@@ -79,14 +79,14 @@ def train(config, train_dataset, model, logger):
             elif config.n_gpu > 1: 
                 logit_scale = model.module.logit_scale.exp()
             
-            # image 기준, 텍스트와 유사도 [N, N]
+            
             logits_per_image = logit_scale * image_features @ text_features.t()
-            # text 기준, 이미지와 유사도 [N, N]
+            
             logits_per_text = logit_scale * text_features @ image_features.t()
-            # i번째 image의 정답은 항상 i번째 텍스트 -> 정답이 항상 대각선 
+            
             labels = torch.arange(len(logits_per_image)).to(logits_per_image.device)
 
-            # CrossEntropyLoss는 알아서 정답인 index는 올리고 # 나머지 index는 낮추는 방향으로 loss를 계산해줌
+            
             image_loss = F.cross_entropy(logits_per_image, labels) 
             text_loss = F.cross_entropy(logits_per_text, labels)
             
@@ -94,11 +94,11 @@ def train(config, train_dataset, model, logger):
 
             if config.n_gpu > 1: 
                 loss = loss.mean() # mean() to average on multi-gpu parallel training
-            # step마다 loss를 gradient로 업데이트하기 위해서 loss를 step수로 나누어 줌
+            
             if config.gradient_accumulation_steps > 1:
                 loss = loss / config.gradient_accumulation_steps
             
-            loss.backward() # 미분값 계산만 함 
+            loss.backward()
             
             global_loss += loss.item()
             

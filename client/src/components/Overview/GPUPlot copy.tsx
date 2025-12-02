@@ -7,19 +7,19 @@ import { GridColumns, GridRows } from "@visx/grid";
 import { curveMonotoneX } from "@visx/curve";
 import { useExperimentStore } from "../../stores/experimentStore";
 import HeaderText from "../common/HeaderText";
-// 옆으로 늘어나는 차트
+
 const GPUPlot = () => {
   const gpuInfo = useExperimentStore((state) => state.gpuInfo);
 
-  const chartWidth = Math.max(400, (gpuInfo.length + 2) * 10); // 데이터 양에 따라 차트 너비 결정
-  const height = 110; // 모바일에 맞게 높이 축소
+  const chartWidth = Math.max(400, (gpuInfo.length + 2) * 10);
+  const height = 110;
   const margin = { top: 15, right: 30, bottom: 30, left: 0 };
   const innerWidth = chartWidth - margin.right - margin.left;
   const innerHeight = height - margin.top - margin.bottom;
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollRef2 = useRef<HTMLDivElement>(null);
 
-  // 1분 단위로 데이터 집계
+  
   const aggregatedData = useMemo(() => {
     if (!gpuInfo.length) return [];
 
@@ -35,7 +35,7 @@ const GPUPlot = () => {
 
     gpuInfo.forEach((item) => {
       const date = new Date(item.time);
-      // 분 단위로 반올림
+      
       const minuteKey = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -60,7 +60,7 @@ const GPUPlot = () => {
       );
     });
 
-    // 평균 계산
+    
     return Object.values(dataByMinute)
       .map((group) => ({
         time: new Date(group.time),
@@ -77,7 +77,7 @@ const GPUPlot = () => {
       .sort((a, b) => a.time.getTime() - b.time.getTime());
   }, [gpuInfo]);
 
-  // 데이터가 업데이트될 때마다 오른쪽 끝으로 스크롤
+  
   useEffect(() => {
     if (scrollRef.current && aggregatedData.length > 0) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
@@ -90,15 +90,15 @@ const GPUPlot = () => {
     }
   }, []);
 
-  // 스케일 설정
+  
   const timeScale = useMemo(() => {
     if (!aggregatedData.length) return scaleTime({ range: [0, innerWidth] });
 
     return scaleTime({
       range: [0, innerWidth],
       domain: [
-        Math.min(...aggregatedData.map((d) => d.time.getTime())) - 10000, // 1분 전
-        Math.max(...aggregatedData.map((d) => d.time.getTime())) + 10000, // 1분 후
+        Math.min(...aggregatedData.map((d) => d.time.getTime())) - 10000,
+        Math.max(...aggregatedData.map((d) => d.time.getTime())) + 10000,
       ],
     });
   }, [aggregatedData, innerWidth]);
@@ -128,7 +128,7 @@ const GPUPlot = () => {
     });
   }, [innerHeight]);
 
-  // 접근자 함수들
+  
   const getTime = (d: any) => d.time;
   const getTemperature = (d: any) => d.temperature;
   const getUtilization = (d: any) => d.utilization;
@@ -147,7 +147,7 @@ const GPUPlot = () => {
     <div className="w-full flex gap-1.5 items-between flex-col bg-white p-4">
       <HeaderText text="GPU Monitoring" />
       <div className="w-full h-full">
-        {/* 온도 차트 */}
+        
         <div className="relative ">
           <p>Temperature (°C)</p>
           <svg

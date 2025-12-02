@@ -34,11 +34,9 @@ const SelectTrials = () => {
     });
   };
 
-  // 테이블 데이터가 준비되고 selectedTrials가 있을 때만 selection 복원
   useEffect(() => {
     const tableRows = table.getRowModel().rows;
 
-    // 테이블에 데이터가 없거나 selectedTrials가 없으면 종료
     if (tableRows.length === 0 || selectedTrials.length === 0) {
       console.log("Table rows or selectedTrials not ready:", {
         tableRowsLength: tableRows.length,
@@ -50,13 +48,12 @@ const SelectTrials = () => {
     const newSelection: Record<string, boolean> = {};
     const selectedTrialIds = selectedTrials.map((trial) => trial.id);
 
-    // 이제 trial ID 기반으로 selection 설정
     selectedTrialIds.forEach((trialId) => {
       newSelection[trialId] = true;
     });
 
     setRowSelection(newSelection);
-  }, [selectedTrials, table.getRowModel().rows.length, setRowSelection]); // 의존성을 rows.length로 변경
+  }, [selectedTrials, table.getRowModel().rows.length, setRowSelection]);
 
   if (isLoading && table.getRowModel().rows.length === 0) {
     return (
@@ -95,8 +92,7 @@ const SelectTrials = () => {
           }
           const selectedRows: TrialRowType[] = [];
           const allRows = table.getRowModel().rows;
-          
-          // trial ID 기반으로 선택된 trials 추출
+
           Object.keys(rowSelection).forEach((trialId) => {
             if (rowSelection[trialId]) {
               const trial = allRows.find(row => row.original && row.original.id === trialId)?.original;

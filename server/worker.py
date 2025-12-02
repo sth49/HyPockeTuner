@@ -62,7 +62,7 @@ def get_is_paused(data):
 # def trial_restored(data):
 #     print("Restoring trial: ", data)
 #     try:
-#         # 🔧 수정: POST 요청에 데이터 추가
+
 #         response = requests.get(API + f'trials/restore/{data["curr_exp"]}', verify=False)
 #         if response.status_code == 200 and response.text.strip():
 #             res = response.json()
@@ -92,7 +92,7 @@ def main():
     mp.set_start_method('spawn')
     p, trial = None, None
     last_pause_check = 0
-    PAUSE_CHECK_INTERVAL = 2  # 2초마다 pause 체크
+    PAUSE_CHECK_INTERVAL = 2
     
     while True:
         if p is None:
@@ -118,7 +118,7 @@ def main():
                 print("Failed to get a task from the queue. Retrying...")
 
         if p is not None:
-            # 🔧 수정: 정기적으로 pause 상태 체크
+            
             current_time = time.time()
             if current_time - last_pause_check > PAUSE_CHECK_INTERVAL:
                 try:
@@ -126,13 +126,13 @@ def main():
                     if is_paused:
                         print("Experiment Paused!")
                         p.terminate()
-                        p.join(timeout=10)  # 최대 10초 대기
+                        p.join(timeout=10)
                         if p.is_alive():
                             print("Process still alive after terminate, using kill")
                             p.kill()
                         print("Process terminated")
                         
-                        # 🔧 수정: trial 복원 시도
+                        
                         # restore_success = trial_restored(trial)
                         # if restore_success:
                         #     print("Trial restored successfully")
@@ -141,15 +141,15 @@ def main():
                         
                         p = None
                         trial = None
-                        continue  # 🔧 메인 루프 재시작
+                        continue
                 except Exception as e:
                     print(f"Error during pause check: {e}")
                 
                 last_pause_check = current_time
             
-            # 🔧 수정: 큐 메시지 처리 (pause 체크와 분리)
+            
             process_completed = False
-            error_reported = False  # 중복 에러 보고 방지
+            error_reported = False
             while not queue.empty():
                 try:
                     message = queue.get_nowait()
@@ -172,7 +172,7 @@ def main():
                     print(f"Error processing queue message: {e}")
                     break
 
-            # 🔧 수정: 프로세스 상태 체크
+            
             if not p.is_alive() or process_completed:
                 try:
                     p.join(timeout=5)
@@ -183,7 +183,7 @@ def main():
                 print("Process completed, ready for next trial")
 
         else:
-            time.sleep(1)  # 🔧 수정: 더 짧은 대기 시간
+            time.sleep(1)
 
 if __name__=="__main__":
     print("Starting worker...")
@@ -191,16 +191,16 @@ if __name__=="__main__":
     # trial = {
     #         "params":{
     #             "learning_rate": 2e-5, 
-    #             "optimizer": "adam", # 확인
-    #             "scheduler": "linear_warmup", # 확인
+    
+    
     #             "batch_size": 64, # 
     #             "weight_decay": 0,
     #             "momentum": 0.7414670522347097,
-    #             "activation": "silu", # 확인
+    
     #             "max_length": 500,
     #             "dropout_p": 0.1,
-    #             "positional_embedding": "absolute", # 확인
-    #             "use_decoder": False, # 확인
+    
+    
     #         },
     #         "budget": 3,
     #         "model": "bert",
@@ -245,16 +245,16 @@ if __name__=="__main__":
     #     print()
 
      # for opt in [
-    #       "adam", # 성공
-    #       "adamw", # 성공
-    #       "adafactor", # 성공
-    #       "adamax", # 성공
-    #       "asgd", # 성공
-    #       "rprop", # 성공
-    #       "nadam", # 성공 
-    #       "radam", # 성공
-    #       "sgd", # 성공
-    #       "rms" # 성공
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     #     ]:
     #     print("########### optimizer: ", opt)
     #     trial2 = trial.copy()
@@ -264,13 +264,13 @@ if __name__=="__main__":
     #     print()
     #     print()
     # for sch in [
-    #     "constant", # 성공
-    #       "constant_warmup", # 성공
-    #       "cosine_warmup", # 성공
-    #       "cosine_hard_restarts", # 성공
-    #       "linear_warmup", # 성공
-    #       "polynomial_decay", #  성공
-    #       "none" # 성공
+    
+    
+    
+    
+    
+    
+    
     #     ]:
     #     print("########### scheduler: ", sch)
     #     trial2 = trial.copy()

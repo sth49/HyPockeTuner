@@ -3,12 +3,12 @@ import { persist } from "zustand/middleware";
 import { SERVER_URL } from "../api/const";
 
 interface AuthState {
-  // 인증 상태
+  
   isAuthenticated: boolean;
   currentUser: string | null;
   token: string | null;
   
-  // 액션들
+  
   login: (userId: string) => void;
   logout: () => void;
   setToken: (token: string) => void;
@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           isAuthenticated: true,
           currentUser: userId,
-          token: userId, // 서버에서 token은 userId와 동일하게 처리
+          token: userId,
         });
       },
 
@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
         } catch (error) {
-          console.error("토큰 검증 실패:", error);
+          console.error("Token validation failed:", error);
           get().logout();
           return false;
         }

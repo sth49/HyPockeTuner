@@ -1,7 +1,7 @@
 import ExperimentItem from "./ExperimentItem";
 
 interface ExperimentListProps {
-  experiments: any[]; // 실제 experiment 타입으로 교체
+  experiments: any[];
   onSelectExperiment: (experimentId: string) => void;
   onLongPressExperiment?: (experimentId: string) => void;
 }

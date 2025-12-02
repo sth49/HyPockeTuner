@@ -14,7 +14,7 @@ const HparamEffect = () => {
     .filter((hp) => !hp.getIsConstant())
     .map((hp) => hp.name);
 
-  // 모든 파라미터의 toggle 상태를 하나의 객체로 관리
+  
   const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({});
 
   if (
@@ -35,7 +35,7 @@ const HparamEffect = () => {
     );
   }
 
-  // toggle 상태 변경 함수
+  
   const handleToggleChange = (paramName: string) => {
     setToggleStates((prev) => ({
       ...prev,
@@ -58,7 +58,7 @@ const HparamEffect = () => {
             ? hpTypeIcons[HyperparamTypes[param.type].toLowerCase()] || null
             : hpTypeIcons.constant;
 
-        // 현재 파라미터의 toggle 상태 (기본값: false)
+        
         const isToggled = toggleStates[param.name] || false;
 
         return (

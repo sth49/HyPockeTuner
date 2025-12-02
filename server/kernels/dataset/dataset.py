@@ -36,13 +36,13 @@ class SatelliteDataset(Dataset):
         return len(self.data) * 25
       
 
-    def processing(self,idx, height=1024, width=1024, crop_size=200): #crop_size=200 -> 개수 맞추기 위함
+    def processing(self,idx, height=1024, width=1024, crop_size=200):
 
-      xy = idx//len(self.data) # 0~24의 값
-      randx = xy//5 # 0~4의 값
-      randy = xy%5 # 0~4의 값
+      xy = idx//len(self.data)
+      randx = xy//5
+      randy = xy%5
 
-      idx = idx%len(self.data) #25배로 불린 이유는 crop을 위함, 다시 원래대로
+      idx = idx%len(self.data)
 
       if(self.test):
         img_path = os.path.join(self.data_dir, self.data.iloc[idx, 1])

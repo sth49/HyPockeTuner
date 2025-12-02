@@ -32,12 +32,7 @@ const NewUserTrial = () => {
     ? hyperparams.filter((hp) => !hp.getIsConstant()).map((hp) => hp.name)
     : [];
 
-  // const hparamList = hyperparams
-
-  // 고정된 trial ID를 저장 (테이블 row id가 아닌 실제 trial id)
   const [pinnedTrialId, setPinnedTrialId] = useState<string | null>(null);
-
-  // rowPinning state는 제거하고 pinnedTrialId만 사용
 
   const [userHparamValues, setUserHparamValues] = useState<
     Record<string, string | number>
@@ -46,20 +41,16 @@ const NewUserTrial = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const pendingRowRef = useRef<any>(null);
 
-  // 값 검증 로직
   const isValidConfiguration = useMemo(() => {
     if (!hyperparams) return false;
 
-    // 1. 모든 하이퍼파라미터가 유효한 값을 가져야 함
     for (const hparam of hyperparams) {
       const value = userHparamValues[hparam.name];
 
-      // 값이 없거나 빈 문자열인 경우
       if (value === undefined || value === null || value === "") {
         return false;
       }
 
-      // UniformHyperparam 타입 검증
       if (hparam instanceof UniformHyperparam) {
         const numValue = Number(value);
         if (
@@ -71,7 +62,6 @@ const NewUserTrial = () => {
         }
       }
 
-      // OrderedHyperparam과 UnorderedHyperparam 타입 검증
       if (
         hparam instanceof OrderedHyperparam ||
         hparam instanceof UnorderedHyperparam
@@ -86,7 +76,6 @@ const NewUserTrial = () => {
       }
     }
 
-    // 2. Budget 값 검증
     const budgetValue = Number(userHparamValues["budget"]);
     if (isNaN(budgetValue) || budgetValue <= 0) {
       return false;
@@ -105,7 +94,6 @@ const NewUserTrial = () => {
       return;
     }
 
-    // 처음에만 pinnedTrialId 설정
     if (!pinnedTrialId) {
       const pinnedRow = rows.find((row) => row.original.id === id);
       console.log("Setting initial pinned trial ID:", pinnedRow?.original.id);
@@ -133,9 +121,6 @@ const NewUserTrial = () => {
     }
   }, [hyperparams, id, table, pinnedTrialId]);
 
-  // userTrials 변경시에도 pinning 재적용
-
-  // 초기 설정용 - 한 번만 실행
   useEffect(() => {
     if (table && id && !pinnedTrialId) {
       const checkAndInitialize = () => {
@@ -151,7 +136,6 @@ const NewUserTrial = () => {
     }
   }, [id, table, initializePinnedTrial, pinnedTrialId]);
 
-  // pinnedTrialId를 사용하여 고정된 row와 일반 rows를 분리
   const allRows = table.getRowModel().rows;
   const pinnedRow = pinnedTrialId
     ? allRows.find((row) => row.original.id === pinnedTrialId)
@@ -175,7 +159,6 @@ const NewUserTrial = () => {
                 : "False"
               : h.values[0];
         } else if (h instanceof UniformHyperparam) {
-          // initialValues[h.name] = h.range[0]; // 초기값 설정하지 않음
         }
       });
       initialValues["budget"] = 1; // Default budget value (minimum 1)

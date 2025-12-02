@@ -11,7 +11,7 @@ import traceback
 from multiprocessing import Queue
 
 # Add the server directory to path
-sys.path.insert(0, '/home/donghee/HyPockeTuner_new/server')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the kernel
 from kernels.segmentation_kernel2 import KernelBase

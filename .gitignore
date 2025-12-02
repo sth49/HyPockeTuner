@@ -101,3 +101,6 @@ server/clip/
 # Temporary files
 *.tmp
 *.temp
+
+# Claude Code instructions
+CLAUDE.md

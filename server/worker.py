@@ -8,7 +8,7 @@ from kernels import get_kernel_for_trial, load_kernel
 import multiprocessing as mp
 
 # API = "http://0.0.0.0:8999/"
-API = "https://115.145.171.130:8081/"
+API = "https://localhost:8081/"
 
 session = requests.Session()
 retry = Retry(connect=3, backoff_factor=0.5)

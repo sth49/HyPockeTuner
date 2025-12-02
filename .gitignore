@@ -67,9 +67,18 @@ yarn.lock
 .DS_Store
 Thumbs.db
 
-# Test files with identifying info
+# Test files
 server/test_*.py
 server/push_test.py
+
+# Unused server files
+server/gpu.py
+server/hpo_state.py
+server/nlp.py
+server/parse.py
+server/run_glue.py
+server/run_glue_no_trainer.py
+server/worker_wo_finegrain.py
 
 # Icon generation scripts with local paths
 client/generate_icons.py

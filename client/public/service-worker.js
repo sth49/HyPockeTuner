@@ -18,8 +18,8 @@ self.addEventListener("push", function (e) {
   const o = i.key || "Default Title",
     n = {
       body: i.value.content || "Default Message",
-      icon: "icons/icon-192x192.png",
-      badge: "icons/badge-72x72.png",
+      icon: "/HyPockeTuner_new/vite.svg",
+      badge: "/HyPockeTuner_new/vite.svg",
     };
   e.waitUntil(self.registration.showNotification(o, n));
 });

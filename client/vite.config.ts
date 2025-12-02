@@ -36,26 +36,9 @@ export default defineConfig({
         orientation: "portrait",
         icons: [
           {
-            src: "/HyPockeTuner_new/logo192.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any maskable"
-          },
-          {
-            src: "/HyPockeTuner_new/logo512.png", 
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable"
-          },
-          {
-            src: "/HyPockeTuner_new/icon-192.png",
-            sizes: "192x192",
-            type: "image/png"
-          },
-          {
-            src: "/HyPockeTuner_new/icon-512.png",
-            sizes: "512x512",
-            type: "image/png"
+            src: "/HyPockeTuner_new/vite.svg",
+            sizes: "any",
+            type: "image/svg+xml"
           }
         ]
       },
@@ -65,11 +48,7 @@ export default defineConfig({
         swDest: "dist/sw.js",
         globIgnores: [
           "**/node_modules/**/*",
-          "service-worker.js",
-          "**/apple-touch-icon.png",
-          "**/logo192.png",
-          "**/logo512.png",
-          "**/*.svg"
+          "service-worker.js"
         ],
         manifestTransforms: [
           (manifestEntries) => {

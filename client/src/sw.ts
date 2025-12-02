@@ -61,8 +61,8 @@ self.addEventListener("push", function (e) {
   const title = data.key || "Default Title";
   const options = {
     body: data.value?.content || "Default Message",
-    icon: "/HyPockeTuner_new/logo192.png",
-    badge: "/HyPockeTuner_new/logo192.png",
+    icon: "/HyPockeTuner_new/vite.svg",
+    badge: "/HyPockeTuner_new/vite.svg",
     data: {
       exp: data.value?.exp
     }

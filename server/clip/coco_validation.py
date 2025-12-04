@@ -260,9 +260,10 @@ def quick_coco_validation_test():
     """Quick test of COCO validation with dummy data"""
     print("🧪 Quick COCO Validation Test...")
     
-    # Test data paths
-    val_img_dir = '/home/donghee/HyPockeTuner_new/server/data/mscoco/val2017'
-    val_annotation_file = '/home/donghee/HyPockeTuner_new/server/data/mscoco/annotations/captions_val2017.json'
+    # Test data paths (relative to server directory)
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    val_img_dir = os.path.join(base_dir, 'data', 'mscoco', 'val2017')
+    val_annotation_file = os.path.join(base_dir, 'data', 'mscoco', 'annotations', 'captions_val2017.json')
     
     # Check if files exist
     if not os.path.exists(val_img_dir):

@@ -1,2 +1,2 @@
-train_img_dir : '/home/donghee/HyPockeTuner_new/server/data/mscoco/train2017'
-train_annotation_file : '/home/donghee/HyPockeTuner_new/server/data/mscoco/annotations/captions_train2017.json'
+train_img_dir : './data/mscoco/train2017'
+train_annotation_file : './data/mscoco/annotations/captions_train2017.json'

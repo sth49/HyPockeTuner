@@ -98,7 +98,7 @@ server/prototypes/
 # CLIP and other model-specific data
 server/clip/
 
-# Other kernel files (keep only kernel.py as example)
+# Kernel files (keep only __init__.py and kernel.py)
 server/kernels/cifar10_kernel.py
 server/kernels/clip_kernel.py
 server/kernels/mnist_kernel.py
@@ -106,6 +106,11 @@ server/kernels/nlp_kernel.py
 server/kernels/segmentation_kernel.py
 server/kernels/segmentation_kernel2.py
 server/kernels/__init__2.py
+server/kernels/common/
+server/kernels/dataset/
+server/kernels/model/
+server/kernels/models/
+server/kernels/training/
 
 # Temporary files
 *.tmp

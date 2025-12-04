@@ -1,6 +1,0 @@
-{
-	"dependencies": {
-		"datasets": "^0.1.0",
-		"sklearn": "^1.0.0"
-	}
-}

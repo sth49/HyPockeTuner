@@ -95,6 +95,13 @@ client/create_icons.py
 # Prototype files
 server/prototypes/
 
+# BOHB original library (using modified version in server/bohb/)
+server/bohb-hpo-master/
+
+# Server package files
+server/package.json
+server/pnpm-lock.yaml
+
 # CLIP and other model-specific data
 server/clip/
 

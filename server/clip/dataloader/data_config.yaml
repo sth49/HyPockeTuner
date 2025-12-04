@@ -1,2 +1,0 @@
-train_img_dir : './data/mscoco/train2017'
-train_annotation_file : './data/mscoco/annotations/captions_train2017.json'

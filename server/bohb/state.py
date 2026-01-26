@@ -8,8 +8,6 @@ from queue import PriorityQueue
 import statsmodels.api as sm
 import copy
 import time
-sub = {'endpoint': 'https://fcm.googleapis.com/fcm/send/FCM_ENDPOINT_REMOVED',
-       'expirationTime': None, 'keys': {'p256dh': 'P256DH_KEY_REMOVED', 'auth': 'AUTH_KEY_REMOVED'}}
 
 
 

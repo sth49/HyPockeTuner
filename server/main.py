@@ -23,9 +23,16 @@ from sklearn.ensemble import RandomForestRegressor
 import hpo_shap_analysis as hpo_shap_analysis
 
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 el = None
 
-PRIVATE_KEY = "VAPID_KEY_REMOVED"
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+if not VAPID_PRIVATE_KEY:
+    print("WARNING: VAPID_PRIVATE_KEY environment variable not set. Push notifications will not work.")
 
 reserved = [] # list of progress
 user_trial_que = PriorityQueue()
@@ -344,7 +351,7 @@ def pushAll(data):
                 
             res = webpush(
                 sub, data=json.dumps(data),
-                vapid_private_key=PRIVATE_KEY,
+                vapid_private_key=VAPID_PRIVATE_KEY,
                 vapid_claims={"sub": "mailto:admin@example.com"}
             )
         except json.JSONDecodeError as e:
@@ -587,7 +594,7 @@ async def test_push(request: Request):
     # print("test push", data)
     sub = json.loads(data)
     res = webpush(sub, data='{"key": "test_noti", "value": {"content": "Target accuracy 0.351 has been reached. Now: 0.452", "id": -1}, "CALLBACK": "https://example.com/read"}',
-                vapid_private_key=PRIVATE_KEY,
+                vapid_private_key=VAPID_PRIVATE_KEY,
                 vapid_claims={"sub": "mailto:admin@example.com"})
     return {"success": True}
 

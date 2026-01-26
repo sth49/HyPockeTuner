@@ -16,8 +16,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 
-const VAPID_PUBLIC_KEY =
-  "VAPID_PUBLIC_KEY_REMOVED";
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
 
 export class NotificationService {
   private static registration: ServiceWorkerRegistration | null = null;

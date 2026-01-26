@@ -21,7 +21,8 @@ HIGH_USAGE = 'high-usage'
 
 CUSTOM = 'custom'
 
-PRIVATE_KEY = "VAPID_KEY_REMOVED"
+import os
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 from pywebpush import webpush
 
 def get_condition(cond, exp_id):
@@ -133,7 +134,7 @@ class ConditionPair:
             # try:
             #     for sub_string in subs:
             #         sub  = json.loads(sub_string)
-            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=PRIVATE_KEY, vapid_claims={"sub": "mailto:admin@example.com"})
+            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=VAPID_PRIVATE_KEY, vapid_claims={"sub": "mailto:admin@example.com"})
             #         print("sent a push", res)
             # except Exception as e:
             #     print(e)
@@ -148,7 +149,7 @@ class ConditionPair:
             # try:
             #     for sub_string in subs:
             #         sub  = json.loads(sub_string)
-            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=PRIVATE_KEY, vapid_claims={"sub": "mailto:admin@example.com"})
+            #         res = webpush(sub, data=json.dumps(data), vapid_private_key=VAPID_PRIVATE_KEY, vapid_claims={"sub": "mailto:admin@example.com"})
             #         print("sent a push", res)
             # except Exception as e:
             #     print(e)

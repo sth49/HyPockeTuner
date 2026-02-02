@@ -172,20 +172,7 @@ Configure the optimization in experiment settings:
 
 ## 📚 Citation
 
-If you use this tool in your research, please cite our paper:
-
-```bibtex
-@inproceedings{hong2026hypocketuner,
-  title     = {HyPockeTuner: Bringing Hyperparameter Optimization to Mobile Devices},
-  author    = {Hong, Donghee and Lee, Bongshin and Seo, Jinwook and Jo, Jaemin},
-  booktitle = {Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems},
-  year      = {2026},
-  publisher = {Association for Computing Machinery},
-  address   = {New York, NY, USA},
-  url       = {https://doi.org/10.1145/3772318.3790977},
-  doi       = {10.1145/3772318.3790977}
-}
-```
+TBU
 
 ---
 

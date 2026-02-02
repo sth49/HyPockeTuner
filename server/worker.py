@@ -4,11 +4,12 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 import time
 import urllib3
-from kernels import get_kernel_for_trial, load_kernel 
+import os
+from kernels import get_kernel_for_trial, load_kernel
 import multiprocessing as mp
 
-# API = "http://0.0.0.0:8999/"
-API = "https://localhost:8081/"
+# API URL - configure via environment variable or use default
+API = os.environ.get("WORKER_API_URL", "http://localhost:8080/")
 
 session = requests.Session()
 retry = Retry(connect=3, backoff_factor=0.5)

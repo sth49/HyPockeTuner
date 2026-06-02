@@ -141,7 +141,7 @@ Configure the optimization in experiment settings:
 
 | Type            | Description                                             |
 | :-------------- | :------------------------------------------------------ |
-| **Progress**    | Alert when brackets or rounds complete                  |
+| **Progress**    | Alert when brackets or rounds are complete                  |
 | **Performance** | Alert when accuracy reaches target or improves by Δ     |
 | **Timeout**     | Alert when no improvement within time window            |
 | **Emergency**   | Alert for high GPU temp, low utilization, or exceptions |
